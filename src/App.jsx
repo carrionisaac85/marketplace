@@ -266,6 +266,7 @@ const [photoPrev, setPhotoPrev] = useState(null);
 const [photoFile, setPhotoFile] = useState(null);
 const [sent, setSent] = useState({});
 const [sending, setSending] = useState(false);
+const [offerError, setOfferError] = useState("");
 
 const [form, setForm] = useState({title:"",description:"",budget:"",category:"",location:""});
 const [locLoading, setLocLoading] = useState(false);
@@ -414,6 +415,7 @@ setTimeout(()=>{setPosted(false);setView("mine");},1800);
 const sendOffer = async wid => {
 if (!oc.message||!oc.price||!user||sending) return;
 setSending(true);
+setOfferError("");
 try {
   let photoUrl = null;
   if (photoFile) {
@@ -430,6 +432,11 @@ try {
   setSent(p=>({...p,[wid]:true}));
   setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
   setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
+} catch(err) {
+  const msg = photoFile && err.code?.includes("storage")
+    ? "Photo upload failed. Check your Storage rules in Firebase and try again."
+    : "Something went wrong. Please try again.";
+  setOfferError(msg);
 } finally {
   setSending(false);
 }
@@ -724,10 +731,11 @@ return (
                       {photoPrev&&<img src={photoPrev} className="photo-prev" alt="preview" />}
                     </div>
                     <div className="crow" style={{marginTop:10}}>
-                      <textarea className="cmsg" placeholder="Describe what you have..." value={oc.message} onChange={e=>setOc(p=>({...p,message:e.target.value}))} />
-                      <input type="number" className="cprice" placeholder="$" value={oc.price} onChange={e=>setOc(p=>({...p,price:e.target.value}))} />
+                      <textarea className="cmsg" placeholder="Describe what you have..." value={oc.message} onChange={e=>{setOc(p=>({...p,message:e.target.value}));setOfferError("");}} />
+                      <input type="number" className="cprice" placeholder="$" value={oc.price} onChange={e=>{setOc(p=>({...p,price:e.target.value}));setOfferError("");}} />
                       <button className="csend" onClick={()=>sendOffer(sheet.id)} disabled={sending} style={{opacity:sending?0.7:1,cursor:sending?"not-allowed":"pointer"}}>{sending?(photoFile?"Uploading...":"Sending..."):"Send ->"}</button>
                     </div>
+                    {offerError&&<div style={{marginTop:8,fontSize:13,color:"var(--red)",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 12px"}}>{offerError}</div>}
                   </>
                 )}
               </div>
