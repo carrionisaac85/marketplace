@@ -265,6 +265,7 @@ const [oc, setOc] = useState({message:"",price:"",photoUrl:""});
 const [photoPrev, setPhotoPrev] = useState(null);
 const [photoFile, setPhotoFile] = useState(null);
 const [sent, setSent] = useState({});
+const [sending, setSending] = useState(false);
 
 const [form, setForm] = useState({title:"",description:"",budget:"",category:"",location:""});
 const [locLoading, setLocLoading] = useState(false);
@@ -411,22 +412,27 @@ setTimeout(()=>{setPosted(false);setView("mine");},1800);
 };
 
 const sendOffer = async wid => {
-if (!oc.message||!oc.price||!user) return;
-let photoUrl = null;
-if (photoFile) {
-  const storageRef = ref(storage, `offers/${user.uid}/${Date.now()}_${photoFile.name}`);
-  const snapshot = await uploadBytes(storageRef, photoFile);
-  photoUrl = await getDownloadURL(snapshot.ref);
+if (!oc.message||!oc.price||!user||sending) return;
+setSending(true);
+try {
+  let photoUrl = null;
+  if (photoFile) {
+    const storageRef = ref(storage, `offers/${user.uid}/${Date.now()}_${photoFile.name}`);
+    const snapshot = await uploadBytes(storageRef, photoFile);
+    photoUrl = await getDownloadURL(snapshot.ref);
+  }
+  await updateDoc(doc(db,"wants",wid),{offers:arrayUnion({
+  from:user.displayName||user.email, fromId:user.uid,
+  message:oc.message, price:parseInt(oc.price)||0,
+  photoUrl:photoUrl,
+  time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
+  })});
+  setSent(p=>({...p,[wid]:true}));
+  setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
+  setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
+} finally {
+  setSending(false);
 }
-await updateDoc(doc(db,"wants",wid),{offers:arrayUnion({
-from:user.displayName||user.email, fromId:user.uid,
-message:oc.message, price:parseInt(oc.price)||0,
-photoUrl:photoUrl,
-time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
-})});
-setSent(p=>({...p,[wid]:true}));
-setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
-setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
 };
 
 const openChat = async (want, offer) => {
@@ -720,7 +726,7 @@ return (
                     <div className="crow" style={{marginTop:10}}>
                       <textarea className="cmsg" placeholder="Describe what you have..." value={oc.message} onChange={e=>setOc(p=>({...p,message:e.target.value}))} />
                       <input type="number" className="cprice" placeholder="$" value={oc.price} onChange={e=>setOc(p=>({...p,price:e.target.value}))} />
-                      <button className="csend" onClick={()=>sendOffer(sheet.id)}>Send -></button>
+                      <button className="csend" onClick={()=>sendOffer(sheet.id)} disabled={sending} style={{opacity:sending?0.7:1,cursor:sending?"not-allowed":"pointer"}}>{sending?(photoFile?"Uploading...":"Sending..."):"Send ->"}</button>
                     </div>
                   </>
                 )}
