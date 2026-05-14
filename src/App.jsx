@@ -8,6 +8,9 @@ import {
 getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+getStorage, ref, uploadBytes, getDownloadURL,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -22,6 +25,7 @@ measurementId: "G-WGWS8Y69F0",
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
@@ -259,6 +263,7 @@ const touchStartY = useRef(0);
 
 const [oc, setOc] = useState({message:"",price:"",photoUrl:""});
 const [photoPrev, setPhotoPrev] = useState(null);
+const [photoFile, setPhotoFile] = useState(null);
 const [sent, setSent] = useState({});
 
 const [form, setForm] = useState({title:"",description:"",budget:"",category:"",location:""});
@@ -379,8 +384,9 @@ setLocLoading(false);
 
 const handlePhoto = e => {
 const f=e.target.files[0]; if(!f) return;
+setPhotoFile(f);
 const r=new FileReader();
-r.onload=ev=>{ setPhotoPrev(ev.target.result); setOc(p=>({...p,photoUrl:ev.target.result})); };
+r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
@@ -406,14 +412,20 @@ setTimeout(()=>{setPosted(false);setView("mine");},1800);
 
 const sendOffer = async wid => {
 if (!oc.message||!oc.price||!user) return;
+let photoUrl = null;
+if (photoFile) {
+  const storageRef = ref(storage, `offers/${user.uid}/${Date.now()}_${photoFile.name}`);
+  const snapshot = await uploadBytes(storageRef, photoFile);
+  photoUrl = await getDownloadURL(snapshot.ref);
+}
 await updateDoc(doc(db,"wants",wid),{offers:arrayUnion({
 from:user.displayName||user.email, fromId:user.uid,
 message:oc.message, price:parseInt(oc.price)||0,
-photoUrl:oc.photoUrl||null,
+photoUrl:photoUrl,
 time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
 })});
 setSent(p=>({...p,[wid]:true}));
-setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null);
+setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
 setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
 };
 
