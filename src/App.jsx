@@ -257,6 +257,8 @@ const [dist, setDist] = useState("Any distance");
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
 const [sheet, setSheet] = useState(null);
+const [notifPerm, setNotifPerm] = useState(() => typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+const prevOfferCounts = useRef(null);
 const [refreshing, setRefreshing] = useState(false);
 const [pullY, setPullY] = useState(0);
 const touchStartY = useRef(0);
@@ -291,8 +293,31 @@ useEffect(() => onAuthStateChanged(auth, u => { setUser(u); setAuthLoading(false
 useEffect(() => {
 const q = query(collection(db,"wants"), orderBy("createdAt","desc"));
 return onSnapshot(q, snap => {
-setWants(snap.docs.map(d=>({id:d.id,...d.data()})));
+const fresh = snap.docs.map(d=>({id:d.id,...d.data()}));
+setWants(fresh);
 setLoading(false);
+setUser(u => {
+  if (u && prevOfferCounts.current !== null) {
+    fresh.filter(w => w.userId === u.uid).forEach(w => {
+      const prev = prevOfferCounts.current[w.id] ?? (w.offers||[]).length;
+      const curr = (w.offers||[]).length;
+      if (curr > prev && Notification.permission === "granted") {
+        const latest = w.offers[w.offers.length - 1];
+        new Notification("New offer on your want!", {
+          body: `${latest?.from || "Someone"} offered $${latest?.price || "?"} for "${w.title}"`,
+          icon: "/favicon.ico",
+        });
+      }
+      prevOfferCounts.current[w.id] = curr;
+    });
+  } else if (u && prevOfferCounts.current === null) {
+    prevOfferCounts.current = {};
+    fresh.filter(w => w.userId === u.uid).forEach(w => {
+      prevOfferCounts.current[w.id] = (w.offers||[]).length;
+    });
+  }
+  return u;
+});
 });
 }, []);
 
@@ -621,6 +646,21 @@ return (
         <>
           <div className="stitle">My Posts</div>
           <div className="ssub">Manage your wants and review incoming offers.</div>
+          {notifPerm==="default"&&(
+            <div style={{display:"flex",alignItems:"center",gap:10,background:"#fff8f0",border:"1px solid #fed7aa",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
+              <span style={{fontSize:20}}>🔔</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,fontFamily:"var(--fd)"}}>Get notified of new offers</div>
+                <div style={{fontSize:12,color:"var(--text2)"}}>Enable notifications so you never miss an offer on your posts.</div>
+              </div>
+              <button onClick={async()=>{const p=await Notification.requestPermission();setNotifPerm(p);}} style={{padding:"6px 14px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",whiteSpace:"nowrap"}}>Enable</button>
+            </div>
+          )}
+          {notifPerm==="granted"&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:"8px 14px",marginBottom:14,fontSize:12,color:"#16a34a",fontWeight:600}}>
+              <span>✅</span> Notifications enabled — you'll be alerted when offers arrive.
+            </div>
+          )}
           {myWants.length===0?(
             <div className="empty"><div className="eicon">📭</div><div className="etitle">No posts yet</div><div className="esub">Post your first want and let sellers come to you</div></div>
           ):myWants.map(w=>(
