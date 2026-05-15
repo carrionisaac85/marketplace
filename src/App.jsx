@@ -591,10 +591,11 @@ return (
                       <div className="av">{(w.user||"?")[0].toUpperCase()}</div>
                       <div><div className="wuser">{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
                     </div>
-                    <div className="wbudget">${(w.budget||0).toLocaleString()}</div>
-                    <div className="blabel">Max Budget</div>
+
                     <div className="wtitle">{w.title}</div>
                     <div className="wdesc">{w.description}</div>
+                    <div className="blabel">Max Budget</div>
+                    <div className="wbudget">${(w.budget||0).toLocaleString()}</div>
                     <span className="tag">{w.category}</span>
                   </div>
                   <div className="wfoot">
