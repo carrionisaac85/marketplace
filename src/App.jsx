@@ -532,7 +532,7 @@ if (!user) return (
 <style>{css}</style>
 <div className="auth-wrap">
 <div className="auth-box">
-<div className="auth-logo">Want<span>Board</span></div>
+<div className="auth-logo">Want<span> - Board</span></div>
 <div className="auth-sub">Post what you want. Let sellers come to you.</div>
 <div className="auth-tabs">
 {["login","signup"].map(t=>(
@@ -566,7 +566,7 @@ return (
 ```
     <header className="header">
       <div className="header-top">
-        <div className="logo" onClick={()=>setView("browse")}>Want<span>Board</span></div>
+        <div className="logo" onClick={()=>setView("browse")}>Want<span> - Board</span></div>
         <div className="huser">
           <span className="huser-name">👤 <strong>{user.displayName||user.email}</strong></span>
           <button className="signout" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
