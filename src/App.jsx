@@ -333,6 +333,11 @@ setUser(u => {
 });
 }, []);
 
+// Keep open sheet in sync with live wants data
+useEffect(() => {
+if (sheet) setSheet(prev => wants.find(w => w.id === prev?.id) || prev);
+}, [wants]);
+
 // Conversations
 useEffect(() => {
 if (!user) return;
