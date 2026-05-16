@@ -222,6 +222,13 @@ textarea.fi{resize:vertical;min-height:80px}
 .bubble{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
 .bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.bubble-wrap{display:flex;flex-direction:column;max-width:80%}
+.bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
+.bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
+.bubble-wrap .bubble{max-width:100%}
+.del-msg{display:none;background:none;border:none;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;padding:2px 4px;margin-top:2px;border-radius:4px}
+.del-msg:hover{color:#fff;background:rgba(0,0,0,0.15)}
+.bubble-wrap.mine:hover .del-msg{display:block}
 .bsender{font-size:10px;font-weight:700;margin-bottom:3px;opacity:.7}
 .btime{font-size:10px;opacity:.6;margin-top:4px;text-align:right}
 .minput-row{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
@@ -514,6 +521,11 @@ text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:se
 await updateDoc(doc(db,"conversations",chat.convoId),{
 updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid,
 });
+};
+
+const deleteMsg = async (msgId) => {
+if (!chat) return;
+await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 };
 
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
@@ -820,10 +832,15 @@ return (
           <div className="msgs">
             {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13}}>No messages yet. Say hello!</div>}
             {msgs.map(m=>(
-              <div key={m.id} className={`bubble ${m.senderId===user.uid?"mine":"theirs"}`}>
-                {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
-                {m.text}
-                <div className="btime">{ta(m.createdAt)}</div>
+              <div key={m.id} className={`bubble-wrap ${m.senderId===user.uid?"mine":"theirs"}`}>
+                <div className={`bubble ${m.senderId===user.uid?"mine":"theirs"}`}>
+                  {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
+                  {m.text}
+                  <div className="btime">{ta(m.createdAt)}</div>
+                </div>
+                {m.senderId===user.uid&&(
+                  <button className="del-msg" onClick={()=>deleteMsg(m.id)}>Delete</button>
+                )}
               </div>
             ))}
             <div ref={btm} />
