@@ -266,6 +266,7 @@ const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
 const [dist, setDist] = useState("Any distance");
+const [userLatLng, setUserLatLng] = useState(null);
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
 const [sheet, setSheet] = useState(null);
@@ -463,16 +464,40 @@ if (s<86400) return `${Math.floor(s/3600)}h ago`;
 return `${Math.floor(s/86400)}d ago`;
 };
 
+const haversine = (lat1, lon1, lat2, lon2) => {
+const R = 3958.8;
+const dLat = (lat2-lat1)*Math.PI/180;
+const dLon = (lon2-lon1)*Math.PI/180;
+const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+};
+
+const geocodeLocation = async (locationText) => {
+const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+if (!key || !locationText || locationText === "Nearby") return null;
+try {
+const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationText)}&key=${key}`);
+const data = await res.json();
+if (data.results?.[0]?.geometry?.location) {
+  const {lat, lng} = data.results[0].geometry.location;
+  return {lat, lng};
+}
+} catch {}
+return null;
+};
+
 const detectLocation = () => {
 if (!navigator.geolocation) return;
 setLocLoading(true);
 navigator.geolocation.getCurrentPosition(async pos => {
+const {latitude: lat, longitude: lng} = pos.coords;
+setUserLatLng({lat, lng});
 try {
-const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
 const data = await res.json();
 const loc = data.address?.suburb || data.address?.neighbourhood || data.address?.city || data.address?.town || "Nearby";
-setForm(p=>({...p,location:loc}));
-} catch { setForm(p=>({...p,location:"Nearby"})); }
+setForm(p=>({...p,location:loc,_lat:lat,_lng:lng}));
+} catch { setForm(p=>({...p,location:"Nearby",_lat:lat,_lng:lng})); }
 setLocLoading(false);
 }, () => setLocLoading(false));
 };
@@ -485,20 +510,32 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
+const distMiles = dist === "Any distance" ? null : parseInt(dist);
 const filtered = wants.filter(w=>{
 const ms=w.title?.toLowerCase().includes(search.toLowerCase())||w.description?.toLowerCase().includes(search.toLowerCase());
-return ms&&(cat==="All"||w.category===cat);
+const catOk = cat==="All"||w.category===cat;
+const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
+  ? true
+  : haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng) <= distMiles;
+return ms && catOk && distOk;
 });
 const myWants = wants.filter(w=>w.userId===user?.uid);
 
 const postWant = async () => {
 if (!form.title||!form.budget||!user) return;
 setPosting(true);
+let lat = form._lat ?? null;
+let lng = form._lng ?? null;
+if ((!lat || !lng) && form.location && form.location !== "Nearby") {
+const coords = await geocodeLocation(form.location);
+if (coords) { lat = coords.lat; lng = coords.lng; }
+}
 await addDoc(collection(db,"wants"),{
 title:form.title, description:form.description,
 budget:parseInt(form.budget)||0, category:form.category||"Other",
 location:form.location||"Nearby", user:user.displayName||user.email,
 userId:user.uid, offers:[], createdAt:serverTimestamp(),
+...(lat && lng ? {lat, lng} : {}),
 });
 setPosting(false); setPosted(true);
 setForm({title:"",description:"",budget:"",category:"",location:""});
@@ -652,10 +689,18 @@ return (
           </div>
           <div className="frow">
             <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>📍 Distance:</span>
-            <select className="fsel" value={dist} onChange={e=>setDist(e.target.value)}>
+            <select className="fsel" value={dist} onChange={e=>{
+              const v=e.target.value; setDist(v);
+              if (v!=="Any distance" && !userLatLng && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos=>{
+                  setUserLatLng({lat:pos.coords.latitude,lng:pos.coords.longitude});
+                });
+              }
+            }}>
               {DISTS.map(d=><option key={d}>{d}</option>)}
             </select>
             <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)"}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
+            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)",marginLeft:4}}>⚠️ Allow location to filter</span>}
           </div>
           {loading?<div className="loading">Loading wants...</div>:
            filtered.length===0?(
