@@ -42,3 +42,8 @@ externalPort = 3001
 deploymentTarget = "static"
 build = ["npm", "run", "build"]
 publicDir = "dist"
+
+[userenv]
+
+[userenv.shared]
+VITE_GOOGLE_MAPS_API_KEY = "AIzaSyDfRKi85ZeUXl8dm7_wy3SA7Hmi-sd9nsQ"

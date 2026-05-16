@@ -285,6 +285,8 @@ const [offerError, setOfferError] = useState("");
 const [form, setForm] = useState({title:"",description:"",budget:"",category:"",location:""});
 const [locLoading, setLocLoading] = useState(false);
 const [posting, setPosting] = useState(false);
+const locationInputRef = useRef(null);
+const autocompleteRef = useRef(null);
 const [posted, setPosted] = useState(false);
 
 const [editId, setEditId] = useState(null);
@@ -337,6 +339,42 @@ setUser(u => {
 useEffect(() => {
 if (sheet) setSheet(prev => wants.find(w => w.id === prev?.id) || prev);
 }, [wants]);
+
+// Load Google Maps Places script once
+useEffect(() => {
+const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+if (!key || document.querySelector('script[data-gmaps]')) return;
+const s = document.createElement("script");
+s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+s.async = true;
+s.setAttribute("data-gmaps", "1");
+document.head.appendChild(s);
+}, []);
+
+// Init Places Autocomplete on the location input when Post view is active
+useEffect(() => {
+if (view !== "post") { autocompleteRef.current = null; return; }
+const attach = () => {
+  if (!locationInputRef.current || autocompleteRef.current) return;
+  if (!window.google?.maps?.places) return;
+  const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+    types: ["geocode"],
+    fields: ["formatted_address","name"],
+  });
+  ac.addListener("place_changed", () => {
+    const place = ac.getPlace();
+    const addr = place.formatted_address || place.name || "";
+    setForm(p => ({...p, location: addr}));
+  });
+  autocompleteRef.current = ac;
+};
+if (window.google?.maps?.places) {
+  attach();
+} else {
+  const s = document.querySelector('script[data-gmaps]');
+  if (s) s.addEventListener("load", attach);
+}
+}, [view]);
 
 // Conversations
 useEffect(() => {
@@ -672,7 +710,7 @@ return (
               <div className="fg">
                 <label className="fl">Location</label>
                 <div className="loc-row">
-                  <input className="fi" placeholder="Neighborhood or city" value={form.location} onChange={e=>setForm(p=>({...p,location:e.target.value}))} />
+                  <input ref={locationInputRef} className="fi" placeholder="Neighborhood or city" value={form.location} onChange={e=>setForm(p=>({...p,location:e.target.value}))} />
                   <button className="loc-btn" onClick={detectLocation} title="Auto-detect location">{locLoading?"⏳":"📍"}</button>
                 </div>
               </div>
