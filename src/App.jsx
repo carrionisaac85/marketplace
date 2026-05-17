@@ -861,7 +861,7 @@ return (
             <div className="sh-budget">${(sheet.budget||0).toLocaleString()}</div>
             <div className="sh-meta">📍 {sheet.location} · {sheet.user} · {ta(sheet.createdAt)}</div>
             <div className="sh-desc">{sheet.description}</div>
-            {(sheet.offers||[]).length>0&&(
+            {sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(
               <>
                 <div className="offers-ttl">Offers ({sheet.offers.length})</div>
                 {sheet.offers.map((o,i)=>(
@@ -874,7 +874,7 @@ return (
                       <div className="orow">
                         <span className="oprice">${(o.price||0).toLocaleString()}</span>
                         <span className="otime">{o.time}</span>
-                        {o.fromId&&(sheet.userId===user.uid||o.fromId===user.uid)&&(
+                        {o.fromId&&(
                           <button className="mbtn" onClick={()=>{openChat(sheet,o);setSheet(null);}}>💬 Message</button>
                         )}
                       </div>
