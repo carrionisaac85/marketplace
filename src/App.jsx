@@ -772,7 +772,6 @@ return (
             <>
               <div className="ftitle">Post a Want</div>
               <div className="fsub">Tell sellers what you need. Set your budget and let offers come to you.</div>
-              <button onClick={seedNYCPost} style={{marginBottom:12,padding:"6px 14px",background:"#e2e8f0",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",color:"#475569"}}>🗽 Add NYC Test Post</button>
               <div className="fg"><label className="fl">What do you want?</label><input className="fi" placeholder='e.g. "Looking for a vintage road bike"' value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} /></div>
               <div className="fg"><label className="fl">Describe it</label><textarea className="fi" placeholder="Brand, size, condition, color..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} /></div>
               <div className="fr2">
