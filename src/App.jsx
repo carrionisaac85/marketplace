@@ -538,6 +538,20 @@ return ms && catOk && distOk;
 });
 const myWants = wants.filter(w=>w.userId===user?.uid);
 
+const seedNYCPost = async () => {
+const coords = await geocodeLocation("New York, NY, USA");
+await addDoc(collection(db,"wants"),{
+title:"Looking for a vintage leather couch",
+description:"Want a brown or tan vintage leather couch in good condition, mid-century modern style.",
+budget:600, category:"Furniture",
+location:"New York, NY, USA",
+user:user.displayName||user.email, userId:user.uid, offers:[],
+createdAt:serverTimestamp(),
+...(coords ? {lat:coords.lat, lng:coords.lng} : {lat:40.7128, lng:-74.0060}),
+});
+alert("NYC test post added!");
+};
+
 const postWant = async () => {
 if (!form.title||!form.budget||!user) return;
 setPosting(true);
@@ -758,6 +772,7 @@ return (
             <>
               <div className="ftitle">Post a Want</div>
               <div className="fsub">Tell sellers what you need. Set your budget and let offers come to you.</div>
+              <button onClick={seedNYCPost} style={{marginBottom:12,padding:"6px 14px",background:"#e2e8f0",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",color:"#475569"}}>🗽 Add NYC Test Post</button>
               <div className="fg"><label className="fl">What do you want?</label><input className="fi" placeholder='e.g. "Looking for a vintage road bike"' value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} /></div>
               <div className="fg"><label className="fl">Describe it</label><textarea className="fi" placeholder="Brand, size, condition, color..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} /></div>
               <div className="fr2">
