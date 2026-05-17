@@ -203,13 +203,19 @@ textarea.fi{resize:vertical;min-height:80px}
 .reply-btn{font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-family:var(--fb);flex-shrink:0}
 
 /* MESSAGES */
-.clist{display:flex;flex-direction:column;gap:10px}
-.citem{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s;display:flex;align-items:center;gap:12px}
-.citem:hover{border-color:var(--accent)}
-.cinfo{flex:1}
-.cwith{font-size:14px;font-weight:600;margin-bottom:3px}
-.cprev{font-size:12px;color:var(--text2)}
-.ctime{font-size:11px;color:var(--text2)}
+.clist{display:flex;flex-direction:column;gap:8px}
+.citem{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px}
+.citem:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.citem.unread{border-color:#fca5a5;background:#fff8f8}
+.cinfo{flex:1;min-width:0}
+.cinfo-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.cwith{font-size:14px;font-weight:600;color:var(--text)}
+.cwith.unread{font-weight:700}
+.ctime{font-size:11px;color:var(--text2);flex-shrink:0}
+.cprev{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cprev.unread{color:var(--text);font-weight:500}
+.cwant{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cunread-dot{width:9px;height:9px;background:var(--accent);border-radius:50%;flex-shrink:0}
 
 /* CHAT MODAL */
 .moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -855,11 +861,19 @@ return (
             <div className="clist">
               {convos.map(c=>{
                 const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Unknown";
+                const isUnread=c.lastSenderId && c.lastSenderId!==user.uid && !c.readBy?.includes(user.uid);
                 return(
-                  <div key={c.id} className="citem" onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
+                  <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
                     <div className="av sm">{on[0]?.toUpperCase()}</div>
-                    <div className="cinfo"><div className="cwith">{on}</div><div className="cprev">Re: {c.wantTitle}</div></div>
-                    <div className="ctime">{ta(c.updatedAt)}</div>
+                    <div className="cinfo">
+                      <div className="cinfo-top">
+                        <div className={`cwith${isUnread?" unread":""}`}>{on}</div>
+                        <div className="ctime">{ta(c.updatedAt)}</div>
+                      </div>
+                      {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
+                      <div className="cwant">Re: {c.wantTitle}</div>
+                    </div>
+                    {isUnread&&<div className="cunread-dot"/>}
                   </div>
                 );
               })}
