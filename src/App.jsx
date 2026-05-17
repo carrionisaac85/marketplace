@@ -272,6 +272,7 @@ const [loading, setLoading] = useState(true);
 const [sheet, setSheet] = useState(null);
 const [notifPerm, setNotifPerm] = useState(() => typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 const prevOfferCounts = useRef(null);
+const prevConvoUpdates = useRef(null);
 const [refreshing, setRefreshing] = useState(false);
 const [pullY, setPullY] = useState(0);
 const touchStartY = useRef(0);
@@ -386,6 +387,22 @@ const all = snap.docs.map(d=>({id:d.id,...d.data()}));
 const mine = all.filter(c=>c.participants?.includes(user.uid));
 setConvos(mine);
 setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid)));
+// Notify on new incoming messages (background — works even when chat isn't open)
+if (prevConvoUpdates.current !== null) {
+  mine.forEach(c => {
+    const prevTs = prevConvoUpdates.current[c.id];
+    const currTs = c.updatedAt?.toMillis?.() ?? 0;
+    if (c.lastSenderId && c.lastSenderId !== user.uid && currTs > (prevTs ?? 0)) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(`New message from ${c.lastSenderName || "someone"}`, {
+          body: c.lastMessage || "You have a new message",
+          icon: "/favicon.ico",
+        });
+      }
+    }
+  });
+}
+prevConvoUpdates.current = Object.fromEntries(mine.map(c => [c.id, c.updatedAt?.toMillis?.() ?? 0]));
 });
 }, [user]);
 
@@ -599,7 +616,7 @@ await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
 text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
 });
 await updateDoc(doc(db,"conversations",chat.convoId),{
-updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid,
+updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
 });
 };
 
