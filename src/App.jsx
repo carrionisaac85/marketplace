@@ -200,6 +200,14 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .myprof-offer-msg{font-size:13px;color:var(--text);line-height:1.4}
 .myprof-offer-price{font-family:var(--fd);font-size:15px;font-weight:800;color:var(--text)}
 .save-unsave{position:absolute;top:10px;right:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;padding:3px 8px;cursor:pointer;color:var(--text2)}
+.report-btn{background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;padding:2px 6px;border-radius:6px;font-family:var(--fb);font-weight:500}
+.report-btn:hover{background:#fee2e2;color:#dc2626}
+.rpt-reasons{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.rpt-reason{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;text-align:left;font-family:var(--fb);transition:all .15s}
+.rpt-reason:hover{border-color:var(--accent);background:var(--surface)}
+.rpt-reason.active{border-color:var(--accent);background:#fff5f0;color:var(--accent);font-weight:700}
+.rpt-resolved{opacity:.55}
+.rpt-badge-resolved{font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;border-radius:999px;padding:2px 8px;border:1px solid #6ee7b7}
 .offer-status-accepted{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #6ee7b7;border-radius:999px;padding:2px 9px}
 .offer-status-declined{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;padding:2px 9px}
 .offer-accept{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -416,6 +424,14 @@ const [reviewHover, setReviewHover] = useState(0);
 const [reviewComment, setReviewComment] = useState("");
 const [reviewBusy, setReviewBusy] = useState(false);
 const [savedWants, setSavedWants] = useState([]);
+const [myReportedWants, setMyReportedWants] = useState([]);
+const [reportSheet, setReportSheet] = useState(null);
+const [reportReason, setReportReason] = useState("");
+const [reportNote, setReportNote] = useState("");
+const [reportBusy, setReportBusy] = useState(false);
+const [reportDone, setReportDone] = useState(false);
+const [adminReports, setAdminReports] = useState([]);
+const [adminReportsLoaded, setAdminReportsLoaded] = useState(false);
 const [profileTab, setProfileTab] = useState("overview");
 const [myReviews, setMyReviews] = useState([]);
 const [myReviewsLoaded, setMyReviewsLoaded] = useState(false);
@@ -473,7 +489,7 @@ setAuthLoading(false);
 if (u) {
   const {setDoc:sd,getDoc:gd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
   sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(()=>{});
-  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()){ setMyReviewedKeys(snap.data().reviewedKeys||[]); setSavedWants(snap.data().savedWants||[]); } }).catch(()=>{});
+  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()){ setMyReviewedKeys(snap.data().reviewedKeys||[]); setSavedWants(snap.data().savedWants||[]); setMyReportedWants(snap.data().reportedWants||[]); } }).catch(()=>{});
 }
 }), []);
 
@@ -922,6 +938,39 @@ displayedConvos.forEach(c => {
 });
 return Object.entries(groups);
 })();
+
+const REPORT_REASONS = ["Spam or scam","Offensive / inappropriate","Wrong category","Already fulfilled","Other"];
+
+const submitReport = async () => {
+if (!reportReason) return;
+setReportBusy(true);
+try {
+  const {addDoc:ad, collection:col, serverTimestamp:st, updateDoc:ud, arrayUnion:au} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  await ad(col(db,"reports"),{
+    wantId:reportSheet.id, wantTitle:reportSheet.title, wantUserId:reportSheet.userId, wantUser:reportSheet.user,
+    reporterId:user.uid, reporterName:user.displayName||user.email,
+    reason:reportReason, note:reportNote.trim(), createdAt:st(), resolved:false
+  });
+  await ud(doc(db,"users",user.uid),{reportedWants:au(reportSheet.id)});
+  setMyReportedWants(r=>[...r,reportSheet.id]);
+  setReportDone(true);
+} catch(e){ alert("Failed to submit report."); }
+setReportBusy(false);
+};
+
+const loadAdminReports = async () => {
+if (adminReportsLoaded) return;
+const {getDocs:gds, collection:col, query:q2, orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const snap = await gds(q2(col(db,"reports"),ob("createdAt","desc")));
+setAdminReports(snap.docs.map(d=>({id:d.id,...d.data()})));
+setAdminReportsLoaded(true);
+};
+
+const resolveReport = async (reportId) => {
+const {updateDoc:ud} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+await ud(doc(db,"reports",reportId),{resolved:true});
+setAdminReports(r=>r.map(x=>x.id===reportId?{...x,resolved:true}:x));
+};
 
 const toggleSave = async (wantId, e) => {
 if (e) e.stopPropagation();
@@ -1439,8 +1488,8 @@ return (
           <div className="ssub">Manage posts, users, and platform activity.</div>
 
           <div className="admin-tabs">
-            {[{id:"dashboard",label:"📊 Dashboard"},{id:"posts",label:"📋 All Posts"},{id:"users",label:"🚫 Banned Users"}].map(t=>(
-              <button key={t.id} className={`admin-tab${adminTab===t.id?" active":""}`} onClick={()=>setAdminTab(t.id)}>{t.label}</button>
+            {[{id:"dashboard",label:"📊 Dashboard"},{id:"posts",label:"📋 All Posts"},{id:"users",label:"🚫 Banned Users"},{id:"reports",label:"🚩 Reports"}].map(t=>(
+              <button key={t.id} className={`admin-tab${adminTab===t.id?" active":""}`} onClick={()=>{setAdminTab(t.id);if(t.id==="reports")loadAdminReports();}}>{t.label}</button>
             ))}
           </div>
 
@@ -1507,6 +1556,32 @@ return (
                 );
               })}
               {wants.length===0&&<div className="empty"><div className="eicon">📋</div><div className="etitle">No posts yet</div></div>}
+            </div>
+          )}
+
+          {adminTab==="reports"&&(
+            <div className="admin-table">
+              {!adminReportsLoaded&&<div className="loading">Loading reports…</div>}
+              {adminReportsLoaded&&adminReports.length===0&&<div className="empty"><div className="eicon">✅</div><div className="etitle">No reports</div><div className="esub">Reported posts will appear here</div></div>}
+              {adminReports.map(r=>(
+                <div key={r.id} className={`admin-row${r.resolved?" rpt-resolved":""}`}>
+                  <div className="admin-row-info" style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div className="admin-row-title">{r.wantTitle}</div>
+                      {r.resolved&&<span className="rpt-badge-resolved">Resolved</span>}
+                    </div>
+                    <div className="admin-row-sub">by {r.wantUser} · Reported by {r.reporterName} · {ta(r.createdAt)}</div>
+                    <div className="admin-badges">
+                      <span className="admin-badge" style={{background:"#fef3c7",color:"#92400e"}}>🚩 {r.reason}</span>
+                    </div>
+                    {r.note&&<div style={{fontSize:12,color:"var(--text2)",marginTop:4,fontStyle:"italic"}}>"{r.note}"</div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                    {!r.resolved&&<button className="admin-unban" onClick={()=>resolveReport(r.id)}>Resolve</button>}
+                    <button className="admin-del" onClick={()=>adminDeleteWant(r.wantId)}>Delete Post</button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -1633,6 +1708,42 @@ return (
       </div>
     )}
 
+    {/* REPORT MODAL */}
+    {reportSheet&&(
+      <div className="rev-overlay" onClick={()=>setReportSheet(null)}>
+        <div className="rev-modal" onClick={e=>e.stopPropagation()}>
+          {reportDone?(
+            <>
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:36,marginBottom:10}}>✅</div>
+                <div style={{fontFamily:"var(--fd)",fontSize:18,fontWeight:800,marginBottom:6}}>Report submitted</div>
+                <div style={{fontSize:13,color:"var(--text2)"}}>Thanks for helping keep WantBoard safe. Our team will review it shortly.</div>
+              </div>
+              <button className="rev-submit" onClick={()=>setReportSheet(null)}>Done</button>
+            </>
+          ):(
+            <>
+              <div className="rev-modal-head">
+                <div className="rev-modal-title">🚩 Report Post</div>
+                <button className="prof-close" onClick={()=>setReportSheet(null)}>✕</button>
+              </div>
+              <div className="rev-modal-sub" style={{marginBottom:4}}>"{reportSheet.title}"</div>
+              <div style={{fontSize:13,color:"var(--text2)",marginBottom:8}}>What's the issue?</div>
+              <div className="rpt-reasons">
+                {REPORT_REASONS.map(r=>(
+                  <button key={r} className={`rpt-reason${reportReason===r?" active":""}`} onClick={()=>setReportReason(r)}>{r}</button>
+                ))}
+              </div>
+              <textarea className="rev-textarea" placeholder="Additional details (optional)" value={reportNote} onChange={e=>setReportNote(e.target.value)} rows={2}/>
+              <button className="rev-submit" disabled={!reportReason||reportBusy} onClick={submitReport}>
+                {reportBusy?"Submitting…":"Submit Report"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+
     {/* REVIEW MODAL */}
     {reviewSheet&&(
       <div className="rev-overlay" onClick={()=>setReviewSheet(null)}>
@@ -1673,6 +1784,14 @@ return (
             <div className="sh-budget">${(sheet.budget||0).toLocaleString()}</div>
             <div className="sh-meta">📍 {sheet.location} · {sheet.user} · {ta(sheet.createdAt)}</div>
             <div className="sh-desc">{sheet.description}</div>
+            {sheet.userId!==user.uid&&(
+              <div style={{textAlign:"right",marginBottom:8}}>
+                {myReportedWants.includes(sheet.id)
+                  ? <span style={{fontSize:11,color:"var(--text2)"}}>✓ Reported</span>
+                  : <button className="report-btn" onClick={()=>{setReportSheet(sheet);setReportReason("");setReportNote("");setReportDone(false);}}>🚩 Report</button>
+                }
+              </div>
+            )}
             {sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(
               <>
                 <div className="offers-ttl">Offers ({sheet.offers.length})</div>
