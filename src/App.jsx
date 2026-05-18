@@ -126,6 +126,25 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .ocnt strong{color:var(--text)}
 .obtn{font-family:var(--fb);font-size:11px;font-weight:600;background:var(--accent);color:#fff;border:none;cursor:pointer;border-radius:100px;padding:5px 10px;white-space:nowrap}
 .obtn:hover{background:#c73d22}
+.profile-link{cursor:pointer}
+.profile-link:hover{opacity:.75}
+.prof-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding-bottom:0;animation:fi .2s}
+.prof-sheet{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;padding:24px 20px 40px;display:flex;flex-direction:column;gap:0}
+.prof-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.prof-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.prof-av{width:60px;height:60px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:26px;font-weight:800;flex-shrink:0}
+.prof-name{font-family:var(--fd);font-size:22px;font-weight:800;color:var(--text)}
+.prof-joined{font-size:12px;color:var(--text2);margin-top:3px}
+.prof-close{margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.prof-stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.prof-stat-num{font-family:var(--fd);font-size:22px;font-weight:800;color:var(--accent)}
+.prof-stat-label{font-size:10px;color:var(--text2);margin-top:3px;font-weight:500}
+.prof-section{font-family:var(--fd);font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.prof-want{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.prof-want:hover{border-color:var(--accent)}
+.prof-want-title{font-size:13px;font-weight:600;color:var(--text)}
+.prof-want-sub{font-size:11px;color:var(--text2);margin-top:3px}
 .offer-status-accepted{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #6ee7b7;border-radius:999px;padding:2px 9px}
 .offer-status-declined{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;padding:2px 9px}
 .offer-accept{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -326,6 +345,8 @@ const [authBusy, setAuthBusy] = useState(false);
 const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 const [banned, setBanned] = useState([]);
 const [adminTab, setAdminTab] = useState("dashboard");
+const [profileUid, setProfileUid] = useState(null);
+const [profileData, setProfileData] = useState(null);
 const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
@@ -372,7 +393,14 @@ const btm = useRef(null);
 const prevMsgCount = useRef(0);
 
 // Auth
-useEffect(() => onAuthStateChanged(auth, u => { setUser(u); setAuthLoading(false); }), []);
+useEffect(() => onAuthStateChanged(auth, async u => {
+setUser(u);
+setAuthLoading(false);
+if (u) {
+  const {setDoc:sd, serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(()=>{});
+}
+}), []);
 
 // Wants
 useEffect(() => {
@@ -804,6 +832,15 @@ displayedConvos.forEach(c => {
 return Object.entries(groups);
 })();
 
+const openProfile = async (uid, name) => {
+if (!uid) return;
+setProfileUid(uid);
+setProfileData(null);
+const {getDoc:gd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const snap = await gd(doc(db,"users",uid));
+setProfileData(snap.exists() ? snap.data() : {name, uid});
+};
+
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
 
 const setOfferStatus = async (want, idx, status) => {
@@ -922,8 +959,8 @@ return (
                 <div key={w.id} className="wcard" onClick={()=>setSheet(w)}>
                   <div className="wcard-body">
                     <div className="wcard-urow">
-                      <div className="av">{(w.user||"?")[0].toUpperCase()}</div>
-                      <div><div className="wuser">{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
+                      <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
+                      <div><div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
                     </div>
 
                     <div className="wtitle">{w.title}</div>
@@ -1012,7 +1049,7 @@ return (
               </div>
               {(w.offers||[]).map((o,i)=>(
                 <div key={i} className={`moffer${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`} style={o.status==="declined"?{opacity:.55}:o.status==="accepted"?{background:"#f0fdf4",border:"1px solid #6ee7b7"}:{}}>
-                  <div className="av sm">{(o.from||"?")[0].toUpperCase()}</div>
+                  <div className="av sm profile-link" onClick={()=>openProfile(o.fromId,o.from)}>{(o.from||"?")[0].toUpperCase()}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                       <div className="mon">{o.from}</div>
@@ -1230,6 +1267,65 @@ return (
       ))}
     </nav>
 
+    {/* USER PROFILE SHEET */}
+    {profileUid&&(
+      <div className="prof-overlay" onClick={()=>{setProfileUid(null);setProfileData(null);}}>
+        <div className="prof-sheet" onClick={e=>e.stopPropagation()}>
+          <div className="prof-handle"/>
+          {!profileData?(
+            <div className="loading">Loading profile…</div>
+          ):(()=>{
+            const uid = profileUid;
+            const profWants = wants.filter(w=>w.userId===uid);
+            const offersGiven = wants.reduce((s,w)=>s+(w.offers||[]).filter(o=>o.fromId===uid).length,0);
+            const acceptedOffers = wants.reduce((s,w)=>s+(w.offers||[]).filter(o=>o.fromId===uid&&o.status==="accepted").length,0);
+            const joinedDate = profileData.joinedAt?.toDate?.();
+            const isMe = uid === user?.uid;
+            return(
+              <>
+                <div className="prof-header">
+                  <div className="prof-av">{(profileData.name||"?")[0].toUpperCase()}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="prof-name">{profileData.name}{isMe&&<span style={{fontSize:12,fontWeight:500,color:"var(--text2)",marginLeft:8}}>You</span>}</div>
+                    <div className="prof-joined">Joined {joinedDate?joinedDate.toLocaleDateString("en-US",{month:"long",year:"numeric"}):"recently"}</div>
+                  </div>
+                  <button className="prof-close" onClick={()=>{setProfileUid(null);setProfileData(null);}}>✕</button>
+                </div>
+                <div className="prof-stats">
+                  <div className="prof-stat">
+                    <div className="prof-stat-num">{profWants.length}</div>
+                    <div className="prof-stat-label">Wants Posted</div>
+                  </div>
+                  <div className="prof-stat">
+                    <div className="prof-stat-num">{offersGiven}</div>
+                    <div className="prof-stat-label">Offers Made</div>
+                  </div>
+                  <div className="prof-stat">
+                    <div className="prof-stat-num">{acceptedOffers}</div>
+                    <div className="prof-stat-label">Accepted</div>
+                  </div>
+                </div>
+                {profWants.length>0&&(
+                  <>
+                    <div className="prof-section">Active Wants</div>
+                    {profWants.map(w=>(
+                      <div key={w.id} className="prof-want" onClick={()=>{setProfileUid(null);setProfileData(null);setSheet(w);}}>
+                        <div className="prof-want-title">{w.title}</div>
+                        <div className="prof-want-sub">${(w.budget||0).toLocaleString()} budget · {w.category} · {(w.offers||[]).length} offer{(w.offers||[]).length!==1?"s":""}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {profWants.length===0&&(
+                  <div className="empty" style={{padding:"20px 0"}}><div className="etitle">No wants posted yet</div></div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      </div>
+    )}
+
     {/* EXPANDED WANT SHEET */}
     {sheet&&(
       <div className="soverlay" onClick={()=>setSheet(null)}>
@@ -1247,7 +1343,7 @@ return (
                 <div className="offers-ttl">Offers ({sheet.offers.length})</div>
                 {sheet.offers.map((o,i)=>(
                   <div key={i} className={`oitem${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
-                    <div className="av sm">{(o.from||"?")[0].toUpperCase()}</div>
+                    <div className="av sm profile-link" onClick={()=>openProfile(o.fromId,o.from)}>{(o.from||"?")[0].toUpperCase()}</div>
                     <div className="obody">
                       <div className="oname" style={{display:"flex",alignItems:"center",gap:8}}>
                         {o.from}
