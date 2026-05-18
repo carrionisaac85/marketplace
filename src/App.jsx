@@ -126,6 +126,14 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .ocnt strong{color:var(--text)}
 .obtn{font-family:var(--fb);font-size:11px;font-weight:600;background:var(--accent);color:#fff;border:none;cursor:pointer;border-radius:100px;padding:5px 10px;white-space:nowrap}
 .obtn:hover{background:#c73d22}
+.offer-status-accepted{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #6ee7b7;border-radius:999px;padding:2px 9px}
+.offer-status-declined{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;padding:2px 9px}
+.offer-accept{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.offer-accept:hover{background:#6ee7b7}
+.offer-decline{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.offer-decline:hover{background:#fca5a5}
+.oitem.accepted{background:#f0fdf4;border-color:#6ee7b7}
+.oitem.declined{opacity:.55}
 
 /* BOTTOM SHEET */
 .soverlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding-bottom:80px;animation:fi .2s}
@@ -798,6 +806,11 @@ return Object.entries(groups);
 
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
 
+const setOfferStatus = async (want, idx, status) => {
+const updated = (want.offers||[]).map((o,i)=>i===idx?{...o,status}:o);
+await updateDoc(doc(db,"wants",want.id),{offers:updated});
+};
+
 const saveEdit = async () => {
 await updateDoc(doc(db,"wants",editId),{
 title:ef.title, description:ef.description, budget:parseInt(ef.budget)||0, category:ef.category, location:ef.location,
@@ -998,12 +1011,24 @@ return (
                 <button className="edel" onClick={()=>delWant(w.id)}>🗑 Delete</button>
               </div>
               {(w.offers||[]).map((o,i)=>(
-                <div key={i} className="moffer">
+                <div key={i} className={`moffer${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`} style={o.status==="declined"?{opacity:.55}:o.status==="accepted"?{background:"#f0fdf4",border:"1px solid #6ee7b7"}:{}}>
                   <div className="av sm">{(o.from||"?")[0].toUpperCase()}</div>
-                  <div className="mon">{o.from}</div>
-                  <div className="mom">{o.message}</div>
-                  <div className="mop">${(o.price||0).toLocaleString()}</div>
-                  {o.fromId&&<button className="reply-btn" onClick={()=>openChat(w,o)}>Reply</button>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      <div className="mon">{o.from}</div>
+                      {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
+                      {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
+                    </div>
+                    <div className="mom">{o.message}</div>
+                    <div className="mop">${(o.price||0).toLocaleString()}</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {o.fromId&&<button className="reply-btn" onClick={()=>openChat(w,o)}>Reply</button>}
+                    {!o.status&&<button className="offer-accept" onClick={()=>setOfferStatus(w,i,"accepted")}>✅</button>}
+                    {!o.status&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
+                    {o.status==="declined"&&<button className="offer-accept" onClick={()=>setOfferStatus(w,i,"accepted")}>✅</button>}
+                    {o.status==="accepted"&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1221,10 +1246,14 @@ return (
               <>
                 <div className="offers-ttl">Offers ({sheet.offers.length})</div>
                 {sheet.offers.map((o,i)=>(
-                  <div key={i} className="oitem">
+                  <div key={i} className={`oitem${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
                     <div className="av sm">{(o.from||"?")[0].toUpperCase()}</div>
                     <div className="obody">
-                      <div className="oname">{o.from}</div>
+                      <div className="oname" style={{display:"flex",alignItems:"center",gap:8}}>
+                        {o.from}
+                        {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
+                        {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
+                      </div>
                       {o.photoUrl&&<img src={o.photoUrl} className="ophoto" alt="offer" />}
                       <div className="omsg">{o.message}</div>
                       <div className="orow">
@@ -1233,6 +1262,10 @@ return (
                         {o.fromId&&(
                           <button className="mbtn" onClick={()=>{openChat(sheet,o);setSheet(null);}}>💬 Message</button>
                         )}
+                        {!o.status&&<button className="offer-accept" onClick={()=>setOfferStatus(sheet,i,"accepted")}>✅ Accept</button>}
+                        {!o.status&&<button className="offer-decline" onClick={()=>setOfferStatus(sheet,i,"declined")}>❌ Decline</button>}
+                        {o.status==="declined"&&<button className="offer-accept" onClick={()=>setOfferStatus(sheet,i,"accepted")}>✅ Accept</button>}
+                        {o.status==="accepted"&&<button className="offer-decline" onClick={()=>setOfferStatus(sheet,i,"declined")}>❌ Decline</button>}
                       </div>
                     </div>
                   </div>
