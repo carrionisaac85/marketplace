@@ -386,6 +386,21 @@ textarea.fi{resize:vertical;min-height:80px}
 .etitle{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--text)}
 .esub{font-size:13px;margin-top:6px}
 .loading{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px}
+.terms-check-row{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text2);margin:4px 0;cursor:pointer;line-height:1.5}
+.terms-check-row input{margin-top:2px;accent-color:var(--accent);cursor:pointer}
+.terms-link{background:none;border:none;padding:0;color:var(--accent);font-size:inherit;font-family:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
+.terms-link:hover{opacity:.75}
+.auth-footer{display:flex;justify-content:center;gap:10px;font-size:12px;padding:14px 0 4px;color:var(--text2)}
+.legal-overlay{position:fixed;inset:0;z-index:3000;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+.legal-page{display:flex;flex-direction:column;height:100%;max-width:540px;margin:0 auto;width:100%}
+.legal-header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:1}
+.legal-back{background:none;border:none;font-size:14px;color:var(--accent);cursor:pointer;font-family:var(--fb);font-weight:600;padding:0}
+.legal-back:hover{opacity:.75}
+.legal-title{font-family:var(--fd);font-size:17px;font-weight:800;color:var(--text)}
+.legal-body{flex:1;overflow-y:auto;padding:20px 24px 40px;line-height:1.7;color:var(--text)}
+.legal-body h3{font-family:var(--fd);font-size:15px;font-weight:800;margin:20px 0 6px;color:var(--text)}
+.legal-body p{font-size:13.5px;color:var(--text2);margin:0 0 8px}
+.legal-updated{font-size:12px;color:var(--text2);font-style:italic;margin-bottom:16px!important}
 `;
 
 const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
@@ -402,6 +417,8 @@ export default function App() {
 const [user, setUser] = useState(null);
 const [authLoading, setAuthLoading] = useState(true);
 const [authTab, setAuthTab] = useState("login");
+const [agreeTerms, setAgreeTerms] = useState(false);
+const [legalPage, setLegalPage] = useState(null);
 const [af, setAf] = useState({name:"",email:"",password:""});
 const [authErr, setAuthErr] = useState("");
 const [authBusy, setAuthBusy] = useState(false);
@@ -652,6 +669,7 @@ setTimeout(() => { setRefreshing(false); setPullY(0); }, 1200);
 };
 
 const doAuth = async () => {
+if (authTab==="signup" && !agreeTerms) { setAuthErr("You must agree to the Terms of Service and Privacy Policy."); return; }
 setAuthErr(""); setAuthBusy(true);
 try {
 if (authTab==="signup") {
@@ -1096,6 +1114,12 @@ if (!user) return (
     <input className="auth-input" type="email" placeholder="Email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
     <input className="auth-input" type="password" placeholder="Password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} />
     {authTab==="login"&&<button className="forgot-link" onClick={()=>{setForgotMode(true);setForgotEmail(af.email);setForgotErr("");}}>Forgot password?</button>}
+    {authTab==="signup"&&(
+      <label className="terms-check-row">
+        <input type="checkbox" checked={agreeTerms} onChange={e=>setAgreeTerms(e.target.checked)} />
+        <span>I agree to the <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button> and <button className="terms-link" onClick={()=>setLegalPage("privacy")}>Privacy Policy</button></span>
+      </label>
+    )}
     {authErr&&<div className="auth-err">{authErr}</div>}
     <button className="auth-btn" onClick={doAuth} disabled={authBusy}>{authBusy?"...":authTab==="login"?"Log In ->":"Create Account ->"}</button>
     <div className="auth-divider">or</div>
@@ -1106,8 +1130,71 @@ if (!user) return (
 Continue with Google
 </button>
 </div>
+<div className="auth-footer">
+  <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button>
+  <span style={{color:"var(--border)"}}>·</span>
+  <button className="terms-link" onClick={()=>setLegalPage("privacy")}>Privacy Policy</button>
 </div>
 </div>
+</div>
+
+{legalPage&&(
+  <div className="legal-overlay">
+    <div className="legal-page">
+      <div className="legal-header">
+        <button className="legal-back" onClick={()=>setLegalPage(null)}>← Back</button>
+        <div className="legal-title">{legalPage==="terms"?"Terms of Service":"Privacy Policy"}</div>
+      </div>
+      <div className="legal-body">
+        {legalPage==="terms"?(
+          <>
+            <p className="legal-updated">Last updated: May 18, 2025</p>
+            <h3>1. Acceptance of Terms</h3>
+            <p>By creating an account or using WantBoard, you agree to these Terms of Service. If you do not agree, do not use the platform.</p>
+            <h3>2. Who Can Use WantBoard</h3>
+            <p>You must be at least 13 years old to use WantBoard. By registering, you confirm that you meet this requirement.</p>
+            <h3>3. Your Account</h3>
+            <p>You are responsible for maintaining the security of your account and all activity that occurs under it. Do not share your password with others.</p>
+            <h3>4. Posting Rules</h3>
+            <p>You agree not to post content that is illegal, fraudulent, offensive, or misleading. WantBoard reserves the right to remove any post and suspend any account at any time.</p>
+            <h3>5. Offers and Transactions</h3>
+            <p>WantBoard facilitates connections between buyers and sellers but is not a party to any transaction. All deals are made directly between users. WantBoard is not responsible for the outcome of any transaction.</p>
+            <h3>6. Prohibited Conduct</h3>
+            <p>You may not: harass other users, post spam, attempt to circumvent platform safety features, or use the platform for any unlawful purpose.</p>
+            <h3>7. Limitation of Liability</h3>
+            <p>WantBoard is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the platform.</p>
+            <h3>8. Changes to Terms</h3>
+            <p>We may update these terms from time to time. Continued use of the platform after changes constitutes acceptance of the new terms.</p>
+            <h3>9. Contact</h3>
+            <p>For questions about these terms, contact us at support@wantboard.app.</p>
+          </>
+        ):(
+          <>
+            <p className="legal-updated">Last updated: May 18, 2025</p>
+            <h3>1. Information We Collect</h3>
+            <p>We collect the information you provide when you register (name, email) and the content you post on WantBoard (wants, offers, messages).</p>
+            <h3>2. How We Use Your Information</h3>
+            <p>We use your information to operate the platform, facilitate connections between users, and improve our services. We do not sell your personal data to third parties.</p>
+            <h3>3. Data Storage</h3>
+            <p>Your data is stored securely using Google Firebase. We follow industry-standard security practices to protect your information.</p>
+            <h3>4. Communications</h3>
+            <p>By creating an account, you may receive platform-related notifications. You can manage notification preferences in your device settings.</p>
+            <h3>5. Third-Party Services</h3>
+            <p>WantBoard uses Firebase (Google) for authentication and data storage, and Google Maps for location features. These services have their own privacy policies.</p>
+            <h3>6. Your Rights</h3>
+            <p>You may delete your account and associated data at any time by contacting us. You have the right to access and correct your personal information.</p>
+            <h3>7. Cookies</h3>
+            <p>WantBoard uses cookies and local storage solely for authentication and user preferences. We do not use tracking cookies for advertising.</p>
+            <h3>8. Children's Privacy</h3>
+            <p>WantBoard is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
+            <h3>9. Contact</h3>
+            <p>For privacy-related questions or data requests, contact us at privacy@wantboard.app.</p>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 </>
 );
 
