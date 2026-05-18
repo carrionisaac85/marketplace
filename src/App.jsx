@@ -176,6 +176,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .rev-time{font-size:11px;color:var(--text2);flex-shrink:0;align-self:flex-start}
 .rev-comment{font-size:13px;color:var(--text);font-style:italic;margin-bottom:4px;line-height:1.4}
 .rev-want{font-size:11px;color:var(--text2)}
+.frow-sep{width:1px;height:16px;background:var(--border);flex-shrink:0}
+.budget-input{width:62px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:var(--fb);color:var(--text);background:var(--surface2);outline:none;-moz-appearance:textfield}
+.budget-input::-webkit-outer-spin-button,.budget-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.budget-input:focus{border-color:var(--accent)}
+.budget-clear{background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;padding:0 2px;line-height:1}
+.budget-clear:hover{color:var(--text)}
 .save-btn{background:none;border:none;cursor:pointer;padding:2px 4px;display:flex;align-items:center;gap:2px;font-size:11px;color:var(--text2)}
 .save-btn:hover{opacity:.75}
 .myprof-header{display:flex;align-items:center;gap:16px;padding:20px 16px 12px;background:linear-gradient(135deg,var(--accent) 0%,#e05a30 100%);margin:-16px -16px 0}
@@ -417,6 +423,8 @@ const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
 const [dist, setDist] = useState("Any distance");
+const [budgetMin, setBudgetMin] = useState("");
+const [budgetMax, setBudgetMax] = useState("");
 const [userLatLng, setUserLatLng] = useState(null);
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
@@ -729,7 +737,10 @@ const catOk = cat==="All"||w.category===cat;
 const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
   ? true
   : haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng) <= distMiles;
-return ms && catOk && distOk;
+const bMin = budgetMin !== "" ? Number(budgetMin) : null;
+const bMax = budgetMax !== "" ? Number(budgetMax) : null;
+const budgetOk = (bMin===null||w.budget>=bMin) && (bMax===null||w.budget<=bMax);
+return ms && catOk && distOk && budgetOk;
 });
 const myWants = wants.filter(w=>w.userId===user?.uid);
 
@@ -1089,7 +1100,7 @@ return (
             {CATS.map(c=><div key={c} className={`chip ${cat===c?"active":""}`} onClick={()=>setCat(c)}>{c}</div>)}
           </div>
           <div className="frow">
-            <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>📍 Distance:</span>
+            <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>📍</span>
             <select className="fsel" value={dist} onChange={e=>{
               const v=e.target.value; setDist(v);
               if (v!=="Any distance" && !userLatLng && navigator.geolocation) {
@@ -1100,8 +1111,14 @@ return (
             }}>
               {DISTS.map(d=><option key={d}>{d}</option>)}
             </select>
+            <span className="frow-sep"/>
+            <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>💰</span>
+            <input className="budget-input" type="number" placeholder="Min $" value={budgetMin} onChange={e=>setBudgetMin(e.target.value)} min="0"/>
+            <span style={{fontSize:12,color:"var(--text2)"}}>–</span>
+            <input className="budget-input" type="number" placeholder="Max $" value={budgetMax} onChange={e=>setBudgetMax(e.target.value)} min="0"/>
+            {(budgetMin||budgetMax)&&<button className="budget-clear" onClick={()=>{setBudgetMin("");setBudgetMax("");}}>✕</button>}
             <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)"}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
-            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)",marginLeft:4}}>⚠️ Allow location to filter</span>}
+            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)",marginLeft:4}}>⚠️</span>}
           </div>
           {loading?<div className="loading">Loading wants...</div>:
            filtered.length===0?(
