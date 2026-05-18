@@ -126,15 +126,6 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .ocnt strong{color:var(--text)}
 .obtn{font-family:var(--fb);font-size:11px;font-weight:600;background:var(--accent);color:#fff;border:none;cursor:pointer;border-radius:100px;padding:5px 10px;white-space:nowrap}
 .obtn:hover{background:#c73d22}
-.fulfilled-badge{font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;border-radius:999px;padding:2px 8px;white-space:nowrap;border:1px solid #6ee7b7}
-.wcard.fulfilled{opacity:.7}
-.wcard.fulfilled .wtitle{text-decoration:line-through;color:var(--text2)}
-.mcard.fulfilled{opacity:.75;background:#f9fafb}
-.mcard.fulfilled .mtitle{text-decoration:line-through;color:var(--text2)}
-.efulfill{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
-.efulfill:hover{background:#6ee7b7}
-.ereopen{background:#e0f2fe;border:1px solid #7dd3fc;color:#0369a1;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
-.ereopen:hover{background:#7dd3fc}
 
 /* BOTTOM SHEET */
 .soverlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding-bottom:80px;animation:fi .2s}
@@ -616,21 +607,15 @@ r.readAsDataURL(f);
 };
 
 const distMiles = dist === "Any distance" ? null : parseInt(dist);
-const [showFulfilled, setShowFulfilled] = useState(false);
 const filtered = wants.filter(w=>{
 const ms=w.title?.toLowerCase().includes(search.toLowerCase())||w.description?.toLowerCase().includes(search.toLowerCase());
 const catOk = cat==="All"||w.category===cat;
 const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
   ? true
   : haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng) <= distMiles;
-const statusOk = showFulfilled || w.status !== "fulfilled";
-return ms && catOk && distOk && statusOk;
+return ms && catOk && distOk;
 });
 const myWants = wants.filter(w=>w.userId===user?.uid);
-
-const markFulfilled = async (id, fulfilled) => {
-await updateDoc(doc(db,"wants",id),{status: fulfilled ? "fulfilled" : "open"});
-};
 
 const seedNYCPost = async () => {
 const coords = await geocodeLocation("New York, NY, USA");
@@ -912,9 +897,8 @@ return (
             }}>
               {DISTS.map(d=><option key={d}>{d}</option>)}
             </select>
-            <span style={{fontSize:13,color:"var(--text2)"}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
-            <button className={`msg-toggle${showFulfilled?" active":""}`} style={{marginLeft:"auto"}} onClick={()=>setShowFulfilled(s=>!s)}>✅ {showFulfilled?"Hide fulfilled":"Show fulfilled"}</button>
-            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)"}}>⚠️ Allow location to filter</span>}
+            <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)"}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
+            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)",marginLeft:4}}>⚠️ Allow location to filter</span>}
           </div>
           {loading?<div className="loading">Loading wants...</div>:
            filtered.length===0?(
@@ -922,12 +906,11 @@ return (
            ):(
             <div className="grid2">
               {filtered.map(w=>(
-                <div key={w.id} className={`wcard${w.status==="fulfilled"?" fulfilled":""}`} onClick={()=>setSheet(w)}>
+                <div key={w.id} className="wcard" onClick={()=>setSheet(w)}>
                   <div className="wcard-body">
                     <div className="wcard-urow">
                       <div className="av">{(w.user||"?")[0].toUpperCase()}</div>
                       <div><div className="wuser">{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
-                      {w.status==="fulfilled"&&<span className="fulfilled-badge">✅ Fulfilled</span>}
                     </div>
 
                     <div className="wtitle">{w.title}</div>
@@ -1003,21 +986,14 @@ return (
           {myWants.length===0?(
             <div className="empty"><div className="eicon">📭</div><div className="etitle">No posts yet</div><div className="esub">Post your first want and let sellers come to you</div></div>
           ):myWants.map(w=>(
-            <div key={w.id} className={`mcard${w.status==="fulfilled"?" fulfilled":""}`}>
+            <div key={w.id} className="mcard">
               <div className="mtop">
                 <div className="mtitle">{w.title}</div>
-                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                  {w.status==="fulfilled"&&<span className="fulfilled-badge">✅ Fulfilled</span>}
-                  <span className={`badge ${(w.offers||[]).length>0?"bo":"bn"}`}>{(w.offers||[]).length>0?`${w.offers.length} offer${w.offers.length>1?"s":""}`:"No offers"}</span>
-                </div>
+                <span className={`badge ${(w.offers||[]).length>0?"bo":"bn"}`}>{(w.offers||[]).length>0?`${w.offers.length} offer${w.offers.length>1?"s":""}`:"No offers"}</span>
               </div>
               <div className="mbudget">Up to ${(w.budget||0).toLocaleString()}</div>
               <div className="mdesc">{w.description}</div>
               <div className="cacts">
-                {w.status==="fulfilled"
-                  ? <button className="ereopen" onClick={()=>markFulfilled(w.id,false)}>🔄 Reopen</button>
-                  : <button className="efulfill" onClick={()=>markFulfilled(w.id,true)}>✅ Mark Fulfilled</button>
-                }
                 <button className="eedit" onClick={()=>{setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location});setEditId(w.id);}}>✏️ Edit</button>
                 <button className="edel" onClick={()=>delWant(w.id)}>🗑 Delete</button>
               </div>
