@@ -27,6 +27,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
+const ADMIN_EMAILS = ["carrion.isaac85@gmail.com"];
+
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -235,6 +237,33 @@ textarea.fi{resize:vertical;min-height:80px}
 .cgroup-count{color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0}
 .cgroup .citem{margin-bottom:6px}
 
+/* ADMIN PANEL */
+.admin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.admin-tab{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s}
+.admin-tab:hover{border-color:var(--accent)}
+.admin-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.admin-stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.admin-stat-num{font-family:var(--fd);font-size:26px;font-weight:800;color:var(--accent)}
+.admin-stat-label{font-size:11px;color:var(--text2);margin-top:4px;font-weight:500}
+.admin-table{display:flex;flex-direction:column;gap:10px}
+.admin-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.admin-row-info{flex:1;min-width:0}
+.admin-row-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-row-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.admin-del{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.admin-del:hover{background:#fca5a5}
+.admin-ban{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.admin-ban:hover{background:#fcd34d}
+.admin-unban{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.admin-unban:hover{background:#6ee7b7}
+.admin-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.admin-badge{font-size:10px;padding:2px 8px;border-radius:999px;background:#f1f5f9;color:var(--text2);border:1px solid var(--border)}
+.banned-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:30px;text-align:center}
+.banned-icon{font-size:56px}
+.banned-title{font-family:var(--fd);font-size:24px;font-weight:800;color:#dc2626}
+.banned-sub{font-size:14px;color:var(--text2);max-width:300px}
+
 /* CHAT MODAL */
 .moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
 .modal{background:var(--surface);border-radius:20px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.2);border:1px solid var(--border)}
@@ -286,6 +315,9 @@ const [af, setAf] = useState({name:"",email:"",password:""});
 const [authErr, setAuthErr] = useState("");
 const [authBusy, setAuthBusy] = useState(false);
 
+const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+const [banned, setBanned] = useState([]);
+const [adminTab, setAdminTab] = useState("dashboard");
 const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
@@ -445,6 +477,13 @@ convos.forEach(c => {
   }
 });
 }, [convos, wants, user]);
+
+// Banned users listener
+useEffect(() => {
+return onSnapshot(doc(db,"config","banned"), snap => {
+  setBanned(snap.exists() ? (snap.data().uids || []) : []);
+});
+}, []);
 
 // Messages in open chat
 useEffect(() => {
@@ -679,6 +718,25 @@ if (!chat) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 };
 
+const banUser = async (uid) => {
+if (!isAdmin || !uid) return;
+await updateDoc(doc(db,"config","banned"),{uids:arrayUnion(uid)}).catch(async()=>{
+  const {setDoc:sd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  await sd(doc(db,"config","banned"),{uids:[uid]});
+});
+};
+
+const unbanUser = async (uid) => {
+if (!isAdmin || !uid) return;
+await updateDoc(doc(db,"config","banned"),{uids:arrayRemove(uid)}).catch(()=>{});
+};
+
+const adminDeleteWant = async (id) => {
+if (!isAdmin) return;
+if (!window.confirm("Delete this want permanently?")) return;
+await deleteDoc(doc(db,"wants",id));
+};
+
 const togglePin = async (c) => {
 const isPinned = c.pinnedBy?.includes(user.uid);
 await updateDoc(doc(db,"conversations",c.id),{
@@ -748,6 +806,16 @@ setEditId(null);
 };
 
 if (authLoading) return <div className="loading" style={{paddingTop:100}}>Loading...</div>;
+
+if (user && !isAdmin && banned.includes(user.uid)) return (
+<><style>{css}</style>
+<div className="banned-screen">
+  <div className="banned-icon">🚫</div>
+  <div className="banned-title">Account Suspended</div>
+  <div className="banned-sub">Your account has been suspended. Please contact support if you believe this is a mistake.</div>
+  <button className="auth-btn" style={{marginTop:8,maxWidth:260}} onClick={()=>signOut(auth)}>Sign Out</button>
+</div></>
+);
 
 if (!user) return (
 <>
@@ -1022,11 +1090,113 @@ return (
           })()}
         </>
       )}
+
+      {/* ADMIN PANEL */}
+      {view==="admin"&&isAdmin&&(
+        <>
+          <div className="stitle">⚙️ Admin Panel</div>
+          <div className="ssub">Manage posts, users, and platform activity.</div>
+
+          <div className="admin-tabs">
+            {[{id:"dashboard",label:"📊 Dashboard"},{id:"posts",label:"📋 All Posts"},{id:"users",label:"🚫 Banned Users"}].map(t=>(
+              <button key={t.id} className={`admin-tab${adminTab===t.id?" active":""}`} onClick={()=>setAdminTab(t.id)}>{t.label}</button>
+            ))}
+          </div>
+
+          {adminTab==="dashboard"&&(
+            <>
+              <div className="admin-stats">
+                <div className="admin-stat">
+                  <div className="admin-stat-num">{wants.length}</div>
+                  <div className="admin-stat-label">Total Posts</div>
+                </div>
+                <div className="admin-stat">
+                  <div className="admin-stat-num">{[...new Set(wants.map(w=>w.userId))].length}</div>
+                  <div className="admin-stat-label">Unique Users</div>
+                </div>
+                <div className="admin-stat">
+                  <div className="admin-stat-num">{banned.length}</div>
+                  <div className="admin-stat-label">Banned</div>
+                </div>
+              </div>
+              <div className="admin-stats" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+                <div className="admin-stat">
+                  <div className="admin-stat-num">{wants.reduce((s,w)=>s+(w.offers||[]).length,0)}</div>
+                  <div className="admin-stat-label">Total Offers</div>
+                </div>
+                <div className="admin-stat">
+                  <div className="admin-stat-num">{convos.length}</div>
+                  <div className="admin-stat-label">Conversations</div>
+                </div>
+              </div>
+              <div className="stitle" style={{fontSize:15,marginTop:4}}>Recent Posts</div>
+              <div className="admin-table" style={{marginTop:8}}>
+                {[...wants].sort((a,b)=>(b.createdAt?.toMillis?.()??0)-(a.createdAt?.toMillis?.()??0)).slice(0,5).map(w=>(
+                  <div key={w.id} className="admin-row">
+                    <div className="admin-row-info">
+                      <div className="admin-row-title">{w.title}</div>
+                      <div className="admin-row-sub">{w.user} · ${(w.budget||0).toLocaleString()} · {ta(w.createdAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {adminTab==="posts"&&(
+            <div className="admin-table">
+              {[...wants].sort((a,b)=>(b.createdAt?.toMillis?.()??0)-(a.createdAt?.toMillis?.()??0)).map(w=>{
+                const isBanned=banned.includes(w.userId);
+                return(
+                  <div key={w.id} className="admin-row">
+                    <div className="admin-row-info">
+                      <div className="admin-row-title">{w.title}</div>
+                      <div className="admin-row-sub">{w.user} · ${(w.budget||0).toLocaleString()} · {(w.offers||[]).length} offer{(w.offers||[]).length!==1?"s":""} · {ta(w.createdAt)}</div>
+                      <div className="admin-badges">
+                        <span className="admin-badge">📍 {w.location||"No location"}</span>
+                        {isBanned&&<span className="admin-badge" style={{background:"#fee2e2",color:"#dc2626"}}>🚫 User banned</span>}
+                      </div>
+                    </div>
+                    <button className="admin-del" onClick={()=>adminDeleteWant(w.id)}>Delete</button>
+                    {isBanned
+                      ? <button className="admin-unban" onClick={()=>unbanUser(w.userId)}>Unban</button>
+                      : <button className="admin-ban" onClick={()=>{if(window.confirm(`Ban ${w.user}?`))banUser(w.userId);}}>Ban</button>
+                    }
+                  </div>
+                );
+              })}
+              {wants.length===0&&<div className="empty"><div className="eicon">📋</div><div className="etitle">No posts yet</div></div>}
+            </div>
+          )}
+
+          {adminTab==="users"&&(
+            <div className="admin-table">
+              {banned.length===0
+                ? <div className="empty"><div className="eicon">✅</div><div className="etitle">No banned users</div><div className="esub">Banned accounts will appear here</div></div>
+                : banned.map(uid=>{
+                    const userWants = wants.filter(w=>w.userId===uid);
+                    const name = userWants[0]?.user || "Unknown user";
+                    return(
+                      <div key={uid} className="admin-row">
+                        <div className="av sm">{name[0]?.toUpperCase()}</div>
+                        <div className="admin-row-info">
+                          <div className="admin-row-title">{name}</div>
+                          <div className="admin-row-sub">UID: {uid.slice(0,12)}… · {userWants.length} post{userWants.length!==1?"s":""}</div>
+                        </div>
+                        <button className="admin-unban" onClick={()=>unbanUser(uid)}>Unban</button>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+          )}
+        </>
+      )}
     </main>
 
     {/* BOTTOM NAV */}
     <nav className="bnav">
-      {NAV.map(n=>(
+      {[...NAV,...(isAdmin?[{id:"admin",icon:"⚙️",label:"Admin"}]:[])].map(n=>(
         <div key={n.id} className={`bitem ${view===n.id?"active":""}`} onClick={()=>setView(n.id)}>
           <span className="bicon">{n.icon}</span>
           {n.id==="messages"&&hasUnread&&<span className="notif-badge" />}
