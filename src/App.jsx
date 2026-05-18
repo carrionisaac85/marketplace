@@ -298,7 +298,7 @@ textarea.fi{resize:vertical;min-height:80px}
 .loading{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px}
 `;
 
-const CATS = ["All","Electronics","Furniture","Sports","Home","Music","Fashion","Collectibles","Other"];
+const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
 const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Browse"},
@@ -946,7 +946,7 @@ return (
                 <div className="fg"><label className="fl">Category</label>
                   <select className="fi" value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
                     <option value="">Select...</option>
-                    {["Electronics","Furniture","Sports","Home","Music","Fashion","Collectibles","Other"].map(c=><option key={c}>{c}</option>)}
+                    {["Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"].map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
