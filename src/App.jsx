@@ -192,8 +192,15 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .myprof-tab{flex-shrink:0;background:none;border:none;border-bottom:2.5px solid transparent;padding:12px 14px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;font-family:var(--fb);transition:all .15s}
 .myprof-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .myprof-body{padding:16px 0;display:flex;flex-direction:column;gap:10px}
+.myprof-offer-group{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:0}
+.myprof-offer-group-hd{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:11px 14px;background:var(--surface);font-size:13px;font-weight:700;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)}
+.myprof-offer-group-hd:hover{background:var(--surface2)}
+.myprof-offer-group-count{margin-left:auto;font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:1px 8px;flex-shrink:0}
 .myprof-offer{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.myprof-offer.no-title{border-radius:0;border-left:none;border-right:none;border-top:none;border-bottom:1px solid var(--border);background:var(--surface2)}
+.myprof-offer.no-title:last-child{border-bottom:none}
 .myprof-offer.accepted{background:#f0fdf4;border-color:#6ee7b7}
+.myprof-offer.no-title.accepted{background:#f0fdf4;border-color:transparent;border-bottom-color:#d1fae5}
 .myprof-offer.declined{opacity:.6}
 .myprof-offer-want{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;cursor:pointer}
 .myprof-offer-want:hover{opacity:.8}
@@ -1342,18 +1349,34 @@ return (
             {profileTab==="offers"&&(
               <div className="myprof-body">
                 {myOffersGiven.length===0?<div className="empty"><div className="etitle">No offers made yet</div></div>:
-                myOffersGiven.map((o,i)=>(
-                  <div key={i} className={`myprof-offer${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
-                    <div className="myprof-offer-want" onClick={()=>setSheet(wants.find(w=>w.id===o.wantId))}>📋 {o.wantTitle} <span style={{color:"var(--text2)"}}>by {o.wantUser}</span></div>
-                    <div className="myprof-offer-msg">{o.message}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
-                      <span className="myprof-offer-price">${(o.price||0).toLocaleString()}</span>
-                      {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
-                      {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
-                      {!o.status&&<span style={{fontSize:11,color:"var(--text2)"}}>Pending</span>}
+                (() => {
+                  const groups = [];
+                  const seen = {};
+                  myOffersGiven.forEach(o => {
+                    if (!seen[o.wantId]) { seen[o.wantId] = []; groups.push({wantId:o.wantId,wantTitle:o.wantTitle,wantUser:o.wantUser,offers:[]}); }
+                    seen[o.wantId].push(o);
+                  });
+                  groups.forEach(g => g.offers = seen[g.wantId]);
+                  return groups.map(g=>(
+                    <div key={g.wantId} className="myprof-offer-group">
+                      <div className="myprof-offer-group-hd" onClick={()=>setSheet(wants.find(w=>w.id===g.wantId))}>
+                        📋 {g.wantTitle} <span style={{color:"var(--text2)",fontWeight:500}}>by {g.wantUser}</span>
+                        <span className="myprof-offer-group-count">{g.offers.length} offer{g.offers.length!==1?"s":""}</span>
+                      </div>
+                      {g.offers.map((o,i)=>(
+                        <div key={i} className={`myprof-offer no-title${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
+                          <div className="myprof-offer-msg">{o.message}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                            <span className="myprof-offer-price">${(o.price||0).toLocaleString()}</span>
+                            {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
+                            {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
+                            {!o.status&&<span style={{fontSize:11,color:"var(--text2)"}}>Pending</span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
             {profileTab==="saved"&&(
