@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore, collection, addDoc, onSnapshot, updateDoc,
-deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion,
+deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion, arrayRemove,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
 getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -216,6 +216,24 @@ textarea.fi{resize:vertical;min-height:80px}
 .cprev.unread{color:var(--text);font-weight:500}
 .cwant{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cunread-dot{width:9px;height:9px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.citem-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:4px}
+.cact-btn{background:transparent;border:1px solid var(--border);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:13px;padding:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cact-btn:hover{background:var(--bg);border-color:var(--accent)}
+.msg-search{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:10px;background:var(--surface);outline:none}
+.msg-search:focus{border-color:var(--accent)}
+.msg-filters{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.msg-chip{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s}
+.msg-chip:hover{border-color:var(--accent)}
+.msg-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.msg-tools{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.msg-sort{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer;outline:none}
+.msg-toggle{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s}
+.msg-toggle:hover{border-color:var(--accent)}
+.msg-toggle.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cgroup{margin-bottom:14px}
+.cgroup-head{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:6px 4px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.cgroup-count{color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0}
+.cgroup .citem{margin-bottom:6px}
 
 /* CHAT MODAL */
 .moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -302,6 +320,11 @@ const [ef, setEf] = useState({});
 
 const [convos, setConvos] = useState([]);
 const [hasUnread, setHasUnread] = useState(false);
+const [msgFilter, setMsgFilter] = useState("all");
+const [msgSearch, setMsgSearch] = useState("");
+const [msgSort, setMsgSort] = useState("newest");
+const [msgGroup, setMsgGroup] = useState(false);
+const [showArchived, setShowArchived] = useState(false);
 const [chat, setChat] = useState(null);
 const [msgs, setMsgs] = useState([]);
 const [ci, setCi] = useState("");
@@ -392,7 +415,7 @@ return onSnapshot(q, snap => {
 const all = snap.docs.map(d=>({id:d.id,...d.data()}));
 const mine = all.filter(c=>c.participants?.includes(user.uid));
 setConvos(mine);
-setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid)));
+setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid) && !c.archivedBy?.includes(user.uid)));
 // Notify on new incoming messages (background — works even when chat isn't open)
 if (prevConvoUpdates.current !== null) {
   mine.forEach(c => {
@@ -411,6 +434,17 @@ if (prevConvoUpdates.current !== null) {
 prevConvoUpdates.current = Object.fromEntries(mine.map(c => [c.id, c.updatedAt?.toMillis?.() ?? 0]));
 });
 }, [user]);
+
+// Backfill missing wantUserId on legacy convos so As Buyer/Seller filters work
+useEffect(() => {
+if (!user || convos.length === 0 || wants.length === 0) return;
+convos.forEach(c => {
+  if (!c.wantUserId && c.wantId) {
+    const w = wants.find(w => w.id === c.wantId);
+    if (w?.userId) updateDoc(doc(db,"conversations",c.id),{wantUserId:w.userId}).catch(()=>{});
+  }
+});
+}, [convos, wants, user]);
 
 // Messages in open chat
 useEffect(() => {
@@ -623,7 +657,7 @@ if (!snap.exists()) {
 await sd(ref,{
 participants:[user.uid,otherId],
 participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
-wantId:want.id, wantTitle:want.title, updatedAt:serverTimestamp(),
+wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
 });
 }
 setChat({convoId:cid,otherName,wantTitle:want.title});
@@ -644,6 +678,65 @@ const deleteMsg = async (msgId) => {
 if (!chat) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 };
+
+const togglePin = async (c) => {
+const isPinned = c.pinnedBy?.includes(user.uid);
+await updateDoc(doc(db,"conversations",c.id),{
+pinnedBy: isPinned ? arrayRemove(user.uid) : arrayUnion(user.uid),
+});
+};
+
+const toggleArchive = async (c) => {
+const isArchived = c.archivedBy?.includes(user.uid);
+await updateDoc(doc(db,"conversations",c.id),{
+archivedBy: isArchived ? arrayRemove(user.uid) : arrayUnion(user.uid),
+});
+};
+
+const isUnreadConvo = (c) => c.lastSenderId && c.lastSenderId!==user?.uid && !c.readBy?.includes(user?.uid);
+
+const displayedConvos = (() => {
+const q = msgSearch.toLowerCase().trim();
+let list = convos.filter(c => {
+  const archived = c.archivedBy?.includes(user?.uid);
+  if (showArchived ? !archived : archived) return false;
+  if (msgFilter === "unread" && !isUnreadConvo(c)) return false;
+  if (msgFilter === "buyer" && c.wantUserId !== user?.uid) return false;
+  if (msgFilter === "seller" && c.wantUserId === user?.uid) return false;
+  if (q) {
+    const other = Object.entries(c.participantNames||{}).find(([id])=>id!==user?.uid)?.[1]||"";
+    const hay = (other + " " + (c.wantTitle||"") + " " + (c.lastMessage||"")).toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+});
+const ts = c => c.updatedAt?.toMillis?.() ?? 0;
+list.sort((a,b) => {
+  const pa = a.pinnedBy?.includes(user?.uid) ? 1 : 0;
+  const pb = b.pinnedBy?.includes(user?.uid) ? 1 : 0;
+  if (pa !== pb) return pb - pa;
+  if (msgSort === "unread") {
+    const ua = isUnreadConvo(a) ? 1 : 0;
+    const ub = isUnreadConvo(b) ? 1 : 0;
+    if (ua !== ub) return ub - ua;
+    return ts(b) - ts(a);
+  }
+  if (msgSort === "oldest") return ts(a) - ts(b);
+  return ts(b) - ts(a);
+});
+return list;
+})();
+
+const groupedConvos = (() => {
+if (!msgGroup) return null;
+const groups = {};
+displayedConvos.forEach(c => {
+  const key = c.wantId || "_other";
+  if (!groups[key]) groups[key] = { wantTitle: c.wantTitle || "Other", items: [] };
+  groups[key].items.push(c);
+});
+return Object.entries(groups);
+})();
 
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
 
@@ -855,30 +948,78 @@ return (
         <>
           <div className="stitle">Messages</div>
           <div className="ssub">Your conversations with buyers and sellers.</div>
-          {convos.length===0?(
-            <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Messages appear here when you start chatting</div></div>
-          ):(
-            <div className="clist">
-              {convos.map(c=>{
-                const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Unknown";
-                const isUnread=c.lastSenderId && c.lastSenderId!==user.uid && !c.readBy?.includes(user.uid);
-                return(
-                  <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
-                    <div className="av sm">{on[0]?.toUpperCase()}</div>
-                    <div className="cinfo">
-                      <div className="cinfo-top">
-                        <div className={`cwith${isUnread?" unread":""}`}>{on}</div>
-                        <div className="ctime">{ta(c.updatedAt)}</div>
-                      </div>
-                      {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
-                      <div className="cwant">Re: {c.wantTitle}</div>
-                    </div>
-                    {isUnread&&<div className="cunread-dot"/>}
-                  </div>
-                );
-              })}
-            </div>
+
+          {convos.length>0&&(
+            <>
+              <input className="msg-search" type="text" placeholder="🔍 Search by name, want, or message…" value={msgSearch} onChange={e=>setMsgSearch(e.target.value)} />
+              <div className="msg-filters">
+                {[
+                  {id:"all",label:"All"},
+                  {id:"unread",label:"Unread"},
+                  {id:"buyer",label:"As Buyer"},
+                  {id:"seller",label:"As Seller"},
+                ].map(f=>(
+                  <button key={f.id} className={`msg-chip${msgFilter===f.id?" active":""}`} onClick={()=>setMsgFilter(f.id)}>{f.label}</button>
+                ))}
+              </div>
+              <div className="msg-tools">
+                <select className="msg-sort" value={msgSort} onChange={e=>setMsgSort(e.target.value)}>
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="unread">Unread first</option>
+                </select>
+                <button className={`msg-toggle${msgGroup?" active":""}`} onClick={()=>setMsgGroup(g=>!g)}>📂 Group by want</button>
+                <button className={`msg-toggle${showArchived?" active":""}`} onClick={()=>setShowArchived(s=>!s)}>🗄 {showArchived?"Showing archived":"Archived"}</button>
+              </div>
+            </>
           )}
+
+          {(() => {
+            const renderItem = (c) => {
+              const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Unknown";
+              const isUnread=isUnreadConvo(c);
+              const isPinned=c.pinnedBy?.includes(user.uid);
+              const isArchived=c.archivedBy?.includes(user.uid);
+              return (
+                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
+                  <div className="av sm">{on[0]?.toUpperCase()}</div>
+                  <div className="cinfo">
+                    <div className="cinfo-top">
+                      <div className={`cwith${isUnread?" unread":""}`}>{isPinned&&"📌 "}{on}</div>
+                      <div className="ctime">{ta(c.updatedAt)}</div>
+                    </div>
+                    {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
+                    {!msgGroup&&<div className="cwant">Re: {c.wantTitle}</div>}
+                  </div>
+                  {isUnread&&<div className="cunread-dot"/>}
+                  <div className="citem-actions" onClick={e=>e.stopPropagation()}>
+                    <button className="cact-btn" title={isPinned?"Unpin":"Pin"} onClick={()=>togglePin(c)}>{isPinned?"📌":"📍"}</button>
+                    <button className="cact-btn" title={isArchived?"Unarchive":"Archive"} onClick={()=>toggleArchive(c)}>{isArchived?"📤":"🗄"}</button>
+                  </div>
+                </div>
+              );
+            };
+
+            if (convos.length===0) {
+              return <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Messages appear here when you start chatting</div></div>;
+            }
+            if (displayedConvos.length===0) {
+              return <div className="empty"><div className="eicon">🔎</div><div className="etitle">No matches</div><div className="esub">Try changing your filter or search</div></div>;
+            }
+            if (msgGroup && groupedConvos) {
+              return (
+                <div className="clist">
+                  {groupedConvos.map(([key, g])=>(
+                    <div key={key} className="cgroup">
+                      <div className="cgroup-head">Re: {g.wantTitle} <span className="cgroup-count">({g.items.length})</span></div>
+                      {g.items.map(renderItem)}
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            return <div className="clist">{displayedConvos.map(renderItem)}</div>;
+          })()}
         </>
       )}
     </main>
