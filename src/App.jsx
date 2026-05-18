@@ -51,6 +51,11 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;font-family:var(--fd);cursor:pointer;border-radius:8px;color:var(--text2);transition:all .15s}
 .auth-tab.active{background:var(--accent);color:#fff}
 .auth-form{display:flex;flex-direction:column;gap:12px}
+.forgot-link{background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;text-align:right;padding:0;font-family:var(--fb);margin-top:-4px}
+.forgot-link:hover{text-decoration:underline}
+.forgot-back{background:none;border:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;font-family:var(--fb);text-align:center}
+.forgot-back:hover{color:var(--text)}
+.forgot-success{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;color:var(--text)}
 .auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
 .auth-input:focus{border-color:var(--accent)}
 .auth-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;font-family:var(--fd);margin-top:4px}
@@ -386,6 +391,11 @@ const [authTab, setAuthTab] = useState("login");
 const [af, setAf] = useState({name:"",email:"",password:""});
 const [authErr, setAuthErr] = useState("");
 const [authBusy, setAuthBusy] = useState(false);
+const [forgotMode, setForgotMode] = useState(false);
+const [forgotEmail, setForgotEmail] = useState("");
+const [forgotSent, setForgotSent] = useState(false);
+const [forgotBusy, setForgotBusy] = useState(false);
+const [forgotErr, setForgotErr] = useState("");
 
 const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 const [banned, setBanned] = useState([]);
@@ -629,6 +639,19 @@ await signInWithEmailAndPassword(auth,af.email,af.password);
 }
 } catch(e) { setAuthErr(e.message.replace("Firebase:","").replace(/(auth.*).?/,"")); }
 setAuthBusy(false);
+};
+
+const sendPasswordReset = async () => {
+if (!forgotEmail.trim()) { setForgotErr("Please enter your email address."); return; }
+setForgotBusy(true); setForgotErr("");
+try {
+  const {sendPasswordResetEmail} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+  await sendPasswordResetEmail(auth, forgotEmail.trim());
+  setForgotSent(true);
+} catch(e) {
+  setForgotErr(e.code==="auth/user-not-found"?"No account found with that email.":"Failed to send email. Please try again.");
+}
+setForgotBusy(false);
 };
 
 const signInWithGoogle = async () => {
@@ -988,12 +1011,36 @@ if (!user) return (
 ))}
 </div>
 <div className="auth-form">
-{authTab==="signup"&&<input className="auth-input" placeholder="Your name" value={af.name} onChange={e=>setAf(p=>({...p,name:e.target.value}))} />}
-<input className="auth-input" type="email" placeholder="Email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
-<input className="auth-input" type="password" placeholder="Password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} />
-{authErr&&<div className="auth-err">{authErr}</div>}
-<button className="auth-btn" onClick={doAuth} disabled={authBusy}>{authBusy?"...":authTab==="login"?"Log In ->":"Create Account ->"}</button>
-<div className="auth-divider">or</div>
+{forgotMode?(
+  forgotSent?(
+    <>
+      <div className="forgot-success">
+        <div style={{fontSize:32,marginBottom:8}}>📬</div>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Check your inbox!</div>
+        <div style={{fontSize:13,color:"var(--text2)"}}>A password reset link was sent to <strong>{forgotEmail}</strong></div>
+      </div>
+      <button className="auth-btn" onClick={()=>{setForgotMode(false);setForgotSent(false);setForgotEmail("");}}>Back to Log In</button>
+    </>
+  ):(
+    <>
+      <div style={{fontSize:14,color:"var(--text2)",marginBottom:4}}>Enter your email and we'll send you a reset link.</div>
+      <input className="auth-input" type="email" placeholder="Your email address" value={forgotEmail} onChange={e=>{setForgotEmail(e.target.value);setForgotErr("");}} onKeyDown={e=>e.key==="Enter"&&sendPasswordReset()} autoFocus />
+      {forgotErr&&<div className="auth-err">{forgotErr}</div>}
+      <button className="auth-btn" onClick={sendPasswordReset} disabled={forgotBusy}>{forgotBusy?"Sending…":"Send Reset Link ->"}</button>
+      <button className="forgot-back" onClick={()=>{setForgotMode(false);setForgotErr("");}}>← Back to Log In</button>
+    </>
+  )
+):(
+  <>
+    {authTab==="signup"&&<input className="auth-input" placeholder="Your name" value={af.name} onChange={e=>setAf(p=>({...p,name:e.target.value}))} />}
+    <input className="auth-input" type="email" placeholder="Email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
+    <input className="auth-input" type="password" placeholder="Password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} />
+    {authTab==="login"&&<button className="forgot-link" onClick={()=>{setForgotMode(true);setForgotEmail(af.email);setForgotErr("");}}>Forgot password?</button>}
+    {authErr&&<div className="auth-err">{authErr}</div>}
+    <button className="auth-btn" onClick={doAuth} disabled={authBusy}>{authBusy?"...":authTab==="login"?"Log In ->":"Create Account ->"}</button>
+    <div className="auth-divider">or</div>
+  </>
+)}
 <button className="auth-google" onClick={signInWithGoogle} disabled={authBusy}>
 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.58-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
 Continue with Google
