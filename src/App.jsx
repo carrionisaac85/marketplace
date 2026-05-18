@@ -145,6 +145,32 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .prof-want:hover{border-color:var(--accent)}
 .prof-want-title{font-size:13px;font-weight:600;color:var(--text)}
 .prof-want-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.prof-rating{display:flex;align-items:center;gap:4px;margin-top:4px}
+.prof-rating-text{font-size:12px;color:var(--text2)}
+.rate-btn{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.rate-btn:hover{background:#fde68a}
+.rev-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fi .15s}
+.rev-modal{background:var(--surface);border-radius:20px;width:100%;max-width:400px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.rev-modal-head{display:flex;align-items:center;justify-content:space-between}
+.rev-modal-title{font-family:var(--fd);font-size:20px;font-weight:800;color:var(--text)}
+.rev-modal-sub{font-size:12px;color:var(--text2);margin-top:-6px}
+.rev-star-row{display:flex;gap:4px;justify-content:center;margin:4px 0}
+.rev-star-btn{background:none;border:none;cursor:pointer;padding:4px;line-height:1;transition:transform .1s}
+.rev-star-btn:hover{transform:scale(1.15)}
+.rev-star-label{text-align:center;font-size:14px;font-weight:600;color:var(--text2);margin-top:-4px}
+.rev-textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:13px;resize:none;background:var(--surface2);color:var(--text);font-family:var(--fb);box-sizing:border-box}
+.rev-textarea:focus{outline:none;border-color:var(--accent)}
+.rev-submit{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--fd);transition:background .15s}
+.rev-submit:hover:not(:disabled){background:#c73d22}
+.rev-submit:disabled{opacity:.45;cursor:not-allowed}
+.rev-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.rev-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.rev-av{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.rev-name{font-size:13px;font-weight:600;color:var(--text)}
+.rev-stars{display:flex;gap:1px;margin-top:2px}
+.rev-time{font-size:11px;color:var(--text2);flex-shrink:0;align-self:flex-start}
+.rev-comment{font-size:13px;color:var(--text);font-style:italic;margin-bottom:4px;line-height:1.4}
+.rev-want{font-size:11px;color:var(--text2)}
 .offer-status-accepted{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #6ee7b7;border-radius:999px;padding:2px 9px}
 .offer-status-declined{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;padding:2px 9px}
 .offer-accept{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -347,6 +373,13 @@ const [banned, setBanned] = useState([]);
 const [adminTab, setAdminTab] = useState("dashboard");
 const [profileUid, setProfileUid] = useState(null);
 const [profileData, setProfileData] = useState(null);
+const [profileReviews, setProfileReviews] = useState([]);
+const [myReviewedKeys, setMyReviewedKeys] = useState([]);
+const [reviewSheet, setReviewSheet] = useState(null);
+const [reviewStars, setReviewStars] = useState(0);
+const [reviewHover, setReviewHover] = useState(0);
+const [reviewComment, setReviewComment] = useState("");
+const [reviewBusy, setReviewBusy] = useState(false);
 const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
@@ -397,8 +430,9 @@ useEffect(() => onAuthStateChanged(auth, async u => {
 setUser(u);
 setAuthLoading(false);
 if (u) {
-  const {setDoc:sd, serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const {setDoc:sd,getDoc:gd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
   sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(()=>{});
+  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()) setMyReviewedKeys(snap.data().reviewedKeys||[]); }).catch(()=>{});
 }
 }), []);
 
@@ -832,13 +866,46 @@ displayedConvos.forEach(c => {
 return Object.entries(groups);
 })();
 
+const renderStars = (avg) => {
+const full = Math.floor(avg);
+const half = avg - full >= 0.4;
+return [1,2,3,4,5].map(n=>(
+  <span key={n} style={{color: n<=full?"#f59e0b": (n===full+1&&half)?"#f59e0b":"#d1d5db", fontSize:14}}>
+    {n<=full?"★": (n===full+1&&half)?"⯨":"☆"}
+  </span>
+));
+};
+
 const openProfile = async (uid, name) => {
 if (!uid) return;
 setProfileUid(uid);
 setProfileData(null);
-const {getDoc:gd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-const snap = await gd(doc(db,"users",uid));
+setProfileReviews([]);
+const {getDoc:gd, getDocs:gds, collection:col, query:q2, orderBy:ob, limit:lim} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const [snap, revSnap] = await Promise.all([
+  gd(doc(db,"users",uid)),
+  gds(q2(col(db,"users",uid,"reviews"),ob("createdAt","desc"),lim(20)))
+]);
 setProfileData(snap.exists() ? snap.data() : {name, uid});
+setProfileReviews(revSnap.docs.map(d=>({id:d.id,...d.data()})));
+};
+
+const submitReview = async () => {
+if (!reviewSheet || reviewStars<1) return;
+setReviewBusy(true);
+try {
+  const {addDoc:ad, updateDoc:ud, collection:col, serverTimestamp:st, arrayUnion:au, increment:inc} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const {targetUid, targetName, wantId, wantTitle, offerKey} = reviewSheet;
+  await ad(col(db,"users",targetUid,"reviews"),{
+    stars:reviewStars, comment:reviewComment.trim(), fromId:user.uid, fromName:user.displayName||user.email,
+    wantId, wantTitle, createdAt:st()
+  });
+  await ud(doc(db,"users",targetUid),{reviewCount:inc(1), ratingSum:inc(reviewStars)});
+  await ud(doc(db,"users",user.uid),{reviewedKeys:au(offerKey)});
+  setMyReviewedKeys(k=>[...k, offerKey]);
+  setReviewSheet(null); setReviewStars(0); setReviewComment("");
+} catch(e){ alert("Failed to submit review: "+e.message); }
+setReviewBusy(false);
 };
 
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
@@ -1065,6 +1132,9 @@ return (
                     {!o.status&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
                     {o.status==="declined"&&<button className="offer-accept" onClick={()=>setOfferStatus(w,i,"accepted")}>✅</button>}
                     {o.status==="accepted"&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
+                    {o.status==="accepted"&&o.fromId&&o.fromId!==user.uid&&!myReviewedKeys.includes(w.id+"_"+i+"_"+o.fromId)&&(
+                      <button className="rate-btn" onClick={()=>{setReviewSheet({targetUid:o.fromId,targetName:o.from,wantId:w.id,wantTitle:w.title,offerKey:w.id+"_"+i+"_"+o.fromId});setReviewStars(0);setReviewComment("");}}>⭐ Rate</button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1288,6 +1358,12 @@ return (
                   <div style={{flex:1,minWidth:0}}>
                     <div className="prof-name">{profileData.name}{isMe&&<span style={{fontSize:12,fontWeight:500,color:"var(--text2)",marginLeft:8}}>You</span>}</div>
                     <div className="prof-joined">Joined {joinedDate?joinedDate.toLocaleDateString("en-US",{month:"long",year:"numeric"}):"recently"}</div>
+                    {(profileData.reviewCount>0)&&(
+                      <div className="prof-rating">
+                        {renderStars(profileData.ratingSum/profileData.reviewCount)}
+                        <span className="prof-rating-text">{(profileData.ratingSum/profileData.reviewCount).toFixed(1)} ({profileData.reviewCount} review{profileData.reviewCount!==1?"s":""})</span>
+                      </div>
+                    )}
                   </div>
                   <button className="prof-close" onClick={()=>{setProfileUid(null);setProfileData(null);}}>✕</button>
                 </div>
@@ -1319,9 +1395,59 @@ return (
                 {profWants.length===0&&(
                   <div className="empty" style={{padding:"20px 0"}}><div className="etitle">No wants posted yet</div></div>
                 )}
+                {profileReviews.length>0&&(
+                  <>
+                    <div className="prof-section" style={{marginTop:16}}>Reviews</div>
+                    {profileReviews.map(r=>(
+                      <div key={r.id} className="rev-item">
+                        <div className="rev-top">
+                          <div className="rev-av">{(r.fromName||"?")[0].toUpperCase()}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div className="rev-name">{r.fromName}</div>
+                            <div className="rev-stars">{renderStars(r.stars)}</div>
+                          </div>
+                          <div className="rev-time">{r.createdAt?.toDate?.()?.toLocaleDateString?.("en-US",{month:"short",day:"numeric",year:"numeric"})||""}</div>
+                        </div>
+                        {r.comment&&<div className="rev-comment">"{r.comment}"</div>}
+                        <div className="rev-want">Re: {r.wantTitle}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {profileReviews.length===0&&profileData.reviewCount>0&&(
+                  <div style={{fontSize:13,color:"var(--text2)",textAlign:"center",padding:"12px 0"}}>Loading reviews…</div>
+                )}
               </>
             );
           })()}
+        </div>
+      </div>
+    )}
+
+    {/* REVIEW MODAL */}
+    {reviewSheet&&(
+      <div className="rev-overlay" onClick={()=>setReviewSheet(null)}>
+        <div className="rev-modal" onClick={e=>e.stopPropagation()}>
+          <div className="rev-modal-head">
+            <div className="rev-modal-title">Rate {reviewSheet.targetName}</div>
+            <button className="prof-close" onClick={()=>setReviewSheet(null)}>✕</button>
+          </div>
+          <div className="rev-modal-sub">Re: {reviewSheet.wantTitle}</div>
+          <div className="rev-star-row">
+            {[1,2,3,4,5].map(n=>(
+              <button key={n} className="rev-star-btn"
+                onMouseEnter={()=>setReviewHover(n)}
+                onMouseLeave={()=>setReviewHover(0)}
+                onClick={()=>setReviewStars(n)}>
+                <span style={{color:(reviewHover||reviewStars)>=n?"#f59e0b":"#d1d5db",fontSize:36}}>★</span>
+              </button>
+            ))}
+          </div>
+          {reviewStars>0&&<div className="rev-star-label">{["","Terrible","Bad","Okay","Good","Excellent!"][reviewStars]}</div>}
+          <textarea className="rev-textarea" placeholder="Share your experience (optional)..." value={reviewComment} onChange={e=>setReviewComment(e.target.value)} rows={3}/>
+          <button className="rev-submit" disabled={reviewStars<1||reviewBusy} onClick={submitReview}>
+            {reviewBusy?"Submitting…":"Submit Review"}
+          </button>
         </div>
       </div>
     )}
@@ -1368,6 +1494,15 @@ return (
                 ))}
               </>
             )}
+            {sheet.userId!==user.uid&&(()=>{
+              const myAccepted = (sheet.offers||[]).map((o,i)=>({o,i})).find(({o})=>o.fromId===user.uid&&o.status==="accepted");
+              const rateKey = myAccepted ? sheet.id+"_"+myAccepted.i+"_"+sheet.userId : null;
+              return myAccepted&&rateKey&&!myReviewedKeys.includes(rateKey)?(
+                <div style={{padding:"12px 0"}}>
+                  <button className="rate-btn" style={{width:"100%"}} onClick={()=>{setReviewSheet({targetUid:sheet.userId,targetName:sheet.user,wantId:sheet.id,wantTitle:sheet.title,offerKey:rateKey});setReviewStars(0);setReviewComment("");}}>⭐ Rate {sheet.user}</button>
+                </div>
+              ):null;
+            })()}
             {sheet.userId!==user.uid&&(
               <div className="compose">
                 <div className="clabel">Send Your Offer</div>
