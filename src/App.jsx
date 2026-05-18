@@ -171,6 +171,24 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .rev-time{font-size:11px;color:var(--text2);flex-shrink:0;align-self:flex-start}
 .rev-comment{font-size:13px;color:var(--text);font-style:italic;margin-bottom:4px;line-height:1.4}
 .rev-want{font-size:11px;color:var(--text2)}
+.save-btn{background:none;border:none;cursor:pointer;padding:2px 4px;display:flex;align-items:center;gap:2px;font-size:11px;color:var(--text2)}
+.save-btn:hover{opacity:.75}
+.myprof-header{display:flex;align-items:center;gap:16px;padding:20px 16px 12px;background:linear-gradient(135deg,var(--accent) 0%,#e05a30 100%);margin:-16px -16px 0}
+.myprof-av{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:28px;font-weight:800;flex-shrink:0;border:3px solid rgba(255,255,255,.4)}
+.myprof-name{font-family:var(--fd);font-size:20px;font-weight:800;color:#fff}
+.myprof-tabs{display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--border);margin:0 -16px;padding:0 16px;scrollbar-width:none}
+.myprof-tabs::-webkit-scrollbar{display:none}
+.myprof-tab{flex-shrink:0;background:none;border:none;border-bottom:2.5px solid transparent;padding:12px 14px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;font-family:var(--fb);transition:all .15s}
+.myprof-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.myprof-body{padding:16px 0;display:flex;flex-direction:column;gap:10px}
+.myprof-offer{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.myprof-offer.accepted{background:#f0fdf4;border-color:#6ee7b7}
+.myprof-offer.declined{opacity:.6}
+.myprof-offer-want{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;cursor:pointer}
+.myprof-offer-want:hover{opacity:.8}
+.myprof-offer-msg{font-size:13px;color:var(--text);line-height:1.4}
+.myprof-offer-price{font-family:var(--fd);font-size:15px;font-weight:800;color:var(--text)}
+.save-unsave{position:absolute;top:10px;right:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;padding:3px 8px;cursor:pointer;color:var(--text2)}
 .offer-status-accepted{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #6ee7b7;border-radius:999px;padding:2px 9px}
 .offer-status-declined{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:999px;padding:2px 9px}
 .offer-accept{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -358,6 +376,7 @@ const NAV = [
 {id:"post",icon:"➕",label:"Post Want"},
 {id:"mine",icon:"📋",label:"My Posts"},
 {id:"messages",icon:"💬",label:"Messages"},
+{id:"myprofile",icon:"👤",label:"Profile"},
 ];
 
 export default function App() {
@@ -380,6 +399,10 @@ const [reviewStars, setReviewStars] = useState(0);
 const [reviewHover, setReviewHover] = useState(0);
 const [reviewComment, setReviewComment] = useState("");
 const [reviewBusy, setReviewBusy] = useState(false);
+const [savedWants, setSavedWants] = useState([]);
+const [profileTab, setProfileTab] = useState("overview");
+const [myReviews, setMyReviews] = useState([]);
+const [myReviewsLoaded, setMyReviewsLoaded] = useState(false);
 const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
@@ -432,7 +455,7 @@ setAuthLoading(false);
 if (u) {
   const {setDoc:sd,getDoc:gd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
   sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(()=>{});
-  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()) setMyReviewedKeys(snap.data().reviewedKeys||[]); }).catch(()=>{});
+  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()){ setMyReviewedKeys(snap.data().reviewedKeys||[]); setSavedWants(snap.data().savedWants||[]); } }).catch(()=>{});
 }
 }), []);
 
@@ -866,6 +889,22 @@ displayedConvos.forEach(c => {
 return Object.entries(groups);
 })();
 
+const toggleSave = async (wantId, e) => {
+if (e) e.stopPropagation();
+const isSaved = savedWants.includes(wantId);
+setSavedWants(s => isSaved ? s.filter(id=>id!==wantId) : [...s, wantId]);
+const {updateDoc:ud, arrayUnion:au, arrayRemove:ar} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+ud(doc(db,"users",user.uid), isSaved ? {savedWants:ar(wantId)} : {savedWants:au(wantId)}).catch(()=>{});
+};
+
+const loadMyReviews = async () => {
+if (myReviewsLoaded) return;
+const {getDocs:gds, collection:col, query:q2, orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const snap = await gds(q2(col(db,"users",user.uid,"reviews"),ob("createdAt","desc")));
+setMyReviews(snap.docs.map(d=>({id:d.id,...d.data()})));
+setMyReviewsLoaded(true);
+};
+
 const renderStars = (avg) => {
 const full = Math.floor(avg);
 const half = avg - full >= 0.4;
@@ -975,7 +1014,7 @@ return (
       <div className="header-top">
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
         <div className="huser">
-          <span className="huser-name">👤 <strong>{user.displayName||user.email}</strong></span>
+          <span className="huser-name profile-link" onClick={()=>{setView("myprofile");setProfileTab("overview");loadMyReviews();}}>👤 <strong>{user.displayName||user.email}</strong></span>
           <button className="signout" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
         </div>
       </div>
@@ -1038,7 +1077,10 @@ return (
                   </div>
                   <div className="wfoot">
                     <div className="ocnt">{(w.offers||[]).length===0?<span>No offers</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
-                    {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Offer -></button>}
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)} title={savedWants.includes(w.id)?"Remove bookmark":"Save"}>{savedWants.includes(w.id)?"🔖":"🔖"}<span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:16}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
+                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Offer -></button>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1046,6 +1088,109 @@ return (
            )}
         </>
       )}
+
+      {/* MY PROFILE PAGE */}
+      {view==="myprofile"&&(()=>{
+        const myWants2 = wants.filter(w=>w.userId===user.uid);
+        const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
+        const mySavedWants = wants.filter(w=>savedWants.includes(w.id));
+        const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
+        const tabs = [{id:"overview",label:"Overview"},{id:"wants",label:`Wants (${myWants2.length})`},{id:"offers",label:`Offers (${myOffersGiven.length})`},{id:"saved",label:`Saved (${mySavedWants.length})`},{id:"reviews",label:`Reviews (${myReviews.length})`}];
+        return(
+          <>
+            <div className="myprof-header">
+              <div className="myprof-av">{(user.displayName||user.email||"?")[0].toUpperCase()}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div className="myprof-name">{user.displayName||user.email}</div>
+                {myAvgRating!==null&&(
+                  <div className="prof-rating" style={{marginTop:4}}>
+                    {renderStars(myAvgRating)}
+                    <span className="prof-rating-text">{myAvgRating.toFixed(1)} ({myReviews.length} review{myReviews.length!==1?"s":""})</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="myprof-tabs">
+              {tabs.map(t=>(
+                <button key={t.id} className={`myprof-tab${profileTab===t.id?" active":""}`} onClick={()=>setProfileTab(t.id)}>{t.label}</button>
+              ))}
+            </div>
+            {profileTab==="overview"&&(
+              <div className="myprof-body">
+                <div className="prof-stats">
+                  <div className="prof-stat"><div className="prof-stat-num">{myWants2.length}</div><div className="prof-stat-label">Wants Posted</div></div>
+                  <div className="prof-stat"><div className="prof-stat-num">{myOffersGiven.length}</div><div className="prof-stat-label">Offers Made</div></div>
+                  <div className="prof-stat"><div className="prof-stat-num">{myOffersGiven.filter(o=>o.status==="accepted").length}</div><div className="prof-stat-label">Accepted</div></div>
+                </div>
+                <div className="prof-stats" style={{gridTemplateColumns:"repeat(2,1fr)",marginTop:0}}>
+                  <div className="prof-stat"><div className="prof-stat-num">{savedWants.length}</div><div className="prof-stat-label">Saved Wants</div></div>
+                  <div className="prof-stat"><div className="prof-stat-num">{myReviews.length}</div><div className="prof-stat-label">Reviews</div></div>
+                </div>
+              </div>
+            )}
+            {profileTab==="wants"&&(
+              <div className="myprof-body">
+                {myWants2.length===0?<div className="empty"><div className="etitle">No wants posted yet</div></div>:
+                myWants2.map(w=>(
+                  <div key={w.id} className="prof-want" onClick={()=>setSheet(w)}>
+                    <div className="prof-want-title">{w.title}</div>
+                    <div className="prof-want-sub">${(w.budget||0).toLocaleString()} · {w.category} · {(w.offers||[]).length} offer{(w.offers||[]).length!==1?"s":""} · {ta(w.createdAt)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {profileTab==="offers"&&(
+              <div className="myprof-body">
+                {myOffersGiven.length===0?<div className="empty"><div className="etitle">No offers made yet</div></div>:
+                myOffersGiven.map((o,i)=>(
+                  <div key={i} className={`myprof-offer${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
+                    <div className="myprof-offer-want" onClick={()=>setSheet(wants.find(w=>w.id===o.wantId))}>📋 {o.wantTitle} <span style={{color:"var(--text2)"}}>by {o.wantUser}</span></div>
+                    <div className="myprof-offer-msg">{o.message}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                      <span className="myprof-offer-price">${(o.price||0).toLocaleString()}</span>
+                      {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
+                      {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
+                      {!o.status&&<span style={{fontSize:11,color:"var(--text2)"}}>Pending</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {profileTab==="saved"&&(
+              <div className="myprof-body">
+                {mySavedWants.length===0?<div className="empty"><div className="eicon">🔖</div><div className="etitle">No saved wants</div><div className="esub">Tap the bookmark on any want to save it here</div></div>:
+                mySavedWants.map(w=>(
+                  <div key={w.id} className="prof-want" style={{position:"relative"}} onClick={()=>setSheet(w)}>
+                    <div className="prof-want-title">{w.title}</div>
+                    <div className="prof-want-sub">${(w.budget||0).toLocaleString()} · {w.user} · {w.category}</div>
+                    <button className="save-unsave" onClick={e=>toggleSave(w.id,e)}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {profileTab==="reviews"&&(
+              <div className="myprof-body">
+                {!myReviewsLoaded&&<div className="loading">Loading reviews…</div>}
+                {myReviewsLoaded&&myReviews.length===0&&<div className="empty"><div className="etitle">No reviews yet</div><div className="esub">Reviews appear after accepted offers</div></div>}
+                {myReviews.map(r=>(
+                  <div key={r.id} className="rev-item">
+                    <div className="rev-top">
+                      <div className="rev-av">{(r.fromName||"?")[0].toUpperCase()}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="rev-name">{r.fromName}</div>
+                        <div className="rev-stars">{renderStars(r.stars)}</div>
+                      </div>
+                      <div className="rev-time">{r.createdAt?.toDate?.()?.toLocaleDateString?.("en-US",{month:"short",day:"numeric",year:"numeric"})||""}</div>
+                    </div>
+                    {r.comment&&<div className="rev-comment">"{r.comment}"</div>}
+                    <div className="rev-want">Re: {r.wantTitle}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* POST */}
       {view==="post"&&(
