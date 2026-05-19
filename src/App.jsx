@@ -509,19 +509,25 @@ useEffect(() => onAuthStateChanged(auth, async u => {
 setUser(u);
 setAuthLoading(false);
 if (u) {
-  const {setDoc:sd,getDoc:gd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
-  gd(doc(db,"users",u.uid)).then(snap=>{
-    if(snap.exists()){
-      const data = snap.data();
-      console.log("User doc loaded:", {savedWants:data.savedWants, reviewedKeys:data.reviewedKeys, reportedWants:data.reportedWants});
-      setMyReviewedKeys(data.reviewedKeys||[]);
-      setSavedWants(data.savedWants||[]);
-      setMyReportedWants(data.reportedWants||[]);
-    } else { console.warn("User doc does not exist for", u.uid); }
-  }).catch(err=>console.error("User doc read failed:",err));
+  const {setDoc:sd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("[WB] User upsert failed:",err));
 }
 }), []);
+
+// Live listener for user doc (savedWants, reviewedKeys, reportedWants)
+useEffect(() => {
+if (!user) return;
+console.log("[WB] Subscribing to user doc:", user.uid);
+return onSnapshot(doc(db,"users",user.uid), snap => {
+  if (snap.exists()) {
+    const data = snap.data();
+    console.log("[WB] User doc snapshot:", {savedWants:data.savedWants, reviewedKeys:data.reviewedKeys, reportedWants:data.reportedWants});
+    setMyReviewedKeys(data.reviewedKeys||[]);
+    setSavedWants(data.savedWants||[]);
+    setMyReportedWants(data.reportedWants||[]);
+  } else { console.warn("[WB] User doc does not exist for", user.uid); }
+}, err => console.error("[WB] User doc listener failed:", err));
+}, [user?.uid]);
 
 // Wants
 useEffect(() => {
@@ -1005,14 +1011,16 @@ setAdminReports(r=>r.map(x=>x.id===reportId?{...x,resolved:true}:x));
 
 const toggleSave = async (wantId, e) => {
 if (e) e.stopPropagation();
-if (!user) return;
+if (!user) { console.warn("[WB] toggleSave called with no user"); return; }
 const isSaved = savedWants.includes(wantId);
+console.log(`[WB] toggleSave called: wantId=${wantId} isSaved=${isSaved} uid=${user.uid}`);
 setSavedWants(s => isSaved ? s.filter(id=>id!==wantId) : [...s, wantId]);
 try {
   const {setDoc:sd, arrayUnion:au, arrayRemove:ar} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
   await sd(doc(db,"users",user.uid), {savedWants: isSaved ? ar(wantId) : au(wantId)}, {merge:true});
+  console.log(`[WB] toggleSave wrote successfully for ${wantId}`);
 } catch (err) {
-  console.error("Bookmark save failed:", err);
+  console.error("[WB] Bookmark save failed:", err);
   setSavedWants(s => isSaved ? [...s, wantId] : s.filter(id=>id!==wantId));
   alert("Couldn't save bookmark. " + (err?.message || "Please try again."));
 }
