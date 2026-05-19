@@ -462,8 +462,7 @@ const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
 const [dist, setDist] = useState("Any distance");
-const [budgetMin, setBudgetMin] = useState("");
-const [budgetMax, setBudgetMax] = useState("");
+const [budgetMin, setBudgetMin] = useState("Any budget");
 const [userLatLng, setUserLatLng] = useState(null);
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
@@ -777,8 +776,8 @@ const catOk = cat==="All"||w.category===cat;
 const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
   ? true
   : haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng) <= distMiles;
-const bMin = budgetMin !== "" ? Number(budgetMin) : null;
-const bMax = budgetMax !== "" ? Number(budgetMax) : null;
+const BUDGET_RANGES = {"Any budget":[null,null],"Under $50":[0,50],"$50 – $200":[50,200],"$200 – $500":[200,500],"$500 – $1,000":[500,1000],"$1,000 – $5,000":[1000,5000],"$5,000+":[5000,null]};
+const [bMin,bMax] = BUDGET_RANGES[budgetMin] ?? [null,null];
 const budgetOk = (bMin===null||w.budget>=bMin) && (bMax===null||w.budget<=bMax);
 return ms && catOk && distOk && budgetOk;
 });
@@ -1256,10 +1255,9 @@ return (
             </select>
             <span className="frow-sep"/>
             <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>💰</span>
-            <input className="budget-input" type="number" placeholder="Min $" value={budgetMin} onChange={e=>setBudgetMin(e.target.value)} min="0"/>
-            <span style={{fontSize:12,color:"var(--text2)"}}>–</span>
-            <input className="budget-input" type="number" placeholder="Max $" value={budgetMax} onChange={e=>setBudgetMax(e.target.value)} min="0"/>
-            {(budgetMin||budgetMax)&&<button className="budget-clear" onClick={()=>{setBudgetMin("");setBudgetMax("");}}>✕</button>}
+            <select className="fsel" value={budgetMin} onChange={e=>setBudgetMin(e.target.value)}>
+              {["Any budget","Under $50","$50 – $200","$200 – $500","$500 – $1,000","$1,000 – $5,000","$5,000+"].map(r=><option key={r}>{r}</option>)}
+            </select>
             <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)",flexShrink:0}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
             {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)"}}>⚠️</span>}
           </div>
