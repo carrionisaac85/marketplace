@@ -1238,10 +1238,11 @@ return (
       {/* BROWSE */}
       {view==="browse"&&(
         <>
-          <div className="cats">
-            {CATS.map(c=><div key={c} className={`chip ${cat===c?"active":""}`} onClick={()=>setCat(c)}>{c}</div>)}
-          </div>
           <div className="frow">
+            <select className="fsel" value={cat} onChange={e=>setCat(e.target.value)}>
+              {CATS.map(c=><option key={c}>{c}</option>)}
+            </select>
+            <span className="frow-sep"/>
             <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>📍</span>
             <select className="fsel" value={dist} onChange={e=>{
               const v=e.target.value; setDist(v);
@@ -1259,8 +1260,8 @@ return (
             <span style={{fontSize:12,color:"var(--text2)"}}>–</span>
             <input className="budget-input" type="number" placeholder="Max $" value={budgetMax} onChange={e=>setBudgetMax(e.target.value)} min="0"/>
             {(budgetMin||budgetMax)&&<button className="budget-clear" onClick={()=>{setBudgetMin("");setBudgetMax("");}}>✕</button>}
-            <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)"}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
-            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)",marginLeft:4}}>⚠️</span>}
+            <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)",flexShrink:0}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
+            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)"}}>⚠️</span>}
           </div>
           {loading?<div className="loading">Loading wants...</div>:
            filtered.length===0?(
