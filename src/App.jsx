@@ -997,10 +997,17 @@ setAdminReports(r=>r.map(x=>x.id===reportId?{...x,resolved:true}:x));
 
 const toggleSave = async (wantId, e) => {
 if (e) e.stopPropagation();
+if (!user) return;
 const isSaved = savedWants.includes(wantId);
 setSavedWants(s => isSaved ? s.filter(id=>id!==wantId) : [...s, wantId]);
-const {updateDoc:ud, arrayUnion:au, arrayRemove:ar} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-ud(doc(db,"users",user.uid), isSaved ? {savedWants:ar(wantId)} : {savedWants:au(wantId)}).catch(()=>{});
+try {
+  const {setDoc:sd, arrayUnion:au, arrayRemove:ar} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  await sd(doc(db,"users",user.uid), {savedWants: isSaved ? ar(wantId) : au(wantId)}, {merge:true});
+} catch (err) {
+  console.error("Bookmark save failed:", err);
+  setSavedWants(s => isSaved ? [...s, wantId] : s.filter(id=>id!==wantId));
+  alert("Couldn't save bookmark. " + (err?.message || "Please try again."));
+}
 };
 
 const loadMyReviews = async () => {
