@@ -393,6 +393,22 @@ textarea.fi{resize:vertical;min-height:80px}
 .etitle{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--text)}
 .esub{font-size:13px;margin-top:6px}
 .loading{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px}
+.how-link{background:var(--surface2);border:1.5px solid var(--border);width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:800;color:var(--text2);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;margin-left:6px;font-family:var(--fb);transition:all .15s}
+.how-link:hover{border-color:var(--accent);color:var(--accent)}
+.onb-overlay{position:fixed;inset:0;z-index:4000;background:rgba(20,15,12,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:onbFade .25s ease}
+@keyframes onbFade{from{opacity:0}to{opacity:1}}
+.onb-card{background:var(--surface);border-radius:24px;padding:36px 28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 24px 60px -10px rgba(0,0,0,.35);position:relative;animation:onbPop .3s ease}
+@keyframes onbPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.onb-skip{position:absolute;top:14px;right:18px;background:none;border:none;font-size:13px;color:var(--text2);cursor:pointer;font-family:var(--fb);font-weight:600;padding:4px 8px;border-radius:6px}
+.onb-skip:hover{background:var(--surface2);color:var(--text)}
+.onb-icon{font-size:64px;line-height:1;margin-bottom:14px}
+.onb-title{font-family:var(--fd);font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
+.onb-text{font-size:14.5px;color:var(--text2);line-height:1.55;margin-bottom:22px;padding:0 6px}
+.onb-dots{display:flex;justify-content:center;gap:7px;margin-bottom:20px}
+.onb-dot{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .2s}
+.onb-dot.active{background:var(--accent);width:22px;border-radius:4px}
+.onb-next{width:100%;background:var(--accent);border:none;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:700;font-family:var(--fb);cursor:pointer;transition:all .15s}
+.onb-next:hover{filter:brightness(1.05);transform:translateY(-1px)}
 .terms-check-row{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text2);margin:4px 0;cursor:pointer;line-height:1.5}
 .terms-check-row input{margin-top:2px;accent-color:var(--accent);cursor:pointer}
 .terms-link{background:none;border:none;padding:0;color:var(--accent);font-size:inherit;font-family:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
@@ -456,6 +472,9 @@ const [reportDone, setReportDone] = useState(false);
 const [adminReports, setAdminReports] = useState([]);
 const [adminReportsLoaded, setAdminReportsLoaded] = useState(false);
 const [profileTab, setProfileTab] = useState("overview");
+const [onboardingOpen, setOnboardingOpen] = useState(false);
+const [onboardingStep, setOnboardingStep] = useState(0);
+const [onboardingChecked, setOnboardingChecked] = useState(false);
 const [myReviews, setMyReviews] = useState([]);
 const [myReviewsLoaded, setMyReviewsLoaded] = useState(false);
 const [view, setView] = useState("browse");
@@ -525,6 +544,10 @@ return onSnapshot(doc(db,"users",user.uid), snap => {
     setMyReviewedKeys(data.reviewedKeys||[]);
     setSavedWants(data.savedWants||[]);
     setMyReportedWants(data.reportedWants||[]);
+    if (!onboardingChecked) {
+      setOnboardingChecked(true);
+      if (!data.onboardingDone) { setOnboardingStep(0); setOnboardingOpen(true); }
+    }
   } else { console.warn("[WB] User doc does not exist for", user.uid); }
 }, err => console.error("[WB] User doc listener failed:", err));
 }, [user?.uid]);
@@ -1237,6 +1260,7 @@ return (
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
         <div className="huser">
           <span className="huser-name profile-link" onClick={()=>{setView("myprofile");setProfileTab("overview");loadMyReviews();}}>👤 <strong>{user.displayName||user.email}</strong></span>
+          <button className="how-link" onClick={()=>{setOnboardingStep(0);setOnboardingOpen(true);}} title="How it works">?</button>
           <button className="signout" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
         </div>
       </div>
@@ -1838,6 +1862,38 @@ return (
         </div>
       </div>
     )}
+
+    {/* ONBOARDING */}
+    {onboardingOpen&&(()=>{
+      const steps = [
+        {icon:"📝",title:"Post what you want",text:"Tell the community what you're looking for and set your budget."},
+        {icon:"💬",title:"Sellers come to you",text:"People nearby will send offers with their price and a photo."},
+        {icon:"🤝",title:"Chat & meet up",text:"Accept the best offer, message the seller, and make the deal."},
+      ];
+      const finish = async () => {
+        setOnboardingOpen(false);
+        try {
+          const {setDoc:sd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+          await sd(doc(db,"users",user.uid),{onboardingDone:true},{merge:true});
+        } catch(err) { console.error("[WB] onboarding save failed:",err); }
+      };
+      const next = () => onboardingStep < steps.length-1 ? setOnboardingStep(onboardingStep+1) : finish();
+      const s = steps[onboardingStep];
+      return (
+        <div className="onb-overlay">
+          <div className="onb-card">
+            <button className="onb-skip" onClick={finish}>Skip</button>
+            <div className="onb-icon">{s.icon}</div>
+            <div className="onb-title">{s.title}</div>
+            <div className="onb-text">{s.text}</div>
+            <div className="onb-dots">
+              {steps.map((_,i)=>(<span key={i} className={`onb-dot${i===onboardingStep?" active":""}`} onClick={()=>setOnboardingStep(i)}/>))}
+            </div>
+            <button className="onb-next" onClick={next}>{onboardingStep===steps.length-1?"Get Started":"Next →"}</button>
+          </div>
+        </div>
+      );
+    })()}
 
     {/* REPORT MODAL */}
     {reportSheet&&(
