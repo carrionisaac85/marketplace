@@ -510,8 +510,16 @@ setUser(u);
 setAuthLoading(false);
 if (u) {
   const {setDoc:sd,getDoc:gd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(()=>{});
-  gd(doc(db,"users",u.uid)).then(snap=>{ if(snap.exists()){ setMyReviewedKeys(snap.data().reviewedKeys||[]); setSavedWants(snap.data().savedWants||[]); setMyReportedWants(snap.data().reportedWants||[]); } }).catch(()=>{});
+  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
+  gd(doc(db,"users",u.uid)).then(snap=>{
+    if(snap.exists()){
+      const data = snap.data();
+      console.log("User doc loaded:", {savedWants:data.savedWants, reviewedKeys:data.reviewedKeys, reportedWants:data.reportedWants});
+      setMyReviewedKeys(data.reviewedKeys||[]);
+      setSavedWants(data.savedWants||[]);
+      setMyReportedWants(data.reportedWants||[]);
+    } else { console.warn("User doc does not exist for", u.uid); }
+  }).catch(err=>console.error("User doc read failed:",err));
 }
 }), []);
 
