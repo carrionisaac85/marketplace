@@ -39,7 +39,7 @@ const css = `
 --fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
 }
 body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-.app{min-height:100vh;display:flex;flex-direction:column;padding-bottom:80px}
+.app{min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
 
 /* AUTH */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
@@ -69,7 +69,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .auth-google:disabled{opacity:.5;cursor:not-allowed}
 
 /* HEADER */
-.header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:14px 20px 12px;box-shadow:0 1px 8px rgba(0,0,0,.06)}
+.header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:calc(14px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-right,0px)) 12px calc(20px + env(safe-area-inset-left,0px));box-shadow:0 1px 8px rgba(0,0,0,.06)}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .logo{font-family:var(--fd);font-weight:800;font-size:22px;color:var(--text);cursor:pointer}
 .logo span{color:var(--accent)}
@@ -88,7 +88,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .ptr.active{color:var(--accent)}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px 0 14px;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
 .bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 12px;color:var(--text2);font-family:var(--fd);font-size:11px;font-weight:600;transition:color .15s;position:relative}
 .bitem:hover,.bitem.active{color:var(--accent)}
 .bicon{font-size:22px;line-height:1}

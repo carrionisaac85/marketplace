@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#E84B2A"/>
+  <g font-family="Syne, 'Helvetica Neue', Arial, sans-serif" font-weight="800" text-anchor="middle" fill="#FFFFFF">
+    <text x="512" y="500" font-size="180" letter-spacing="-4">Want</text>
+    <text x="512" y="680" font-size="180" letter-spacing="-4">Board</text>
+  </g>
+</svg>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WantBoard</string>
+    <string name="title_activity_main">WantBoard</string>
+    <string name="package_name">com.wantboard.app</string>
+    <string name="custom_url_scheme">com.wantboard.app</string>
+</resources>
