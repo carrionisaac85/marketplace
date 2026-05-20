@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── offer images ───────────────────────────────────────────────────────
+    // Images are stored under offers/{uid}/<filename>.
+    // Any authenticated user may read (to display offer photos).
+    // Only the owning user may upload or delete their files — this
+    // ensures the account deletion flow can only remove the requesting
+    // user's own uploads, not another user's.
+    match /offers/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── deny everything else ───────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
