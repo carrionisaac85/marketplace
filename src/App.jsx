@@ -393,6 +393,8 @@ textarea.fi{resize:vertical;min-height:80px}
 .etitle{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--text)}
 .esub{font-size:13px;margin-top:6px}
 .loading{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px}
+.offline-banner{position:fixed;top:0;left:0;right:0;z-index:5000;background:#1A1A1A;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--fb);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.offline-banner .dot{width:8px;height:8px;border-radius:50%;background:#f59e0b}
 .how-link{background:var(--surface2);border:1.5px solid var(--border);width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:800;color:var(--text2);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;margin-left:6px;font-family:var(--fb);transition:all .15s}
 .how-link:hover{border-color:var(--accent);color:var(--accent)}
 .onb-overlay{position:fixed;inset:0;z-index:4000;background:rgba(20,15,12,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:onbFade .25s ease}
@@ -475,6 +477,14 @@ const [profileTab, setProfileTab] = useState("overview");
 const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
 const [onboardingChecked, setOnboardingChecked] = useState(false);
+const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
+useEffect(() => {
+  const on = () => setIsOffline(false);
+  const off = () => setIsOffline(true);
+  window.addEventListener("online", on);
+  window.addEventListener("offline", off);
+  return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+}, []);
 const [myReviews, setMyReviews] = useState([]);
 const [myReviewsLoaded, setMyReviewsLoaded] = useState(false);
 const [view, setView] = useState("browse");
@@ -1249,6 +1259,7 @@ return (
 <>
 <style>{css}</style>
 <div className="app" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+{isOffline && <div className="offline-banner"><span className="dot"></span>You're offline — some features may not work until you're back online</div>}
 
 ```
     <header className="header">

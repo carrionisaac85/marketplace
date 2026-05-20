@@ -49,12 +49,12 @@ This is free, requires no developer accounts, and works for 90% of users. **Try 
    npm run build
    ```
 
-3. **Add the iOS platform** (creates the `ios/` folder — only do this once):
+3. **Add the iOS platform** (creates the `ios/` folder — only do this once, and only possible on a Mac):
    ```bash
    npx cap add ios
    ```
 
-4. **Sync your web build into the iOS project**:
+4. **Sync your web build into the iOS project** (also installs CocoaPods deps):
    ```bash
    npx cap sync ios
    ```
@@ -102,20 +102,17 @@ You do **not** need a Mac for Android.
    npm run build
    ```
 
-2. **Add the Android platform**:
-   ```bash
-   npx cap add android
-   ```
-
-3. **Sync the web build**:
+2. **Sync the web build into the existing `android/` project** (this folder is already scaffolded in the repo):
    ```bash
    npx cap sync android
    ```
 
-4. **Open in Android Studio**:
+3. **Open in Android Studio**:
    ```bash
    npx cap open android
    ```
+
+> The `android/` folder is committed to this repo, so you don't need to run `npx cap add android`. If for any reason it's missing, regenerate it with `npx cap add android`.
 
 ### Every time you change the app
 
@@ -148,13 +145,14 @@ npm run build && npx cap sync android
 - ✅ PWA manifest, service worker, icons, splash colors (`vite.config.js`, `public/icons/`)
 - ✅ Apple meta tags for iOS home-screen installs (`index.html`)
 - ✅ Safe-area CSS so content doesn't go under the iPhone notch or home indicator (`src/App.jsx`)
-- ✅ Capacitor config pointing at the Vite build output (`capacitor.config.json`)
+- ✅ Friendly offline banner that appears when the device loses connectivity (`src/App.jsx`)
+- ✅ Capacitor config pointing at the Vite build output (`capacitor.config.ts`)
 - ✅ Capacitor iOS + Android packages installed
+- ✅ **`android/`** native project folder scaffolded and committed — ready to open in Android Studio
 
 ## What's intentionally NOT done
 
-- ❌ The `ios/` folder is not in this repo — Apple requires it be generated on a Mac via `npx cap add ios`
-- ❌ The `android/` folder is not in this repo — generate it on your build machine via `npx cap add android`
+- ❌ The `ios/` folder is **not in this repo** — Apple's tooling only runs on macOS, so it must be generated on a Mac via `npx cap add ios` (one-time)
 - ❌ No native push notifications, native camera, or deep links yet — these can be added later via Capacitor plugins
 - ❌ No App Store screenshots or marketing copy
 
