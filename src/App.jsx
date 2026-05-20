@@ -1174,7 +1174,7 @@ if (!user) return (
     {authTab==="signup"&&(
       <label className="terms-check-row">
         <input type="checkbox" checked={agreeTerms} onChange={e=>setAgreeTerms(e.target.checked)} />
-        <span>I agree to the <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button> and <button className="terms-link" onClick={()=>setLegalPage("privacy")}>Privacy Policy</button></span>
+        <span>I agree to the <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button> and <a className="terms-link" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a></span>
       </label>
     )}
     {authErr&&<div className="auth-err">{authErr}</div>}
@@ -1190,7 +1190,7 @@ Continue with Google
 <div className="auth-footer">
   <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button>
   <span style={{color:"var(--border)"}}>·</span>
-  <button className="terms-link" onClick={()=>setLegalPage("privacy")}>Privacy Policy</button>
+  <a className="terms-link" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
 </div>
 </div>
 </div>
