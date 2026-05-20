@@ -78,6 +78,9 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .huser-name strong{color:var(--accent)}
 .signout{font-size:12px;font-weight:600;padding:5px 12px;border-radius:100px;border:1.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--fb)}
 .signout:hover{border-color:var(--red);color:var(--red)}
+.del-account-btn{padding:12px 20px;background:transparent;color:var(--red);border:1.5px solid var(--red);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fd)}
+.del-account-btn:hover{background:var(--red);color:#fff}
+.del-account-btn:disabled{opacity:.5;cursor:not-allowed}
 .hsearch{display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border);border-radius:100px;padding:0 16px;gap:8px}
 .hsearch:focus-within{border-color:var(--accent)}
 .hsearch input{border:none;background:transparent;font-family:var(--fb);font-size:14px;color:var(--text);outline:none;flex:1;padding:10px 0}
@@ -1107,6 +1110,76 @@ setReviewBusy(false);
 
 const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
 
+const [deletingAccount, setDeletingAccount] = useState(false);
+const deleteAccount = async () => {
+if (!user || deletingAccount) return;
+if (!window.confirm("Delete your account?\n\nThis permanently removes your profile, wants, offers, messages, reviews, saved items, and uploaded photos. This cannot be undone.")) return;
+const typed = window.prompt('Type DELETE to confirm permanent account deletion:');
+if (typed !== "DELETE") return;
+setDeletingAccount(true);
+try {
+  const uid = user.uid;
+  const {getDocs:gds, collection:col, deleteDoc:dd, doc:dc, updateDoc:ud} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const {listAll, deleteObject, ref:sref} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js");
+  const {deleteUser} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+
+  // 1. Delete user's own wants and strip offers the user made from others' wants
+  await Promise.all(wants.map(async w => {
+    if (w.userId === uid) {
+      await dd(dc(db,"wants",w.id)).catch(e=>console.warn("del want",w.id,e));
+    } else if ((w.offers||[]).some(o=>o.fromId===uid)) {
+      const filtered = (w.offers||[]).filter(o=>o.fromId!==uid);
+      await ud(dc(db,"wants",w.id),{offers:filtered}).catch(e=>console.warn("strip offers",w.id,e));
+    }
+  }));
+
+  // 2. Delete conversations the user is part of (and their messages)
+  await Promise.all(convos.map(async c => {
+    if (!(c.participants||[]).includes(uid)) return;
+    try {
+      const msgsSnap = await gds(col(db,"conversations",c.id,"messages"));
+      await Promise.all(msgsSnap.docs.map(m => dd(dc(db,"conversations",c.id,"messages",m.id))));
+      await dd(dc(db,"conversations",c.id));
+    } catch(e){ console.warn("del convo",c.id,e); }
+  }));
+
+  // 3. Delete user's reviews subcollection
+  try {
+    const reviewsSnap = await gds(col(db,"users",uid,"reviews"));
+    await Promise.all(reviewsSnap.docs.map(r => dd(dc(db,"users",uid,"reviews",r.id))));
+  } catch(e){ console.warn("del reviews",e); }
+
+  // 4. Delete user profile doc
+  await dd(dc(db,"users",uid)).catch(e=>console.warn("del user doc",e));
+
+  // 5. Delete storage uploads under offers/{uid}/
+  try {
+    const folderRef = sref(storage, `offers/${uid}`);
+    const list = await listAll(folderRef);
+    await Promise.all(list.items.map(i => deleteObject(i).catch(()=>{})));
+  } catch(e){ console.warn("storage cleanup",e); }
+
+  // 6. Delete the auth user
+  try {
+    await deleteUser(user);
+  } catch(e) {
+    if (e.code === "auth/requires-recent-login") {
+      alert("For security, please sign in again and then tap Delete Account once more to finish removing your account.");
+      await signOut(auth);
+      return;
+    }
+    throw e;
+  }
+
+  setView("browse");
+} catch(e) {
+  console.error("deleteAccount failed", e);
+  alert("Failed to delete account: " + (e.message || e));
+} finally {
+  setDeletingAccount(false);
+}
+};
+
 const setOfferStatus = async (want, idx, status) => {
 const updated = (want.offers||[]).map((o,i)=>i===idx?{...o,status}:o);
 await updateDoc(doc(db,"wants",want.id),{offers:updated});
@@ -1384,6 +1457,11 @@ return (
                 <div className="prof-stats" style={{gridTemplateColumns:"repeat(2,1fr)",marginTop:0}}>
                   <div className="prof-stat"><div className="prof-stat-num">{savedWants.length}</div><div className="prof-stat-label">Saved Wants</div></div>
                   <div className="prof-stat"><div className="prof-stat-num">{myReviews.length}</div><div className="prof-stat-label">Reviews</div></div>
+                </div>
+                <div style={{marginTop:24,paddingTop:20,borderTop:"1px solid var(--border)"}}>
+                  <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:16,marginBottom:6}}>Danger zone</div>
+                  <div style={{fontSize:13,color:"var(--text2)",marginBottom:12}}>Permanently delete your account and all associated data. This cannot be undone.</div>
+                  <button className="del-account-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
                 </div>
               </div>
             )}
