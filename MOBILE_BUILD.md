@@ -106,7 +106,7 @@ The repo already contains `codemagic.yaml`, which describes the entire build pip
 **B. Sign up for Apple Developer ($99/year)**
 1. Go to <https://developer.apple.com/programs/enroll/>
 2. Sign in with your Apple ID, choose **Individual** (cheaper, no D-U-N-S number needed)
-3. Pay the $99 and wait — enrollment usually takes a few hours to 2 days
+3. Pay the $99 and wait — enrollment usually takes a fthe ew hours to 2 days
 
 **C. Register the bundle ID in App Store Connect**
 1. Log in at <https://developer.apple.com/account/resources/identifiers/list>
