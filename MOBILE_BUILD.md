@@ -106,7 +106,7 @@ The repo already contains `codemagic.yaml`, which describes the entire build pip
 **B. Sign up for Apple Developer ($99/year)**
 1. Go to <https://developer.apple.com/programs/enroll/>
 2. Sign in with your Apple ID, choose **Individual** (cheaper, no D-U-N-S number needed)
-3. Pay the $99 and wait — enrollment usually takes a fthe ew hours to 2 days
+3. Pay the $99 and wait — enrollment usually takes a few hours to 2 days
 
 **C. Register the bundle ID in App Store Connect**
 1. Log in at <https://developer.apple.com/account/resources/identifiers/list>
@@ -132,7 +132,6 @@ The repo already contains `codemagic.yaml`, which describes the entire build pip
    - Name the integration exactly: `WantBoard App Store Connect API Key` (this matches `codemagic.yaml`)
 5. Go to **Environment variables** for the app → create a group called `app_store_credentials`:
    - `APP_STORE_APP_ID` = the numeric Apple ID from step C6 (e.g. `1234567890`)
-   - `APPLE_TEAM_ID` = your 10-character Team ID — find it at [developer.apple.com/account](https://developer.apple.com/account) → **Membership Details** → **Team ID** (looks like `ABC123DEFG`) — mark as **Secret**
    - `CM_BUILD_NOTIFY_EMAIL` = your email (optional, used for build status emails)
 
 **F. Run the first build**
@@ -142,6 +141,58 @@ The repo already contains `codemagic.yaml`, which describes the entire build pip
 4. On success, Codemagic uploads the `.ipa` straight to TestFlight
 
 If the build fails, click the build to see logs. The most common first-time issues are: bundle ID not registered (redo step C), API key permissions too low (must be **App Manager** or higher), or Apple Developer enrollment still pending.
+
+---
+
+### Retrying after a code-signing failure
+
+If a previous build failed with **exit code 65** or the error *"requires a provisioning profile"*, the fix is now in `codemagic.yaml`. Push the latest code and retry:
+
+**1. Push the latest code to GitHub** (so Codemagic picks up the updated `codemagic.yaml`):
+- In Replit: **Version Control** tab → commit any pending changes → **Push**
+
+**2. Start a new build**
+1. Codemagic dashboard → your WantBoard app → **Start new build**
+2. Branch: `main`, Workflow: `ios-app-store`
+3. Click **Start**
+
+**3. Watch the build succeed**
+
+The pipeline runs these steps in order — watch for each one to turn green:
+
+| Step | What it does |
+|---|---|
+| Install npm dependencies | `npm ci` |
+| Build the web bundle | `npm run build` (creates `dist/`) |
+| Add iOS platform if missing | `npx cap add ios` (only on first build) |
+| Generate iOS icons | `npm run icons` |
+| Sync into iOS project | `npx cap sync ios` |
+| Install CocoaPods | `cd ios/App && pod install` |
+| Set up code signing | Fetches your distribution cert + provisioning profile via App Store Connect API, then wires them into the Xcode project |
+| Bump build number | Reads the latest build number from App Store Connect and increments by 1 |
+| Build the iOS archive | `xcode-project build-ipa` — produces a signed `.ipa` |
+
+A green checkmark on **Build the iOS archive** means signing is working.
+
+**4. Confirm the upload to TestFlight**
+
+After the build step, Codemagic runs the **Publishing** phase automatically:
+- It uploads the `.ipa` to App Store Connect via the API key
+- Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → your app → **TestFlight** tab → **iOS Builds**
+- The new build appears with status **Processing** (takes 5–15 min), then changes to **Ready to Test**
+
+You will also receive a build-status email if `CM_BUILD_NOTIFY_EMAIL` is set.
+
+**Troubleshooting secondary errors**
+
+| Error message | Fix |
+|---|---|
+| `No profiles for 'com.wantboard.app' were found` | Re-run step C to register the bundle ID in App Store Connect, then retry |
+| `Invalid toolchain: missing distribution certificate` | In Codemagic → Integrations → Developer Portal, confirm the `.p8` key has **App Manager** access |
+| `Export options plist: no method found` | Ensure the provisioning profile type in App Store Connect is **App Store Distribution** |
+| TestFlight shows "Missing Compliance" | Click the build in App Store Connect, answer "No" to the encryption question, and save |
+
+---
 
 ### Every time you change the app
 

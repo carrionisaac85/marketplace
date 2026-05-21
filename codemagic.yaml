@@ -10,8 +10,6 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.wantboard.app"
-        # Set APPLE_TEAM_ID in Codemagic → Environment Variables (app_store_credentials group)
-        # Find it at developer.apple.com → Account → Membership Details → Team ID (10 chars, e.g. ABC123DEFG)
       node: 20.20.0
       xcode: latest
       cocoapods: default
@@ -52,14 +50,6 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
-      - name: Disable automatic code signing
-        script: |
-          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-          # Switch from automatic to manual signing so the fetched profile is used
-          sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
-          # Inject the Apple Team ID (required for manual signing)
-          sed -i "" "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"$APPLE_TEAM_ID\";/g" "$PBXPROJ"
-          echo "Code signing patched — team: $APPLE_TEAM_ID, style: Manual"
       - name: Bump build number to match App Store Connect
         script: |
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" || echo "0")
