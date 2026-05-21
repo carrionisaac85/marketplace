@@ -44,22 +44,37 @@ workflows:
           cd ios/App && pod install
       - name: Set up code signing (App Store Connect API)
         script: |
+          set -e
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
+          echo "--- Provisioning profiles after fetch ---"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || \
+            ls -la /Users/builder/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || \
+            echo "WARNING: profile directory not found in either location"
           keychain add-certificates
           xcode-project use-profiles --verbose
       - name: Force manual signing in Xcode project
         script: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
 
-          # Read team ID and profile UUID directly from the downloaded profile
-          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
+          # Read team ID and profile UUID directly from the downloaded profile.
+          # Search both tilde-expanded and absolute paths because shell expansion
+          # of ~ inside Codemagic script blocks is not always reliable.
+          PROFILE=$(find \
+            "$HOME/Library/MobileDevice/Provisioning Profiles" \
+            "/Users/builder/Library/MobileDevice/Provisioning Profiles" \
+            -maxdepth 1 -name "*.mobileprovision" 2>/dev/null | head -1)
           if [ -z "$PROFILE" ]; then
             echo "ERROR: No provisioning profile found after fetch-signing-files"
+            echo "--- Contents of HOME profile dir ---"
+            ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || echo "(not found)"
+            echo "--- Contents of /Users/builder profile dir ---"
+            ls -la "/Users/builder/Library/MobileDevice/Provisioning Profiles/" 2>/dev/null || echo "(not found)"
             exit 1
           fi
+          echo "Using profile: $PROFILE"
 
           PROFILE_DATA=$(security cms -D -i "$PROFILE" 2>/dev/null)
           TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /dev/stdin <<< "$PROFILE_DATA")
