@@ -49,7 +49,38 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --verbose
+      - name: Force manual signing in Xcode project
+        script: |
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+
+          # Read team ID and profile UUID directly from the downloaded profile
+          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
+          if [ -z "$PROFILE" ]; then
+            echo "ERROR: No provisioning profile found after fetch-signing-files"
+            exit 1
+          fi
+
+          PROFILE_DATA=$(security cms -D -i "$PROFILE" 2>/dev/null)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /dev/stdin <<< "$PROFILE_DATA")
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< "$PROFILE_DATA")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin <<< "$PROFILE_DATA")
+
+          echo "Team ID:      $TEAM_ID"
+          echo "Profile UUID: $PROFILE_UUID"
+          echo "Profile name: $PROFILE_NAME"
+
+          # Patch every build configuration in the project file
+          sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
+          sed -i "" "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"$TEAM_ID\";/g" "$PBXPROJ"
+          sed -i "" "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = \"$TEAM_ID\";/g" "$PBXPROJ"
+          sed -i "" "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_UUID\";/g" "$PBXPROJ"
+
+          echo "project.pbxproj patched successfully"
+
+          # Export for use in the build step
+          echo "TEAM_ID=$TEAM_ID" >> $CM_ENV
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $CM_ENV
       - name: Bump build number to match App Store Connect
         script: |
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" || echo "0")
@@ -59,7 +90,8 @@ workflows:
         script: |
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --archive-xcargs "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=$TEAM_ID PROVISIONING_PROFILE_SPECIFIER=$PROFILE_UUID"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
