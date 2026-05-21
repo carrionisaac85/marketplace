@@ -131,7 +131,8 @@ The repo already contains `codemagic.yaml`, which describes the entire build pip
    - Paste the **Issuer ID**, **Key ID**, and upload the **.p8** file from step D
    - Name the integration exactly: `WantBoard App Store Connect API Key` (this matches `codemagic.yaml`)
 5. Go to **Environment variables** for the app → create a group called `app_store_credentials`:
-   - `APP_STORE_APP_ID` = the numeric Apple ID from step C6
+   - `APP_STORE_APP_ID` = the numeric Apple ID from step C6 (e.g. `1234567890`)
+   - `APPLE_TEAM_ID` = your 10-character Team ID — find it at [developer.apple.com/account](https://developer.apple.com/account) → **Membership Details** → **Team ID** (looks like `ABC123DEFG`) — mark as **Secret**
    - `CM_BUILD_NOTIFY_EMAIL` = your email (optional, used for build status emails)
 
 **F. Run the first build**
