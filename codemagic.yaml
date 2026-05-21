@@ -20,7 +20,7 @@ workflows:
         - $HOME/Library/Caches/CocoaPods
         - ios/App/Pods
     integrations:
-      app_store_connect: WantBoard App Store Connect API Key
+      app_store_connect: Codemagic App
     scripts:
       - name: Install npm dependencies
         script: |
