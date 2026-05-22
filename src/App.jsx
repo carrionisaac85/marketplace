@@ -7,7 +7,7 @@ setDoc, getDocs, getDoc, limit, increment,
 } from "firebase/firestore";
 import {
 getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
+signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
 sendPasswordResetEmail, deleteUser,
 } from "firebase/auth";
 import {
@@ -538,9 +538,20 @@ const [ci, setCi] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
 
-// Handle Google redirect result (needed for iOS/Capacitor where signInWithRedirect is used)
+
+// Initialize GoogleAuth on web (native platforms init via Capacitor plugin system)
 useEffect(() => {
-getRedirectResult(auth).catch(() => {});
+import("@capacitor/core").then(({ Capacitor }) => {
+if (!Capacitor.isNativePlatform()) {
+  import("@codetrix-studio/capacitor-google-auth").then(({ GoogleAuth }) => {
+    GoogleAuth.initialize({
+      clientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "",
+      scopes: ["profile", "email"],
+      grantOfflineAccess: true,
+    });
+  });
+}
+});
 }, []);
 
 // Auth
@@ -758,8 +769,16 @@ setForgotBusy(false);
 const signInWithGoogle = async () => {
 setAuthErr(""); setAuthBusy(true);
 try {
+const { Capacitor } = await import("@capacitor/core");
+if (Capacitor.isNativePlatform()) {
+const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+const googleUser = await GoogleAuth.signIn();
+const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+await signInWithCredential(auth, credential);
+} else {
 const provider = new GoogleAuthProvider();
-await signInWithRedirect(auth, provider);
+await signInWithPopup(auth, provider);
+}
 } catch(e) {
 setAuthErr("Google sign-in failed. Please try again.");
 setAuthBusy(false);

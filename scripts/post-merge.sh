@@ -5,4 +5,4 @@ set -e
 # (these accumulate when npm is interrupted while the dev server is running)
 find node_modules -name '.*-????????' -type d -exec rm -rf {} + 2>/dev/null || true
 
-npm install --no-fund --no-audit --prefer-offline
+npm install --no-fund --no-audit --prefer-offline --legacy-peer-deps
