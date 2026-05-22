@@ -42,6 +42,15 @@ workflows:
       - name: Sync web build into iOS project
         script: |
           npx cap sync ios
+      - name: Patch Google Sign-In URL scheme in Info.plist
+        script: |
+          if [ -n "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
+            REVERSED="com.googleusercontent.apps.$(echo "$VITE_GOOGLE_IOS_CLIENT_ID" | sed 's/\.apps\.googleusercontent\.com//')"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:1:CFBundleURLSchemes:0 $REVERSED" ios/App/App/Info.plist
+            echo "Patched REVERSED_CLIENT_ID to: $REVERSED"
+          else
+            echo "WARNING: VITE_GOOGLE_IOS_CLIENT_ID is not set — Google Sign-In URL scheme not patched."
+          fi
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
