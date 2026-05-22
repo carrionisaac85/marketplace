@@ -37,15 +37,13 @@ export default defineConfig({
             handler: "CacheFirst",
             options: { cacheName: "google-fonts", expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
-          {
-            urlPattern: ({ url }) => url.origin === "https://www.gstatic.com",
-            handler: "CacheFirst",
-            options: { cacheName: "firebase-sdk", expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
         ],
       },
     }),
   ],
+  optimizeDeps: {
+    exclude: ["firebase", "@firebase/app", "@firebase/firestore", "@firebase/auth", "@firebase/storage"],
+  },
   server: {
     host: "0.0.0.0",
     port: 5000,

@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "firebase/app";
 import {
 getFirestore, collection, addDoc, onSnapshot, updateDoc,
 deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion, arrayRemove,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+setDoc, getDocs, getDoc, limit, increment,
+} from "firebase/firestore";
 import {
 getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+sendPasswordResetEmail, deleteUser,
+} from "firebase/auth";
 import {
-getStorage, ref, uploadBytes, getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
+} from "firebase/storage";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -541,7 +543,7 @@ useEffect(() => onAuthStateChanged(auth, async u => {
 setUser(u);
 setAuthLoading(false);
 if (u) {
-  const {setDoc:sd,serverTimestamp:st} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const sd = setDoc, st = serverTimestamp;
   sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
 }
 }), []);
@@ -740,7 +742,6 @@ const sendPasswordReset = async () => {
 if (!forgotEmail.trim()) { setForgotErr("Please enter your email address."); return; }
 setForgotBusy(true); setForgotErr("");
 try {
-  const {sendPasswordResetEmail} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
   await sendPasswordResetEmail(auth, forgotEmail.trim());
   setForgotSent(true);
 } catch(e) {
@@ -903,7 +904,7 @@ const otherName = user.uid === want.userId ? offer.from : want.user;
 if (!otherId) return;
 const ids = [user.uid, otherId].sort();
 const cid = `${ids[0]}_${ids[1]}_${want.id}`;
-const {getDoc:gd,setDoc:sd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const gd = getDoc, sd = setDoc;
 const ref = doc(db,"conversations",cid);
 const snap = await gd(ref);
 if (!snap.exists()) {
@@ -935,7 +936,7 @@ await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 const banUser = async (uid) => {
 if (!isAdmin || !uid) return;
 await updateDoc(doc(db,"config","banned"),{uids:arrayUnion(uid)}).catch(async()=>{
-  const {setDoc:sd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const sd = setDoc;
   await sd(doc(db,"config","banned"),{uids:[uid]});
 });
 };
@@ -1016,7 +1017,7 @@ const submitReport = async () => {
 if (!reportReason) return;
 setReportBusy(true);
 try {
-  const {addDoc:ad, collection:col, serverTimestamp:st, updateDoc:ud, arrayUnion:au} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const ad = addDoc, col = collection, st = serverTimestamp, ud = updateDoc, au = arrayUnion;
   await ad(col(db,"reports"),{
     wantId:reportSheet.id, wantTitle:reportSheet.title, wantUserId:reportSheet.userId, wantUser:reportSheet.user,
     reporterId:user.uid, reporterName:user.displayName||user.email,
@@ -1031,14 +1032,14 @@ setReportBusy(false);
 
 const loadAdminReports = async () => {
 if (adminReportsLoaded) return;
-const {getDocs:gds, collection:col, query:q2, orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const gds = getDocs, col = collection, q2 = query, ob = orderBy;
 const snap = await gds(q2(col(db,"reports"),ob("createdAt","desc")));
 setAdminReports(snap.docs.map(d=>({id:d.id,...d.data()})));
 setAdminReportsLoaded(true);
 };
 
 const resolveReport = async (reportId) => {
-const {updateDoc:ud} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const ud = updateDoc;
 await ud(doc(db,"reports",reportId),{resolved:true});
 setAdminReports(r=>r.map(x=>x.id===reportId?{...x,resolved:true}:x));
 };
@@ -1049,7 +1050,7 @@ if (!user) return;
 const isSaved = savedWants.includes(wantId);
 setSavedWants(s => isSaved ? s.filter(id=>id!==wantId) : [...s, wantId]);
 try {
-  const {setDoc:sd, arrayUnion:au, arrayRemove:ar} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const sd = setDoc, au = arrayUnion, ar = arrayRemove;
   await sd(doc(db,"users",user.uid), {savedWants: isSaved ? ar(wantId) : au(wantId)}, {merge:true});
 } catch (err) {
   console.error("Bookmark save failed:", err);
@@ -1060,7 +1061,7 @@ try {
 
 const loadMyReviews = async () => {
 if (myReviewsLoaded) return;
-const {getDocs:gds, collection:col, query:q2, orderBy:ob} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const gds = getDocs, col = collection, q2 = query, ob = orderBy;
 const snap = await gds(q2(col(db,"users",user.uid,"reviews"),ob("createdAt","desc")));
 setMyReviews(snap.docs.map(d=>({id:d.id,...d.data()})));
 setMyReviewsLoaded(true);
@@ -1081,7 +1082,7 @@ if (!uid) return;
 setProfileUid(uid);
 setProfileData(null);
 setProfileReviews([]);
-const {getDoc:gd, getDocs:gds, collection:col, query:q2, orderBy:ob, limit:lim} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+const gd = getDoc, gds = getDocs, col = collection, q2 = query, ob = orderBy, lim = limit;
 const [snap, revSnap] = await Promise.all([
   gd(doc(db,"users",uid)),
   gds(q2(col(db,"users",uid,"reviews"),ob("createdAt","desc"),lim(20)))
@@ -1094,7 +1095,7 @@ const submitReview = async () => {
 if (!reviewSheet || reviewStars<1) return;
 setReviewBusy(true);
 try {
-  const {addDoc:ad, updateDoc:ud, collection:col, serverTimestamp:st, arrayUnion:au, increment:inc} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+  const ad = addDoc, ud = updateDoc, col = collection, st = serverTimestamp, au = arrayUnion, inc = increment;
   const {targetUid, targetName, wantId, wantTitle, offerKey} = reviewSheet;
   await ad(col(db,"users",targetUid,"reviews"),{
     stars:reviewStars, comment:reviewComment.trim(), fromId:user.uid, fromName:user.displayName||user.email,
@@ -1119,9 +1120,8 @@ if (typed !== "DELETE") return;
 setDeletingAccount(true);
 try {
   const uid = user.uid;
-  const {getDocs:gds, collection:col, deleteDoc:dd, doc:dc, updateDoc:ud} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-  const {listAll, deleteObject, ref:sref} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js");
-  const {deleteUser} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+  const gds = getDocs, col = collection, dd = deleteDoc, dc = doc, ud = updateDoc;
+  const sref = ref;
 
   // 1. Delete user's own wants and strip offers the user made from others' wants
   await Promise.all(wants.map(async w => {
@@ -1958,7 +1958,7 @@ return (
       const finish = async () => {
         setOnboardingOpen(false);
         try {
-          const {setDoc:sd} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+          const sd = setDoc;
           await sd(doc(db,"users",user.uid),{onboardingDone:true},{merge:true});
         } catch(err) { console.error("Onboarding save failed:",err); }
       };
