@@ -93,11 +93,10 @@ workflows:
           echo "project.pbxproj patched"
           echo "TEAM_ID=$TEAM_ID" >> $CM_ENV
           echo "PROFILE_UUID=$PROFILE_UUID" >> $CM_ENV
-      - name: Bump build number to match App Store Connect
+      - name: Bump build number
         script: |
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" || echo "0")
           cd ios/App
-          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+          agvtool new-version -all $BUILD_NUMBER
       - name: Build the iOS archive (.ipa)
         script: |
           xcode-project build-ipa \
