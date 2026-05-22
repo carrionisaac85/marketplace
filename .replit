@@ -51,3 +51,7 @@ publicDir = "dist"
 
 [userenv.shared]
 VITE_GOOGLE_MAPS_API_KEY = "AIzaSyDfRKi85ZeUXl8dm7_wy3SA7Hmi-sd9nsQ"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
