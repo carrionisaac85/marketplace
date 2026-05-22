@@ -6,7 +6,8 @@ deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion, arrayRemove,
 setDoc, getDocs, getDoc, limit, increment,
 } from "firebase/firestore";
 import {
-getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
+createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
 sendPasswordResetEmail, deleteUser,
 } from "firebase/auth";
@@ -26,7 +27,9 @@ measurementId: "G-WGWS8Y69F0",
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
+const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+});
 const storage = getStorage(app);
 
 const ADMIN_EMAILS = ["carrion.isaac85@gmail.com"];
