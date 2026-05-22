@@ -10,6 +10,9 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.wantboard.app"
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.wantboard.app
       node: 20.20.0
       xcode: latest
       cocoapods: default
