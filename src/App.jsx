@@ -7,7 +7,7 @@ setDoc, getDocs, getDoc, limit, increment,
 } from "firebase/firestore";
 import {
 getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup,
+signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
 sendPasswordResetEmail, deleteUser,
 } from "firebase/auth";
 import {
@@ -538,6 +538,11 @@ const [ci, setCi] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
 
+// Handle Google redirect result (needed for iOS/Capacitor where signInWithRedirect is used)
+useEffect(() => {
+getRedirectResult(auth).catch(() => {});
+}, []);
+
 // Auth
 useEffect(() => onAuthStateChanged(auth, async u => {
 setUser(u);
@@ -754,13 +759,11 @@ const signInWithGoogle = async () => {
 setAuthErr(""); setAuthBusy(true);
 try {
 const provider = new GoogleAuthProvider();
-await signInWithPopup(auth, provider);
+await signInWithRedirect(auth, provider);
 } catch(e) {
-if (e.code !== "auth/popup-closed-by-user") {
 setAuthErr("Google sign-in failed. Please try again.");
-}
-}
 setAuthBusy(false);
+}
 };
 
 const ta = ts => {
