@@ -34,7 +34,16 @@ workflows:
       - name: Deploy Firebase Storage rules
         script: |
           set -euo pipefail
-          if [ -z "$FIREBASE_TOKEN" ]; then
+          RULES_FILE="storage.rules"
+          _slack_alert() {
+            if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+              curl -s -X POST "$SLACK_WEBHOOK_URL" \
+                -H 'Content-type: application/json' \
+                --data "{\"text\":\":x: *Firebase rules deploy FAILED* — \`${RULES_FILE}\` was NOT deployed.\n<${CM_BUILD_URL}|View build log>\"}"
+            fi
+          }
+          trap _slack_alert ERR
+          if [ -z "${FIREBASE_TOKEN:-}" ]; then
             echo "ERROR: FIREBASE_TOKEN is not set in the firebase_credentials group. Storage rules were NOT deployed."
             exit 1
           fi
@@ -44,7 +53,16 @@ workflows:
       - name: Deploy Firestore rules
         script: |
           set -euo pipefail
-          if [ -z "$FIREBASE_TOKEN" ]; then
+          RULES_FILE="firestore.rules"
+          _slack_alert() {
+            if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+              curl -s -X POST "$SLACK_WEBHOOK_URL" \
+                -H 'Content-type: application/json' \
+                --data "{\"text\":\":x: *Firebase rules deploy FAILED* — \`${RULES_FILE}\` was NOT deployed.\n<${CM_BUILD_URL}|View build log>\"}"
+            fi
+          }
+          trap _slack_alert ERR
+          if [ -z "${FIREBASE_TOKEN:-}" ]; then
             echo "ERROR: FIREBASE_TOKEN is not set in the firebase_credentials group. Firestore rules were NOT deployed."
             exit 1
           fi
@@ -138,6 +156,12 @@ workflows:
         beta_groups:
           - Internal Testers
         submit_to_app_store: false
+      slack:
+        channel: "#builds"
+        notify_on_build_start: false
+        notify:
+          success: false
+          failure: true
       email:
         recipients:
           - $CM_BUILD_NOTIFY_EMAIL
