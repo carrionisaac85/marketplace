@@ -10,6 +10,8 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.wantboard.app"
+        VITE_GOOGLE_IOS_CLIENT_ID: 445461567451-l624o1lvgm32o2ev74circibb1c8i8rj.apps.googleusercontent.com
+        VITE_GOOGLE_WEB_CLIENT_ID: 445461567451-fma547vrdmhhb6101udmv0th6no8elng.apps.googleusercontent.com
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.wantboard.app
