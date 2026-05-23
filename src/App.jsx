@@ -495,13 +495,14 @@ function NativePhotoButton({ onPick, disabled }) {
 const inputRef = useRef(null);
 const handleClick = () => {
   if (disabled) return;
-  import("@capacitor/core").then(({ Capacitor }) => {
-    if (Capacitor.isNativePlatform()) {
-      onPick(null);
-    } else {
-      inputRef.current?.click();
-    }
-  }).catch(() => { inputRef.current?.click(); });
+  // Check synchronously so the file picker opens within the same user gesture.
+  // window.Capacitor is set by the native bridge; undefined in plain browsers.
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (isNative) {
+    onPick(null);
+  } else {
+    inputRef.current?.click();
+  }
 };
 return (
   <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
