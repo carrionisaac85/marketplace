@@ -484,10 +484,10 @@ textarea.fi{resize:vertical;min-height:80px}
 const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
 const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
-{id:"browse",icon:"🏠",label:"Browse"},
+{id:"browse",icon:"🏠",label:"Home"},
 {id:"post",icon:"➕",label:"Post Want"},
-{id:"mine",icon:"📋",label:"My Posts"},
 {id:"offers",icon:"🤝",label:"Offers Sent"},
+{id:"myprofile",icon:"👤",label:"Profile"},
 ];
 
 export default function App() {
@@ -1812,32 +1812,47 @@ return (
       {/* OFFERS SENT */}
       {view==="offers"&&(()=>{
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
+        // Group by want
+        const grouped = myOffersGiven.reduce((acc,o)=>{
+          const key = o.wantId;
+          if (!acc[key]) acc[key] = {wantId:o.wantId,wantTitle:o.wantTitle,wantUserId:o.wantUserId,wantUser:o.wantUser,offers:[]};
+          acc[key].offers.push(o);
+          return acc;
+        },{});
+        const groups = Object.values(grouped);
         return (
           <>
             <div className="stitle">Offers Sent</div>
-            <div className="ssub">Offers you've sent to sellers. Tap to open the chat.</div>
-            {myOffersGiven.length===0?(
+            <div className="ssub">Your offers to sellers, grouped by want.</div>
+            {groups.length===0?(
               <div className="empty"><div className="eicon">🤝</div><div className="etitle">No offers yet</div><div className="esub">Browse wants and send your first offer</div></div>
             ):(
               <div className="offers-list">
-                {myOffersGiven.map((o,idx)=>{
-                  const statusLabel = o.status==="accepted"?"Accepted":o.status==="declined"?"Declined":"Pending";
-                  const statusCls = o.status==="accepted"?"accepted":o.status==="declined"?"declined":"pending";
-                  return (
-                    <div key={idx} className="offer-sent-card" onClick={()=>openChat({id:o.wantId,userId:o.wantUserId,user:o.wantUser,title:o.wantTitle},o)}>
-                      <div className="offer-sent-top">
-                        <div className="offer-sent-title">{o.wantTitle}</div>
-                        <span className={`offer-sent-badge ${statusCls}`}>{statusLabel}</span>
-                      </div>
-                      <div className="offer-sent-meta">Buyer: {o.wantUser} · {o.time||""}</div>
-                      <div className="offer-sent-row">
-                        <span className="offer-sent-price">${(o.price||0).toLocaleString()}</span>
-                        <span className="offer-sent-cta">💬 Open Chat →</span>
-                      </div>
-                      {o.message&&<div style={{marginTop:6,fontSize:12,color:"var(--text2)",borderTop:"1px solid var(--border)",paddingTop:6}}>"{o.message}"</div>}
+                {groups.map(g=>(
+                  <div key={g.wantId} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:16,overflow:"hidden"}}>
+                    <div style={{padding:"12px 16px",background:"var(--surface2)",borderBottom:"1px solid var(--border)"}}>
+                      <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:15}}>{g.wantTitle}</div>
+                      <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>Seller: {g.wantUser}</div>
                     </div>
-                  );
-                })}
+                    {g.offers.map((o,idx)=>{
+                      const statusLabel = o.status==="accepted"?"Accepted":o.status==="declined"?"Declined":"Pending";
+                      const statusCls = o.status==="accepted"?"accepted":o.status==="declined"?"declined":"pending";
+                      return (
+                        <div key={idx} className="offer-sent-card" style={{borderRadius:0,border:"none",borderBottom:"1px solid var(--border)"}} onClick={()=>openChat({id:o.wantId,userId:o.wantUserId,user:o.wantUser,title:o.wantTitle},o)}>
+                          <div className="offer-sent-top">
+                            <span className="offer-sent-price">${(o.price||0).toLocaleString()}</span>
+                            <span className={`offer-sent-badge ${statusCls}`}>{statusLabel}</span>
+                          </div>
+                          {o.message&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:8}}>"{o.message}"</div>}
+                          <div className="offer-sent-row">
+                            <span style={{fontSize:11,color:"var(--text2)"}}>{o.time||""}</span>
+                            <span className="offer-sent-cta">💬 Open Chat →</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             )}
           </>
@@ -2055,9 +2070,12 @@ return (
     {/* BOTTOM NAV */}
     <nav className="bnav">
       {[...NAV,...(isAdmin?[{id:"admin",icon:"⚙️",label:"Admin"}]:[])].map(n=>(
-        <div key={n.id} className={`bitem ${view===n.id?"active":""}`} onClick={()=>setView(n.id)}>
+        <div key={n.id} className={`bitem ${view===n.id?"active":""}`} onClick={()=>{
+          if (n.id==="myprofile") { setProfileTab("overview"); loadMyReviews(); }
+          setView(n.id);
+        }}>
           <span className="bicon">{n.icon}</span>
-          {n.id==="messages"&&hasUnread&&<span className="notif-badge" />}
+          {n.id==="offers"&&hasUnread&&<span className="notif-badge" />}
           <span>{n.label}</span>
         </div>
       ))}
