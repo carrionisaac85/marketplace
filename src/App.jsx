@@ -1874,6 +1874,11 @@ return (
               </div>
               <div className="mbudget">Up to ${(w.budget||0).toLocaleString()}</div>
               <div className="mdesc">{w.description}</div>
+              {(w.photos||[]).length>0&&(
+                <div className="want-photos">
+                  {w.photos.map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
+                </div>
+              )}
               <div className="cacts">
                 <button className="eedit" onClick={()=>{setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location,photos:w.photos||[]});setEditPhotos([]);setEditPhotoPreviews([]);setEditId(w.id);}}>✏️ Edit</button>
                 <button className="edel" onClick={()=>delWant(w.id)}>🗑 Delete</button>
