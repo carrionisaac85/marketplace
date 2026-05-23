@@ -3,15 +3,24 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // ── offer images ───────────────────────────────────────────────────────
-    // Images are stored under offers/{uid}/<filename>.
-    // Any authenticated user may read (to display offer photos).
-    // Only the owning user may upload or delete their files — this
-    // ensures the account deletion flow can only remove the requesting
-    // user's own uploads, not another user's.
+    // Stored under offers/{uid}/<filename>.
+    // Any authenticated user may read. Only the owning user may write/delete.
     match /offers/{uid}/{allPaths=**} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == uid;
       allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── want photos ────────────────────────────────────────────────────────
+    // Stored under wants/{wantId}/photos/{uid}_{filename}.
+    // Any authenticated user may read (photos are public on the marketplace).
+    // Only the uploading user (uid embedded in filename prefix) may write/delete.
+    match /wants/{wantId}/photos/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && fileName.matches(request.auth.uid + '_.*');
+      allow delete: if request.auth != null
+        && fileName.matches(request.auth.uid + '_.*');
     }
 
     // ── deny everything else ───────────────────────────────────────────────

@@ -491,6 +491,25 @@ const NAV = [
 {id:"mine",icon:"📋",label:"My Posts"},
 ];
 
+function NativePhotoButton({ onPick }) {
+const inputRef = useRef(null);
+const handleClick = () => {
+  import("@capacitor/core").then(({ Capacitor }) => {
+    if (Capacitor.isNativePlatform()) {
+      onPick(null);
+    } else {
+      inputRef.current?.click();
+    }
+  }).catch(() => { inputRef.current?.click(); });
+};
+return (
+  <div className="add-photo-btn" onClick={handleClick} style={{cursor:"pointer"}}>
+    <span>📷</span>Add
+    <input ref={inputRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={onPick} />
+  </div>
+);
+}
+
 export default function App() {
 const [user, setUser] = useState(null);
 const [authLoading, setAuthLoading] = useState(true);
@@ -892,9 +911,27 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
-const handlePostPhoto = e => {
+const handlePostPhoto = async (e) => {
+try {
+  const { Capacitor } = await import("@capacitor/core");
+  if (Capacitor.isNativePlatform()) {
+    const { Camera, CameraSource, CameraResultType } = await import("@capacitor/camera");
+    const remaining = 3 - postPhotos.length;
+    if (remaining <= 0) return;
+    const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
+    const selected = (result.photos || []).slice(0, remaining);
+    const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
+    const files = blobs.map((b, i) => new File([b], `photo_${Date.now()}_${i}.jpg`, { type: b.type || "image/jpeg" }));
+    setPostPhotos(p => [...p, ...files]);
+    const previews = await Promise.all(files.map(f => new Promise(res => {
+      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
+    })));
+    setPostPhotoPreviews(p => [...p, ...previews]);
+    return;
+  }
+} catch(err) { console.warn("Native camera unavailable, using file input", err); }
+if (!e?.target?.files?.length) return;
 const files = Array.from(e.target.files);
-if (!files.length) return;
 const toAdd = files.slice(0, 3 - postPhotos.length);
 setPostPhotos(p => [...p, ...toAdd]);
 toAdd.forEach(f => {
@@ -902,7 +939,7 @@ toAdd.forEach(f => {
   r.onload = ev => setPostPhotoPreviews(p => [...p, ev.target.result]);
   r.readAsDataURL(f);
 });
-e.target.value = "";
+if (e.target) e.target.value = "";
 };
 
 const removePostPhoto = idx => {
@@ -957,7 +994,7 @@ userId:user.uid, offers:[], createdAt:serverTimestamp(),
 if (postPhotos.length > 0) {
   try {
     const urls = await Promise.all(postPhotos.map(async (f, i) => {
-      const sRef = ref(storage, `wants/${docRef.id}/photos/${i}_${f.name}`);
+      const sRef = ref(storage, `wants/${docRef.id}/photos/${user.uid}_${i}_${Date.now()}.jpg`);
       const snap = await uploadBytes(sRef, f);
       return getDownloadURL(snap.ref);
     }));
@@ -1742,10 +1779,7 @@ return (
                     </div>
                   ))}
                   {postPhotos.length<3&&(
-                    <label className="add-photo-btn">
-                      <span>📷</span>Add
-                      <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePostPhoto} />
-                    </label>
+                    <NativePhotoButton onPick={handlePostPhoto} />
                   )}
                 </div>
               </div>

@@ -30,6 +30,13 @@ workflows:
       - name: Install npm dependencies
         script: |
           npm ci
+      - name: Deploy Firebase Storage rules
+        script: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
+          else
+            echo "FIREBASE_TOKEN not set — skipping storage rules deploy. Add it to Codemagic environment vars."
+          fi
       - name: Build the web bundle (Vite -> dist/)
         script: |
           npm run build
