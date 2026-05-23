@@ -6,6 +6,7 @@ workflows:
     environment:
       groups:
         - app_store_credentials
+        - firebase_credentials
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
@@ -35,7 +36,14 @@ workflows:
           if [ -n "$FIREBASE_TOKEN" ]; then
             npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
           else
-            echo "FIREBASE_TOKEN not set — skipping storage rules deploy. Add it to Codemagic environment vars."
+            echo "FIREBASE_TOKEN not set — skipping storage rules deploy. Add it to the firebase_credentials group in Codemagic."
+          fi
+      - name: Deploy Firestore rules
+        script: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            npx firebase-tools deploy --only firestore --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
+          else
+            echo "FIREBASE_TOKEN not set — skipping Firestore rules deploy. Add it to the firebase_credentials group in Codemagic."
           fi
       - name: Build the web bundle (Vite -> dist/)
         script: |
