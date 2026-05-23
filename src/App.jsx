@@ -102,6 +102,51 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .bicon{font-size:22px;line-height:1}
 .notif-badge{position:absolute;top:0;right:6px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
 
+/* NOTIFICATION BELL */
+.bell-btn{background:none;border:none;cursor:pointer;font-size:19px;padding:4px 5px;position:relative;display:flex;align-items:center;line-height:1}
+.bell-badge{position:absolute;top:-1px;right:-2px;min-width:16px;height:16px;background:var(--red);color:#fff;border-radius:100px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--fd);padding:0 3px;border:1.5px solid var(--surface);pointer-events:none}
+.notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.14);z-index:300;overflow:hidden;max-height:420px;overflow-y:auto}
+.notif-panel-head{padding:12px 16px;font-family:var(--fd);font-weight:700;font-size:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface)}
+.notif-panel-close{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2);padding:0}
+.notif-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:background .1s}
+.notif-item:hover{background:var(--surface2)}
+.notif-item:last-child{border-bottom:none}
+.notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.notif-dot.unread{background:var(--accent)}
+.notif-dot.read{background:var(--border)}
+.notif-body{flex:1;min-width:0}
+.notif-name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notif-msg{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.notif-empty{padding:20px 16px;text-align:center;color:var(--text2);font-size:13px}
+
+/* OFFERS SENT VIEW */
+.offers-list{display:flex;flex-direction:column;gap:10px}
+.offer-sent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s}
+.offer-sent-card:active{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.offer-sent-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;gap:8px}
+.offer-sent-title{font-family:var(--fd);font-weight:700;font-size:15px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.offer-sent-badge{font-size:11px;font-weight:700;font-family:var(--fd);padding:2px 8px;border-radius:100px;flex-shrink:0}
+.offer-sent-badge.accepted{background:#dcfce7;color:#15803d}
+.offer-sent-badge.declined{background:#fee2e2;color:#dc2626}
+.offer-sent-badge.pending{background:var(--surface2);color:var(--text2)}
+.offer-sent-meta{font-size:12px;color:var(--text2);margin-bottom:8px}
+.offer-sent-row{display:flex;align-items:center;justify-content:space-between}
+.offer-sent-price{font-family:var(--fd);font-weight:800;font-size:17px;color:var(--accent)}
+.offer-sent-cta{font-size:12px;color:var(--accent);font-weight:600;font-family:var(--fd)}
+
+/* WANT & POST PHOTOS */
+.post-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.post-photo-wrap{position:relative;display:inline-flex}
+.post-photo-thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;border:1.5px solid var(--border)}
+.post-photo-rm{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--red);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.add-photo-btn{width:72px;height:72px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:11px;font-weight:600;gap:2px;font-family:var(--fd);transition:border-color .15s,color .15s}
+.add-photo-btn:hover{border-color:var(--accent);color:var(--accent)}
+.add-photo-btn span{font-size:20px}
+.want-photos{display:flex;gap:6px;overflow-x:auto;margin-top:6px;margin-bottom:4px;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.want-photo{width:80px;height:80px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.sh-photos{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch}
+.sh-photo{width:130px;height:130px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+
 /* MAIN */
 .main{max-width:1100px;margin:0 auto;padding:20px 16px;flex:1;width:100%}
 
@@ -442,7 +487,7 @@ const NAV = [
 {id:"browse",icon:"🏠",label:"Browse"},
 {id:"post",icon:"➕",label:"Post Want"},
 {id:"mine",icon:"📋",label:"My Posts"},
-{id:"messages",icon:"💬",label:"Messages"},
+{id:"offers",icon:"🤝",label:"Offers Sent"},
 ];
 
 export default function App() {
@@ -528,6 +573,9 @@ const [posted, setPosted] = useState(false);
 const [editId, setEditId] = useState(null);
 const [ef, setEf] = useState({});
 
+const [notifOpen, setNotifOpen] = useState(false);
+const [postPhotos, setPostPhotos] = useState([]);
+const [postPhotoPreviews, setPostPhotoPreviews] = useState([]);
 const [convos, setConvos] = useState([]);
 const [hasUnread, setHasUnread] = useState(false);
 const [msgFilter, setMsgFilter] = useState("all");
@@ -843,6 +891,24 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
+const handlePostPhoto = e => {
+const files = Array.from(e.target.files);
+if (!files.length) return;
+const toAdd = files.slice(0, 3 - postPhotos.length);
+setPostPhotos(p => [...p, ...toAdd]);
+toAdd.forEach(f => {
+  const r = new FileReader();
+  r.onload = ev => setPostPhotoPreviews(p => [...p, ev.target.result]);
+  r.readAsDataURL(f);
+});
+e.target.value = "";
+};
+
+const removePostPhoto = idx => {
+setPostPhotos(p => p.filter((_,i)=>i!==idx));
+setPostPhotoPreviews(p => p.filter((_,i)=>i!==idx));
+};
+
 const distMiles = dist === "Any distance" ? null : parseInt(dist);
 const filtered = wants.filter(w=>{
 const ms=w.title?.toLowerCase().includes(search.toLowerCase())||w.description?.toLowerCase().includes(search.toLowerCase());
@@ -880,15 +946,26 @@ if ((!lat || !lng) && form.location && form.location !== "Nearby") {
 const coords = await geocodeLocation(form.location);
 if (coords) { lat = coords.lat; lng = coords.lng; }
 }
-await addDoc(collection(db,"wants"),{
+const docRef = await addDoc(collection(db,"wants"),{
 title:form.title, description:form.description,
 budget:parseInt(form.budget)||0, category:form.category||"Other",
 location:form.location||"Nearby", user:user.displayName||user.email,
 userId:user.uid, offers:[], createdAt:serverTimestamp(),
 ...(lat && lng ? {lat, lng} : {}),
 });
+if (postPhotos.length > 0) {
+  try {
+    const urls = await Promise.all(postPhotos.map(async (f, i) => {
+      const sRef = ref(storage, `wants/${docRef.id}/photos/${i}_${f.name}`);
+      const snap = await uploadBytes(sRef, f);
+      return getDownloadURL(snap.ref);
+    }));
+    await updateDoc(doc(db,"wants",docRef.id), {photos: urls});
+  } catch(e) { console.error("Photo upload failed", e); }
+}
 setPosting(false); setPosted(true);
 setForm({title:"",description:"",budget:"",category:"",location:""});
+setPostPhotos([]); setPostPhotoPreviews([]);
 setTimeout(()=>{setPosted(false);setView("mine");},1800);
 };
 
@@ -1217,6 +1294,8 @@ title:ef.title, description:ef.description, budget:parseInt(ef.budget)||0, categ
 setEditId(null);
 };
 
+const unreadCount = convos.filter(c => c.lastSenderId && c.lastSenderId!==user?.uid && !c.readBy?.includes(user?.uid) && !c.archivedBy?.includes(user?.uid)).length;
+
 if (authLoading) return <div className="loading" style={{paddingTop:100}}>Loading...</div>;
 
 if (user && !isAdmin && banned.includes(user.uid)) return (
@@ -1363,10 +1442,51 @@ return (
     <header className="header">
       <div className="header-top">
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
-        <div className="huser">
+        <div className="huser" style={{position:"relative"}}>
           <span className="huser-name profile-link" onClick={()=>{setView("myprofile");setProfileTab("overview");loadMyReviews();}}>👤 <strong>{user.displayName||user.email}</strong></span>
           <button className="how-link" onClick={()=>{setOnboardingStep(0);setOnboardingOpen(true);}} title="How it works">?</button>
+          <button className="bell-btn" onClick={()=>setNotifOpen(o=>!o)} title="Notifications">
+            🔔{unreadCount>0&&<span className="bell-badge">{unreadCount>9?"9+":unreadCount}</span>}
+          </button>
           <button className="signout" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
+          {notifOpen&&(
+            <div className="notif-panel">
+              <div className="notif-panel-head">
+                <span>Notifications</span>
+                <button className="notif-panel-close" onClick={()=>setNotifOpen(false)}>✕</button>
+              </div>
+              {(()=>{
+                const unreadConvos = convos.filter(c=>c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid)&&!c.archivedBy?.includes(user.uid));
+                const myWantsWithOffers = wants.filter(w=>w.userId===user.uid&&(w.offers||[]).length>0).slice(0,5);
+                if (unreadConvos.length===0&&myWantsWithOffers.length===0) return <div className="notif-empty">You're all caught up!</div>;
+                return (
+                  <>
+                    {unreadConvos.map(c=>{
+                      const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
+                      return (
+                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle});setNotifOpen(false);}}>
+                          <div className="notif-dot unread"/>
+                          <div className="notif-body">
+                            <div className="notif-name">💬 {on}</div>
+                            <div className="notif-msg">{c.lastMessage||"New message"}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {myWantsWithOffers.map(w=>(
+                      <div key={w.id} className="notif-item" onClick={()=>{setSheet(w);setNotifOpen(false);}}>
+                        <div className="notif-dot read"/>
+                        <div className="notif-body">
+                          <div className="notif-name">🤝 {w.offers.length} offer{w.offers.length!==1?"s":""}</div>
+                          <div className="notif-msg">{w.title}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </div>
       {view==="browse"&&(
@@ -1428,6 +1548,11 @@ return (
 
                     <div className="wtitle">{w.title}</div>
                     <div className="wdesc">{w.description}</div>
+                    {(w.photos||[]).length>0&&(
+                      <div className="want-photos">
+                        {(w.photos||[]).map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
+                      </div>
+                    )}
                     <div className="blabel">Max Budget</div>
                     <div className="wbudget">${(w.budget||0).toLocaleString()}</div>
                     <span className="tag">{w.category}</span>
@@ -1597,7 +1722,24 @@ return (
                   <button className="loc-btn" onClick={detectLocation} title="Auto-detect location">{locLoading?"⏳":"📍"}</button>
                 </div>
               </div>
-              <button className="sbtn" onClick={postWant} disabled={posting||!form.title||!form.budget}>{posting?"Posting...":"Post My Want ->"}</button>
+              <div className="fg">
+                <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional)</span></label>
+                <div className="post-photos">
+                  {postPhotoPreviews.map((src,i)=>(
+                    <div key={i} className="post-photo-wrap">
+                      <img src={src} className="post-photo-thumb" alt={`photo ${i+1}`} />
+                      <button className="post-photo-rm" onClick={()=>removePostPhoto(i)}>✕</button>
+                    </div>
+                  ))}
+                  {postPhotos.length<3&&(
+                    <label className="add-photo-btn">
+                      <span>📷</span>Add
+                      <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePostPhoto} />
+                    </label>
+                  )}
+                </div>
+              </div>
+              <button className="sbtn" onClick={postWant} disabled={posting||!form.title||!form.budget}>{posting?(postPhotos.length>0?"Posting...":"Posting..."):"Post My Want ->"}</button>
             </>
           )}
         </div>
@@ -1667,6 +1809,41 @@ return (
       )}
 
       {/* MESSAGES */}
+      {/* OFFERS SENT */}
+      {view==="offers"&&(()=>{
+        const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
+        return (
+          <>
+            <div className="stitle">Offers Sent</div>
+            <div className="ssub">Offers you've sent to sellers. Tap to open the chat.</div>
+            {myOffersGiven.length===0?(
+              <div className="empty"><div className="eicon">🤝</div><div className="etitle">No offers yet</div><div className="esub">Browse wants and send your first offer</div></div>
+            ):(
+              <div className="offers-list">
+                {myOffersGiven.map((o,idx)=>{
+                  const statusLabel = o.status==="accepted"?"Accepted":o.status==="declined"?"Declined":"Pending";
+                  const statusCls = o.status==="accepted"?"accepted":o.status==="declined"?"declined":"pending";
+                  return (
+                    <div key={idx} className="offer-sent-card" onClick={()=>openChat({id:o.wantId,userId:o.wantUserId,user:o.wantUser,title:o.wantTitle},o)}>
+                      <div className="offer-sent-top">
+                        <div className="offer-sent-title">{o.wantTitle}</div>
+                        <span className={`offer-sent-badge ${statusCls}`}>{statusLabel}</span>
+                      </div>
+                      <div className="offer-sent-meta">Buyer: {o.wantUser} · {o.time||""}</div>
+                      <div className="offer-sent-row">
+                        <span className="offer-sent-price">${(o.price||0).toLocaleString()}</span>
+                        <span className="offer-sent-cta">💬 Open Chat →</span>
+                      </div>
+                      {o.message&&<div style={{marginTop:6,fontSize:12,color:"var(--text2)",borderTop:"1px solid var(--border)",paddingTop:6}}>"{o.message}"</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        );
+      })()}
+
       {view==="messages"&&(
         <>
           <div className="stitle">Messages</div>
@@ -2080,6 +2257,11 @@ return (
           <div className="sh-body">
             <div className="sh-budget">${(sheet.budget||0).toLocaleString()}</div>
             <div className="sh-meta">📍 {sheet.location} · {sheet.user} · {ta(sheet.createdAt)}</div>
+            {(sheet.photos||[]).length>0&&(
+              <div className="sh-photos">
+                {(sheet.photos||[]).map((url,i)=><img key={i} src={url} className="sh-photo" alt="" />)}
+              </div>
+            )}
             <div className="sh-desc">{sheet.description}</div>
             {sheet.userId!==user.uid&&(
               <div style={{textAlign:"right",marginBottom:8}}>
