@@ -594,6 +594,10 @@ const [posted, setPosted] = useState(false);
 
 const [editId, setEditId] = useState(null);
 const [ef, setEf] = useState({});
+const [editPhotos, setEditPhotos] = useState([]);
+const [editPhotoPreviews, setEditPhotoPreviews] = useState([]);
+const [editPhotoPicking, setEditPhotoPicking] = useState(false);
+const [editSaving, setEditSaving] = useState(false);
 
 const [notifOpen, setNotifOpen] = useState(false);
 const [postPhotos, setPostPhotos] = useState([]);
@@ -1331,11 +1335,56 @@ const updated = (want.offers||[]).map((o,i)=>i===idx?{...o,status}:o);
 await updateDoc(doc(db,"wants",want.id),{offers:updated});
 };
 
+const handleEditPhoto = async (e) => {
+if (editPhotoPicking) return;
+setEditPhotoPicking(true);
+try {
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
+  if (isNative) {
+    const { Camera, CameraResultType } = await import("@capacitor/camera");
+    const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
+    if (remaining <= 0) { setEditPhotoPicking(false); return; }
+    const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
+    const selected = (result.photos||[]).slice(0, remaining);
+    const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
+    const files = blobs.map((b,i) => new File([b], `photo_${Date.now()}_${i}.jpg`, { type: b.type||"image/jpeg" }));
+    const previews = await Promise.all(files.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
+    setEditPhotos(p=>[...p,...files]);
+    setEditPhotoPreviews(p=>[...p,...previews]);
+    setEditPhotoPicking(false); return;
+  }
+} catch(err) { console.warn("Native camera error", err); }
+if (!e?.target?.files?.length) { setEditPhotoPicking(false); return; }
+const files = Array.from(e.target.files);
+const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
+const toAdd = files.slice(0, remaining);
+if (e.target) e.target.value = "";
+const previews = await Promise.all(toAdd.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
+setEditPhotos(p=>[...p,...toAdd]);
+setEditPhotoPreviews(p=>[...p,...previews]);
+setEditPhotoPicking(false);
+};
+
 const saveEdit = async () => {
-await updateDoc(doc(db,"wants",editId),{
-title:ef.title, description:ef.description, budget:parseInt(ef.budget)||0, category:ef.category, location:ef.location,
-});
+setEditSaving(true);
+try {
+  let photos = ef.photos || [];
+  if (editPhotos.length > 0) {
+    const newUrls = await Promise.all(editPhotos.map(async (f,i) => {
+      const sRef = ref(storage, `wants/${editId}/photos/${user.uid}_edit_${i}_${Date.now()}.jpg`);
+      const snap = await uploadBytes(sRef, f);
+      return getDownloadURL(snap.ref);
+    }));
+    photos = [...photos, ...newUrls];
+  }
+  await updateDoc(doc(db,"wants",editId),{
+    title:ef.title, description:ef.description, budget:parseInt(ef.budget)||0,
+    category:ef.category, location:ef.location, photos,
+  });
+} catch(err) { console.error("saveEdit failed", err); }
+setEditSaving(false);
 setEditId(null);
+setEditPhotos([]); setEditPhotoPreviews([]);
 };
 
 const unreadCount = convos.filter(c => c.lastSenderId && c.lastSenderId!==user?.uid && !c.readBy?.includes(user?.uid) && !c.archivedBy?.includes(user?.uid)).length;
@@ -1826,7 +1875,7 @@ return (
               <div className="mbudget">Up to ${(w.budget||0).toLocaleString()}</div>
               <div className="mdesc">{w.description}</div>
               <div className="cacts">
-                <button className="eedit" onClick={()=>{setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location});setEditId(w.id);}}>✏️ Edit</button>
+                <button className="eedit" onClick={()=>{setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location,photos:w.photos||[]});setEditPhotos([]);setEditPhotoPreviews([]);setEditId(w.id);}}>✏️ Edit</button>
                 <button className="edel" onClick={()=>delWant(w.id)}>🗑 Delete</button>
               </div>
               {(w.offers||[]).map((o,i)=>(
@@ -2456,7 +2505,27 @@ return (
               </div>
             </div>
             <div className="fg"><label className="fl">Location</label><input className="fi" value={ef.location} onChange={e=>setEf(p=>({...p,location:e.target.value}))} /></div>
-            <button className="sbtn" onClick={saveEdit}>Save Changes</button>
+            <div className="fg">
+              <label className="fl">Photos</label>
+              <div className="post-photos">
+                {(ef.photos||[]).map((url,i)=>(
+                  <div key={`existing-${i}`} className="post-photo-wrap">
+                    <img src={url} className="post-photo-thumb" alt="" />
+                    <button className="post-photo-rm" onClick={()=>setEf(p=>({...p,photos:p.photos.filter((_,j)=>j!==i)}))}>✕</button>
+                  </div>
+                ))}
+                {editPhotoPreviews.map((src,i)=>(
+                  <div key={`new-${i}`} className="post-photo-wrap">
+                    <img src={src} className="post-photo-thumb" alt="" />
+                    <button className="post-photo-rm" onClick={()=>{setEditPhotos(p=>p.filter((_,j)=>j!==i));setEditPhotoPreviews(p=>p.filter((_,j)=>j!==i));}}>✕</button>
+                  </div>
+                ))}
+                {((ef.photos||[]).length + editPhotos.length) < 3 && (
+                  <NativePhotoButton onPick={handleEditPhoto} disabled={editPhotoPicking} />
+                )}
+              </div>
+            </div>
+            <button className="sbtn" onClick={saveEdit} disabled={editSaving}>{editSaving?"Saving…":"Save Changes"}</button>
           </div>
         </div>
       </div>
