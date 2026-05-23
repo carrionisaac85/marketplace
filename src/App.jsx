@@ -487,7 +487,7 @@ const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
 {id:"post",icon:"➕",label:"Post Want"},
 {id:"offers",icon:"🤝",label:"Offers Sent"},
-{id:"myprofile",icon:"👤",label:"Profile"},
+{id:"mine",icon:"📋",label:"My Posts"},
 ];
 
 export default function App() {
