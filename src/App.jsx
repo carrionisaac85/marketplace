@@ -108,6 +108,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.14);z-index:300;overflow:hidden;max-height:420px;overflow-y:auto}
 .notif-panel-head{padding:12px 16px;font-family:var(--fd);font-weight:700;font-size:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface)}
 .notif-panel-close{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2);padding:0}
+.notif-clear-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--fd);color:var(--accent);padding:0}
 .notif-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:background .1s}
 .notif-item:hover{background:var(--surface2)}
 .notif-item:last-child{border-bottom:none}
@@ -1453,7 +1454,16 @@ return (
             <div className="notif-panel">
               <div className="notif-panel-head">
                 <span>Notifications</span>
-                <button className="notif-panel-close" onClick={()=>setNotifOpen(false)}>✕</button>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  {convos.some(c=>c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid))&&(
+                    <button className="notif-clear-btn" onClick={async()=>{
+                      const unread=convos.filter(c=>c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid));
+                      await Promise.all(unread.map(c=>updateDoc(doc(db,"conversations",c.id),{readBy:arrayUnion(user.uid)})));
+                      setNotifOpen(false);
+                    }}>Clear all</button>
+                  )}
+                  <button className="notif-panel-close" onClick={()=>setNotifOpen(false)}>✕</button>
+                </div>
               </div>
               {(()=>{
                 const unreadConvos = convos.filter(c=>c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid)&&!c.archivedBy?.includes(user.uid));
