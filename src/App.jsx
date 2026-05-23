@@ -922,10 +922,10 @@ try {
     const selected = (result.photos || []).slice(0, remaining);
     const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
     const files = blobs.map((b, i) => new File([b], `photo_${Date.now()}_${i}.jpg`, { type: b.type || "image/jpeg" }));
-    setPostPhotos(p => [...p, ...files]);
     const previews = await Promise.all(files.map(f => new Promise(res => {
       const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
     })));
+    setPostPhotos(p => [...p, ...files]);
     setPostPhotoPreviews(p => [...p, ...previews]);
     return;
   }
@@ -933,13 +933,12 @@ try {
 if (!e?.target?.files?.length) return;
 const files = Array.from(e.target.files);
 const toAdd = files.slice(0, 3 - postPhotos.length);
-setPostPhotos(p => [...p, ...toAdd]);
-toAdd.forEach(f => {
-  const r = new FileReader();
-  r.onload = ev => setPostPhotoPreviews(p => [...p, ev.target.result]);
-  r.readAsDataURL(f);
-});
 if (e.target) e.target.value = "";
+const previews = await Promise.all(toAdd.map(f => new Promise(res => {
+  const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
+})));
+setPostPhotos(p => [...p, ...toAdd]);
+setPostPhotoPreviews(p => [...p, ...previews]);
 };
 
 const removePostPhoto = idx => {
