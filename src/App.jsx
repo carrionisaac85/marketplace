@@ -491,9 +491,10 @@ const NAV = [
 {id:"mine",icon:"📋",label:"My Posts"},
 ];
 
-function NativePhotoButton({ onPick }) {
+function NativePhotoButton({ onPick, disabled }) {
 const inputRef = useRef(null);
 const handleClick = () => {
+  if (disabled) return;
   import("@capacitor/core").then(({ Capacitor }) => {
     if (Capacitor.isNativePlatform()) {
       onPick(null);
@@ -503,9 +504,9 @@ const handleClick = () => {
   }).catch(() => { inputRef.current?.click(); });
 };
 return (
-  <div className="add-photo-btn" onClick={handleClick} style={{cursor:"pointer"}}>
-    <span>📷</span>Add
-    <input ref={inputRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={onPick} />
+  <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
+    <span>📷</span>{disabled?"…":"Add"}
+    <input ref={inputRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={disabled?undefined:onPick} />
   </div>
 );
 }
@@ -596,6 +597,7 @@ const [ef, setEf] = useState({});
 const [notifOpen, setNotifOpen] = useState(false);
 const [postPhotos, setPostPhotos] = useState([]);
 const [postPhotoPreviews, setPostPhotoPreviews] = useState([]);
+const [postPhotoPicking, setPostPhotoPicking] = useState(false);
 const [convos, setConvos] = useState([]);
 const [hasUnread, setHasUnread] = useState(false);
 const [msgFilter, setMsgFilter] = useState("all");
@@ -912,12 +914,14 @@ r.readAsDataURL(f);
 };
 
 const handlePostPhoto = async (e) => {
+if (postPhotoPicking) return;
+setPostPhotoPicking(true);
 try {
   const { Capacitor } = await import("@capacitor/core");
   if (Capacitor.isNativePlatform()) {
-    const { Camera, CameraSource, CameraResultType } = await import("@capacitor/camera");
+    const { Camera, CameraResultType } = await import("@capacitor/camera");
     const remaining = 3 - postPhotos.length;
-    if (remaining <= 0) return;
+    if (remaining <= 0) { setPostPhotoPicking(false); return; }
     const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
     const selected = (result.photos || []).slice(0, remaining);
     const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
@@ -927,10 +931,11 @@ try {
     })));
     setPostPhotos(p => [...p, ...files]);
     setPostPhotoPreviews(p => [...p, ...previews]);
+    setPostPhotoPicking(false);
     return;
   }
 } catch(err) { console.warn("Native camera unavailable, using file input", err); }
-if (!e?.target?.files?.length) return;
+if (!e?.target?.files?.length) { setPostPhotoPicking(false); return; }
 const files = Array.from(e.target.files);
 const toAdd = files.slice(0, 3 - postPhotos.length);
 if (e.target) e.target.value = "";
@@ -939,6 +944,7 @@ const previews = await Promise.all(toAdd.map(f => new Promise(res => {
 })));
 setPostPhotos(p => [...p, ...toAdd]);
 setPostPhotoPreviews(p => [...p, ...previews]);
+setPostPhotoPicking(false);
 };
 
 const removePostPhoto = idx => {
@@ -1778,7 +1784,7 @@ return (
                     </div>
                   ))}
                   {postPhotos.length<3&&(
-                    <NativePhotoButton onPick={handlePostPhoto} />
+                    <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} />
                   )}
                 </div>
               </div>
