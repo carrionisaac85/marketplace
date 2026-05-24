@@ -9,7 +9,7 @@ import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
-sendPasswordResetEmail, deleteUser, getAdditionalUserInfo,
+sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, reauthenticateWithPopup,
 } from "firebase/auth";
 import {
 getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
@@ -1177,7 +1177,8 @@ service cloud.firestore {
 try {
   const provider = new GoogleAuthProvider();
   provider.addScope("https://www.googleapis.com/auth/firebase");
-  const result = await signInWithPopup(auth, provider);
+  // reauthenticateWithPopup works whether already signed in or not
+  const result = await reauthenticateWithPopup(auth.currentUser, provider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
   const oauthToken = credential.accessToken;
   if (!oauthToken) throw new Error("Could not get OAuth token. Try signing out and back in.");
