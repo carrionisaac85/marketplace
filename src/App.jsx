@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import {
 getFirestore, collection, addDoc, onSnapshot, updateDoc,
-deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion, arrayRemove,
+deleteDoc, doc, serverTimestamp, orderBy, query, where, arrayUnion, arrayRemove,
 setDoc, getDocs, getDoc, limit, increment,
 } from "firebase/firestore";
 import {
@@ -744,10 +744,14 @@ if (window.google?.maps?.places) {
 // Conversations
 useEffect(() => {
 if (!user) return;
-const q = query(collection(db,"conversations"), orderBy("updatedAt","desc"));
+const q = query(
+  collection(db,"conversations"),
+  where("participants","array-contains",user.uid)
+);
 return onSnapshot(q, snap => {
-const all = snap.docs.map(d=>({id:d.id,...d.data()}));
-const mine = all.filter(c=>c.participants?.includes(user.uid));
+const mine = snap.docs
+  .map(d=>({id:d.id,...d.data()}))
+  .sort((a,b)=>(b.updatedAt?.toMillis?.()??0)-(a.updatedAt?.toMillis?.()??0));
 setConvos(mine);
 setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid) && !c.archivedBy?.includes(user.uid)));
 // Notify on new incoming messages (background — works even when chat isn't open)
