@@ -9,7 +9,7 @@ import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
-sendPasswordResetEmail, deleteUser,
+sendPasswordResetEmail, deleteUser, getAdditionalUserInfo,
 } from "firebase/auth";
 import {
 getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
@@ -577,6 +577,7 @@ const [sheet, setSheet] = useState(null);
 const [notifPerm, setNotifPerm] = useState(() => typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 const prevOfferCounts = useRef(null);
 const prevConvoUpdates = useRef(null);
+const justSignedUp = useRef(false);
 const [refreshing, setRefreshing] = useState(false);
 const [pullY, setPullY] = useState(0);
 const touchStartY = useRef(0);
@@ -656,7 +657,7 @@ return onSnapshot(doc(db,"users",user.uid), snap => {
     setMyReportedWants(data.reportedWants||[]);
     if (!onboardingChecked) {
       setOnboardingChecked(true);
-      if (!data.onboardingDone) { setOnboardingStep(0); setOnboardingOpen(true); }
+      if (!data.onboardingDone && justSignedUp.current) { setOnboardingStep(0); setOnboardingOpen(true); }
     }
   }
 }, err => console.error("User doc listener failed:", err));
@@ -828,6 +829,7 @@ if (authTab==="signup") {
 const c = await createUserWithEmailAndPassword(auth,af.email,af.password);
 await updateProfile(c.user,{displayName:af.name});
 setUser({...c.user,displayName:af.name});
+justSignedUp.current = true;
 } else {
 await signInWithEmailAndPassword(auth,af.email,af.password);
 }
@@ -858,7 +860,8 @@ const credential = GoogleAuthProvider.credential(googleUser.authentication.idTok
 await signInWithCredential(auth, credential);
 } else {
 const provider = new GoogleAuthProvider();
-await signInWithPopup(auth, provider);
+const result = await signInWithPopup(auth, provider);
+if (getAdditionalUserInfo(result)?.isNewUser) justSignedUp.current = true;
 }
 } catch(e) {
 setAuthErr("Google sign-in failed. Please try again.");
