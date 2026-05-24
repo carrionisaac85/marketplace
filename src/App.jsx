@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp, getApps } from "firebase/app";
 import {
 getFirestore, collection, addDoc, onSnapshot, updateDoc,
 deleteDoc, doc, serverTimestamp, orderBy, query, arrayUnion, arrayRemove,
@@ -9,7 +9,7 @@ import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
 signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
-sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, reauthenticateWithPopup,
+sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 } from "firebase/auth";
 import {
 getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
@@ -1177,11 +1177,14 @@ service cloud.firestore {
 try {
   const provider = new GoogleAuthProvider();
   provider.addScope("https://www.googleapis.com/auth/firebase");
-  // reauthenticateWithPopup works whether already signed in or not
-  const result = await reauthenticateWithPopup(auth.currentUser, provider);
+  // Use a separate Firebase app instance so it doesn't clash with the active session
+  const secondaryApp = getApps().find(a => a.name === "admin-deploy")
+    || initializeApp(firebaseConfig, "admin-deploy");
+  const secondaryAuth = getAuth(secondaryApp);
+  const result = await signInWithPopup(secondaryAuth, provider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
   const oauthToken = credential.accessToken;
-  if (!oauthToken) throw new Error("Could not get OAuth token. Try signing out and back in.");
+  if (!oauthToken) throw new Error("Could not get OAuth token — make sure you sign in with Google (not email/password).");
   const PROJECT = "marketplace305";
   // 1. Create new ruleset
   const rsRes = await fetch(
