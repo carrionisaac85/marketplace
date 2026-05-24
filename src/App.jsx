@@ -2240,11 +2240,7 @@ return (
               <div style={{marginTop:20,padding:"16px",background:"#fff5f5",border:"1.5px solid #fca5a5",borderRadius:12}}>
                 <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"#dc2626",marginBottom:4}}>⚠️ Danger Zone</div>
                 <div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>Permanently delete all posts, offers, messages, and conversations from the database.</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
-                  <button onClick={deployFirestoreRules} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🔧 Deploy Firestore Rules</button>
-                </div>
-                <div style={{fontSize:11,color:"var(--text2)",marginTop:8}}>Deploy Rules: signs in with Google to push admin security rules to Firebase. Do this once to enable admin deletes.</div>
+                <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
               </div>
               <div className="stitle" style={{fontSize:15,marginTop:16}}>Recent Posts</div>
               <div className="admin-table" style={{marginTop:8}}>
