@@ -190,7 +190,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .wcard-urow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .wcard-tbrow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
 .wbudget-pill{font-family:var(--fd);font-weight:700;font-size:13px;color:var(--green);background:#eef8f1;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;display:inline-block}
-.wphoto-hero{width:100%;height:160px;object-fit:cover;border-radius:10px;margin:8px 0 0;display:block}
+.wphoto-hero{width:100%;max-height:200px;height:auto;object-fit:contain;border-radius:10px;margin:8px 0 0;display:block;background:var(--surface2)}
 .av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:12px;flex-shrink:0}
 .av.sm{background:var(--surface3);color:var(--text2)}
 .wuser{font-size:12px;font-weight:600;color:var(--text)}
@@ -315,7 +315,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .oitem{padding:12px;border:1px solid var(--border);border-radius:12px;display:flex;gap:10px;margin-bottom:8px;background:var(--surface2)}
 .obody{flex:1}
 .oname{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text)}
-.ophoto{width:70px;height:70px;border-radius:8px;object-fit:cover;margin-bottom:8px;border:1px solid var(--border);display:block}
+.ophoto{max-width:100%;max-height:200px;height:auto;border-radius:8px;object-fit:contain;margin-bottom:8px;border:1px solid var(--border);display:block;background:var(--surface2)}
 .omsg{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:8px}
 .orow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .oprice{font-family:var(--fd);font-weight:700;font-size:16px;color:var(--green)}
@@ -326,7 +326,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .clabel{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;font-family:var(--fd);letter-spacing:.3px}
 .photo-lbl{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text2);background:var(--surface);margin-bottom:8px}
 .photo-lbl:hover{border-color:var(--accent);color:var(--accent)}
-.photo-prev{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--border);margin-top:6px;display:block}
+.photo-prev{max-width:100%;max-height:200px;height:auto;object-fit:contain;border-radius:8px;border:1px solid var(--border);margin-top:6px;display:block;background:var(--surface2)}
 .crow{display:flex;gap:10px;align-items:flex-end}
 .cmsg{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:13.5px;background:var(--surface);color:var(--text);outline:none;resize:none;min-height:60px}
 .cmsg:focus{border-color:var(--accent)}
@@ -2785,7 +2785,7 @@ return (
               <div key={m.id} className={`bubble-wrap ${m.senderId===user.uid?"mine":"theirs"}`}>
                 <div className={`bubble ${m.senderId===user.uid?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
                   {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
-                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:140,objectFit:"cover"}} alt="" />}
+                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:200,objectFit:"contain"}} alt="" />}
                   <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
                   <div className="btime">{ta(m.createdAt)}</div>
                 </div>
