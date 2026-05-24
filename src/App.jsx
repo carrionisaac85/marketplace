@@ -872,7 +872,7 @@ if (!pendingConvoId || convos.length === 0) return;
 const convo = convos.find(c => c.id === pendingConvoId);
 if (convo) {
 const on = convo.participants?.find(uid => uid !== user?.uid) ? convo.lastSenderName || "User" : "User";
-setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "" });
+setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "", offerPrice: convo.offerPrice||null, offerPhotoUrl: convo.offerPhotoUrl||null });
 setPendingConvoId(null);
 }
 }, [pendingConvoId, convos, user]);
@@ -1844,7 +1844,7 @@ return (
                     {unreadConvos.map(c=>{
                       const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
                       return (
-                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle});setNotifOpen(false);}}>
+                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null});setNotifOpen(false);}}>
                           <div className="notif-dot unread"/>
                           <div className="notif-body">
                             <div className="notif-name">💬 {on}</div>
@@ -2266,7 +2266,7 @@ return (
                 :wantData?.offers?.find(o=>{const oid=Object.keys(c.participantNames||{}).find(id=>id!==user.uid);return o.fromId===oid;});
               const price=myOffer?.price||c.offerPrice||null;
               return (
-                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
+                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null})}>
                   <div className="av sm">{on[0]?.toUpperCase()}</div>
                   <div className="cinfo">
                     <div className="cinfo-top">
