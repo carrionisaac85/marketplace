@@ -489,10 +489,10 @@ const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","F
 const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
-{id:"post",icon:"➕",label:"Post Want"},
-{id:"offers",icon:"🤝",label:"Offers"},
-{id:"messages",icon:"💬",label:"Messages"},
 {id:"mine",icon:"📋",label:"My Posts"},
+{id:"post",icon:"➕",label:"Post Want"},
+{id:"messages",icon:"💬",label:"Messages"},
+{id:"offers",icon:"🤝",label:"Offers"},
 ];
 
 function NativePhotoButton({ onPick, disabled }) {
