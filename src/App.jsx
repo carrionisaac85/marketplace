@@ -1124,6 +1124,98 @@ if (!isAdmin || !uid) return;
 await updateDoc(doc(db,"config","banned"),{uids:arrayRemove(uid)}).catch(()=>{});
 };
 
+const deployFirestoreRules = async () => {
+if (!isAdmin) return;
+const RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuth() { return request.auth != null; }
+    function isAdmin() { return isAuth() && request.auth.token.email == "carrion.isaac85@gmail.com"; }
+    match /wants/{wantId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['offers']) && request.resource.data.userId == resource.data.userId));
+      allow delete: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow create, update: if isAuth() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAuth() && (request.auth.uid == uid || isAdmin());
+      match /reviews/{reviewId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow delete: if isAuth() && (request.auth.uid == uid || isAdmin());
+      }
+    }
+    match /conversations/{convoId} {
+      function isParticipant() { return isAuth() && request.auth.uid in resource.data.participants; }
+      function willBeParticipant() { return isAuth() && request.auth.uid in request.resource.data.participants; }
+      allow read: if isParticipant() || isAdmin();
+      allow create: if willBeParticipant() || isAdmin();
+      allow update: if isParticipant() || isAdmin();
+      allow delete: if isParticipant() || isAdmin();
+      match /messages/{msgId} {
+        function isConvoParticipant() { return isAuth() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants; }
+        allow read: if isConvoParticipant() || isAdmin();
+        allow create: if isConvoParticipant() || isAdmin();
+        allow delete: if isConvoParticipant() || isAdmin();
+      }
+    }
+    match /config/{docId} {
+      allow read: if isAuth();
+      allow create, update: if isAuth();
+      allow delete: if isAdmin();
+    }
+    match /reports/{reportId} {
+      allow create: if isAuth();
+      allow read, update: if isAuth();
+      allow delete: if isAdmin();
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}`;
+try {
+  const provider = new GoogleAuthProvider();
+  provider.addScope("https://www.googleapis.com/auth/firebase");
+  const result = await signInWithPopup(auth, provider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  const oauthToken = credential.accessToken;
+  if (!oauthToken) throw new Error("Could not get OAuth token. Try signing out and back in.");
+  const PROJECT = "marketplace305";
+  // 1. Create new ruleset
+  const rsRes = await fetch(
+    `https://firebaserules.googleapis.com/v1/projects/${PROJECT}/rulesets`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${oauthToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ source: { files: [{ name: "firestore.rules", content: RULES }] } }),
+    }
+  );
+  if (!rsRes.ok) {
+    const err = await rsRes.json();
+    throw new Error(err.error?.message || JSON.stringify(err));
+  }
+  const rs = await rsRes.json();
+  const rulesetName = rs.name;
+  // 2. Update the cloud.firestore release
+  const relRes = await fetch(
+    `https://firebaserules.googleapis.com/v1/projects/${PROJECT}/releases/cloud.firestore`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${oauthToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ release: { name: `projects/${PROJECT}/releases/cloud.firestore`, rulesetName } }),
+    }
+  );
+  if (!relRes.ok) {
+    const err = await relRes.json();
+    throw new Error(err.error?.message || JSON.stringify(err));
+  }
+  alert("✅ Firestore rules deployed! Admin deletes are now active. You may need to refresh the app.");
+} catch(e) {
+  alert("❌ Deploy failed: " + e.message);
+}
+};
+
 const adminDeleteWant = async (id) => {
 if (!isAdmin) return;
 if (!window.confirm("Delete this want permanently?")) return;
@@ -2144,7 +2236,11 @@ return (
               <div style={{marginTop:20,padding:"16px",background:"#fff5f5",border:"1.5px solid #fca5a5",borderRadius:12}}>
                 <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"#dc2626",marginBottom:4}}>⚠️ Danger Zone</div>
                 <div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>Permanently delete all posts, offers, messages, and conversations from the database.</div>
-                <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
+                  <button onClick={deployFirestoreRules} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🔧 Deploy Firestore Rules</button>
+                </div>
+                <div style={{fontSize:11,color:"var(--text2)",marginTop:8}}>Deploy Rules: signs in with Google to push admin security rules to Firebase. Do this once to enable admin deletes.</div>
               </div>
               <div className="stitle" style={{fontSize:15,marginTop:16}}>Recent Posts</div>
               <div className="admin-table" style={{marginTop:8}}>
