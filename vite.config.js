@@ -48,5 +48,12 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5000,
     allowedHosts: true,
+    proxy: {
+      "/__mockup": {
+        target: "http://localhost:23636",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 });
