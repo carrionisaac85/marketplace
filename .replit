@@ -55,6 +55,7 @@ publicDir = "dist"
 
 [userenv.shared]
 VITE_GOOGLE_MAPS_API_KEY = "AIzaSyDfRKi85ZeUXl8dm7_wy3SA7Hmi-sd9nsQ"
+VITE_FIREBASE_VAPID_KEY = "BCBsfh5QKS_yrUibSBAcVzxY5QoRS3idDpufBU_K0SPTm8S_m_4F-nG0F9WuV6HLsqk3Gza3K1THeETU40rsouY"
 
 [postMerge]
 path = "scripts/post-merge.sh"

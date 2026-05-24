@@ -14,6 +14,7 @@ sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 import {
 getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
 } from "firebase/storage";
+import { getMessaging, getToken } from "firebase/messaging";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -31,6 +32,22 @@ const auth = initializeAuth(app, {
   persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
 });
 const storage = getStorage(app);
+
+async function registerFcmToken(uid) {
+  if (!("serviceWorker" in navigator)) return;
+  const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+  if (!vapidKey) return;
+  try {
+    const sw = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: sw });
+    if (token) {
+      await setDoc(doc(db, "fcmTokens", uid), { token, updatedAt: serverTimestamp() });
+    }
+  } catch (e) {
+    console.warn("FCM token registration failed:", e);
+  }
+}
 
 const ADMIN_EMAILS = ["carrion.isaac85@gmail.com"];
 
@@ -580,6 +597,7 @@ const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
 const [sheet, setSheet] = useState(null);
 const [notifPerm, setNotifPerm] = useState(() => typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+const [pendingConvoId, setPendingConvoId] = useState(null);
 const prevOfferCounts = useRef(null);
 const prevConvoUpdates = useRef(null);
 const justSignedUp = useRef(false);
@@ -817,9 +835,51 @@ updateDoc(doc(db,"conversations",chat.convoId),{readBy:arrayUnion(user.uid)}).ca
 // Request notification permission on login
 useEffect(() => {
 if (user && "Notification" in window && Notification.permission === "default") {
-Notification.requestPermission();
+Notification.requestPermission().then(perm => setNotifPerm(perm));
 }
 }, [user]);
+
+// Register FCM token whenever user is logged in and permission is granted
+useEffect(() => {
+if (user && notifPerm === "granted") {
+registerFcmToken(user.uid);
+}
+}, [user, notifPerm]);
+
+// Listen for service worker messages (notification tap → open conversation)
+useEffect(() => {
+if (!("serviceWorker" in navigator)) return;
+const handler = event => {
+if (event.data?.type === "OPEN_CONVERSATION" && event.data.convoId) {
+setView("messages");
+setPendingConvoId(event.data.convoId);
+}
+};
+navigator.serviceWorker.addEventListener("message", handler);
+return () => navigator.serviceWorker.removeEventListener("message", handler);
+}, []);
+
+// Open pending conversation once convos are loaded
+useEffect(() => {
+if (!pendingConvoId || convos.length === 0) return;
+const convo = convos.find(c => c.id === pendingConvoId);
+if (convo) {
+const on = convo.participants?.find(uid => uid !== user?.uid) ? convo.lastSenderName || "User" : "User";
+setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "" });
+setPendingConvoId(null);
+}
+}, [pendingConvoId, convos, user]);
+
+// On first load, check URL for ?convo= param (from notification tap on closed app)
+useEffect(() => {
+const params = new URLSearchParams(window.location.search);
+const convoParam = params.get("convo");
+if (convoParam) {
+setPendingConvoId(convoParam);
+setView("messages");
+window.history.replaceState({}, "", window.location.pathname);
+}
+}, []);
 
 // Pull to refresh handlers
 const handleTouchStart = e => { touchStartY.current = e.touches[0].clientY; };
