@@ -461,6 +461,12 @@ textarea.fi{resize:vertical;min-height:80px}
 .minput{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
 .minput:focus{border-color:var(--accent)}
 .msend{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:var(--fb)}
+.chat-offer-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-offer-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.chat-offer-price{font-family:var(--fd);font-size:17px;font-weight:800;color:var(--accent)}
+.offer-bubble{border:1.5px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--text)!important}
+.bubble.mine.offer-bubble{background:color-mix(in srgb,var(--accent) 20%,#fff)!important;color:var(--text)!important}
 .ebody{padding:20px;overflow-y:auto}
 
 /* EMPTY / LOADING */
@@ -640,6 +646,7 @@ const [showArchived, setShowArchived] = useState(false);
 const [chat, setChat] = useState(null);
 const [msgs, setMsgs] = useState([]);
 const [ci, setCi] = useState("");
+const [msgSendErr, setMsgSendErr] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
 
@@ -1100,6 +1107,9 @@ const sendOffer = async wid => {
 if (!oc.message||!oc.price||!user||sending) return;
 setSending(true);
 setOfferError("");
+const offerMsg = oc.message;
+const offerPrice = parseInt(oc.price)||0;
+const senderName = user.displayName||user.email;
 try {
   let photoUrl = null;
   if (photoFile) {
@@ -1108,30 +1118,49 @@ try {
     photoUrl = await getDownloadURL(snapshot.ref);
   }
   await updateDoc(doc(db,"wants",wid),{offers:arrayUnion({
-  from:user.displayName||user.email, fromId:user.uid,
-  message:oc.message, price:parseInt(oc.price)||0,
+  from:senderName, fromId:user.uid,
+  message:offerMsg, price:offerPrice,
   photoUrl:photoUrl,
   time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),
   })});
   setSent(p=>({...p,[wid]:true}));
   setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
   setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
-  // Auto-create conversation so it appears in Messages tab immediately
+  // Auto-create conversation and post offer as first message
   const want = wants.find(w=>w.id===wid);
   if (want && want.userId) {
     const ids = [user.uid, want.userId].sort();
     const cid = `${ids[0]}_${ids[1]}_${wid}`;
     const convoRef = doc(db,"conversations",cid);
     const convoSnap = await getDoc(convoRef);
+    const firstMsgText = `💸 Offer: $${offerPrice.toLocaleString()}\n${offerMsg}`;
     if (!convoSnap.exists()) {
       await setDoc(convoRef,{
         participants:[user.uid,want.userId],
-        participantNames:{[user.uid]:user.displayName||user.email,[want.userId]:want.user},
+        participantNames:{[user.uid]:senderName,[want.userId]:want.user},
         wantId:wid, wantTitle:want.title, wantUserId:want.userId,
-        offerPrice:parseInt(oc.price)||0,
+        offerPrice:offerPrice,
+        offerPhotoUrl:photoUrl||null,
         updatedAt:serverTimestamp(),
+        lastMessage:firstMsgText, lastSenderId:user.uid, lastSenderName:senderName,
+        readBy:[user.uid],
       });
+    } else {
+      await updateDoc(convoRef,{offerPrice:offerPrice,offerPhotoUrl:photoUrl||null,updatedAt:serverTimestamp(),lastMessage:firstMsgText,lastSenderId:user.uid,lastSenderName:senderName,readBy:[user.uid]});
     }
+    // Post offer as a message in the thread
+    await addDoc(collection(db,"conversations",cid,"messages"),{
+      text:firstMsgText,
+      type:"offer",
+      offerPrice:offerPrice,
+      offerPhotoUrl:photoUrl||null,
+      senderId:user.uid,
+      senderName:senderName,
+      createdAt:serverTimestamp(),
+    });
+    // Navigate to Messages tab so user sees the conversation
+    setSheet(null);
+    setView("messages");
   }
 } catch(err) {
   const msg = photoFile && err.code?.includes("storage")
@@ -1150,29 +1179,41 @@ const otherName = user.uid === want.userId ? offer.from : want.user;
 if (!otherId) return;
 const ids = [user.uid, otherId].sort();
 const cid = `${ids[0]}_${ids[1]}_${want.id}`;
-const gd = getDoc, sd = setDoc;
-const ref = doc(db,"conversations",cid);
-const snap = await gd(ref);
+const convoRef = doc(db,"conversations",cid);
+const snap = await getDoc(convoRef);
 if (!snap.exists()) {
-await sd(ref,{
-participants:[user.uid,otherId],
-participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
-wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
-});
+  await setDoc(convoRef,{
+    participants:[user.uid,otherId],
+    participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
+    wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
+  });
 }
-setChat({convoId:cid,otherName,wantTitle:want.title});
+const data = snap.exists() ? snap.data() : {};
+setMsgSendErr("");
+setChat({
+  convoId:cid,
+  otherName,
+  wantTitle:want.title,
+  offerPrice:offer?.price||data.offerPrice||null,
+  offerPhotoUrl:offer?.photoUrl||data.offerPhotoUrl||null,
+});
 };
 
 const sendMsg = async () => {
 if (!ci.trim()||!chat) return;
-const m=ci.trim(); setCi("");
-await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
-text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
-});
-await updateDoc(doc(db,"conversations",chat.convoId),{
-updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
-readBy:[user.uid],
-});
+const m=ci.trim(); setCi(""); setMsgSendErr("");
+try {
+  await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
+    text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
+  });
+  await updateDoc(doc(db,"conversations",chat.convoId),{
+    updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
+    readBy:[user.uid],
+  });
+} catch(e) {
+  setCi(m);
+  setMsgSendErr("Message failed to send. Check your connection and try again.");
+}
 };
 
 const deleteMsg = async (msgId) => {
@@ -1990,11 +2031,12 @@ return (
                       {g.offers.map((o,i)=>(
                         <div key={i} className={`myprof-offer no-title${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
                           <div className="myprof-offer-msg">{o.message}</div>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                             <span className="myprof-offer-price">${(o.price||0).toLocaleString()}</span>
                             {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
                             {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
                             {!o.status&&<span style={{fontSize:11,color:"var(--text2)"}}>Pending</span>}
+                            {o.fromId&&<button className="reply-btn" style={{marginLeft:"auto"}} onClick={()=>{const w=wants.find(x=>x.id===g.wantId);if(w)openChat(w,o);}}>💬 Chat</button>}
                           </div>
                         </div>
                       ))}
@@ -2728,13 +2770,23 @@ return (
               <button className="mclose" onClick={()=>setChat(null)}>✕</button>
             </div>
           </div>
+          {chat.offerPrice&&(
+            <div className="chat-offer-strip">
+              {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt="" />}
+              <div>
+                <div className="chat-offer-label">Offer</div>
+                <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
+              </div>
+            </div>
+          )}
           <div className="msgs">
-            {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13}}>No messages yet. Say hello!</div>}
+            {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"24px 0"}}>No messages yet. Say hello!</div>}
             {msgs.map(m=>(
               <div key={m.id} className={`bubble-wrap ${m.senderId===user.uid?"mine":"theirs"}`}>
-                <div className={`bubble ${m.senderId===user.uid?"mine":"theirs"}`}>
+                <div className={`bubble ${m.senderId===user.uid?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
                   {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
-                  {m.text}
+                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:140,objectFit:"cover"}} alt="" />}
+                  <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
                   <div className="btime">{ta(m.createdAt)}</div>
                 </div>
                 {m.senderId===user.uid&&(
@@ -2744,6 +2796,7 @@ return (
             ))}
             <div ref={btm} />
           </div>
+          {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca"}}>{msgSendErr}</div>}
           <div className="minput-row">
             <input className="minput" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
             <button className="msend" onClick={sendMsg}>Send</button>
