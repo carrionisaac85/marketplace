@@ -390,6 +390,8 @@ textarea.fi{resize:vertical;min-height:80px}
 .cgroup-head{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:6px 4px;margin-bottom:6px;border-bottom:1px solid var(--border)}
 .cgroup-count{color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0}
 .cgroup .citem{margin-bottom:6px}
+.msg-section-hd{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;padding:14px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.cprice-tag{font-size:11px;font-weight:700;color:var(--green);background:#eef8f1;padding:2px 7px;border-radius:6px;flex-shrink:0;margin-left:auto}
 
 /* ADMIN PANEL */
 .admin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
@@ -1046,6 +1048,23 @@ try {
   setSent(p=>({...p,[wid]:true}));
   setOc({message:"",price:"",photoUrl:""}); setPhotoPrev(null); setPhotoFile(null);
   setTimeout(()=>setSent(p=>({...p,[wid]:false})),3000);
+  // Auto-create conversation so it appears in Messages tab immediately
+  const want = wants.find(w=>w.id===wid);
+  if (want && want.userId) {
+    const ids = [user.uid, want.userId].sort();
+    const cid = `${ids[0]}_${ids[1]}_${wid}`;
+    const convoRef = doc(db,"conversations",cid);
+    const convoSnap = await getDoc(convoRef);
+    if (!convoSnap.exists()) {
+      await setDoc(convoRef,{
+        participants:[user.uid,want.userId],
+        participantNames:{[user.uid]:user.displayName||user.email,[want.userId]:want.user},
+        wantId:wid, wantTitle:want.title, wantUserId:want.userId,
+        offerPrice:parseInt(oc.price)||0,
+        updatedAt:serverTimestamp(),
+      });
+    }
+  }
 } catch(err) {
   const msg = photoFile && err.code?.includes("storage")
     ? "Photo upload failed. Check your Storage rules in Firebase and try again."
@@ -1980,78 +1999,62 @@ return (
       {view==="messages"&&(
         <>
           <div className="stitle">Messages</div>
-          <div className="ssub">Your conversations with buyers and sellers.</div>
+          <div className="ssub">Chats from offers you've made and received.</div>
 
           {convos.length>0&&(
-            <>
-              <input className="msg-search" type="text" placeholder="🔍 Search by name, want, or message…" value={msgSearch} onChange={e=>setMsgSearch(e.target.value)} />
-              <div className="msg-filters">
-                {[
-                  {id:"all",label:"All"},
-                  {id:"unread",label:"Unread"},
-                  {id:"buyer",label:"As Buyer"},
-                  {id:"seller",label:"As Seller"},
-                ].map(f=>(
-                  <button key={f.id} className={`msg-chip${msgFilter===f.id?" active":""}`} onClick={()=>setMsgFilter(f.id)}>{f.label}</button>
-                ))}
-              </div>
-              <div className="msg-tools">
-                <select className="msg-sort" value={msgSort} onChange={e=>setMsgSort(e.target.value)}>
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                  <option value="unread">Unread first</option>
-                </select>
-                <button className={`msg-toggle${msgGroup?" active":""}`} onClick={()=>setMsgGroup(g=>!g)}>📂 Group by want</button>
-                <button className={`msg-toggle${showArchived?" active":""}`} onClick={()=>setShowArchived(s=>!s)}>🗄 {showArchived?"Showing archived":"Archived"}</button>
-              </div>
-            </>
+            <input className="msg-search" type="text" placeholder="🔍 Search by name or want…" value={msgSearch} onChange={e=>setMsgSearch(e.target.value)} style={{marginBottom:12}} />
           )}
 
           {(() => {
             const renderItem = (c) => {
               const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Unknown";
               const isUnread=isUnreadConvo(c);
-              const isPinned=c.pinnedBy?.includes(user.uid);
-              const isArchived=c.archivedBy?.includes(user.uid);
+              const wantData=wants.find(w=>w.id===c.wantId);
+              const myOffer=c.wantUserId!==user.uid
+                ?wantData?.offers?.find(o=>o.fromId===user.uid)
+                :wantData?.offers?.find(o=>{const oid=Object.keys(c.participantNames||{}).find(id=>id!==user.uid);return o.fromId===oid;});
+              const price=myOffer?.price||c.offerPrice||null;
               return (
                 <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle})}>
                   <div className="av sm">{on[0]?.toUpperCase()}</div>
                   <div className="cinfo">
                     <div className="cinfo-top">
-                      <div className={`cwith${isUnread?" unread":""}`}>{isPinned&&"📌 "}{on}</div>
+                      <div className={`cwith${isUnread?" unread":""}`}>{on}</div>
                       <div className="ctime">{ta(c.updatedAt)}</div>
                     </div>
+                    <div className="cwant">Re: {c.wantTitle}</div>
                     {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
-                    {!msgGroup&&<div className="cwant">Re: {c.wantTitle}</div>}
                   </div>
+                  {price&&<span className="cprice-tag">${price.toLocaleString()}</span>}
                   {isUnread&&<div className="cunread-dot"/>}
-                  <div className="citem-actions" onClick={e=>e.stopPropagation()}>
-                    <button className="cact-btn" title={isPinned?"Unpin":"Pin"} onClick={()=>togglePin(c)}>{isPinned?"📌":"📍"}</button>
-                    <button className="cact-btn" title={isArchived?"Unarchive":"Archive"} onClick={()=>toggleArchive(c)}>{isArchived?"📤":"🗄"}</button>
-                  </div>
                 </div>
               );
             };
 
             if (convos.length===0) {
-              return <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Messages appear here when you start chatting</div></div>;
+              return <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Send an offer to start a conversation</div></div>;
             }
             if (displayedConvos.length===0) {
-              return <div className="empty"><div className="eicon">🔎</div><div className="etitle">No matches</div><div className="esub">Try changing your filter or search</div></div>;
+              return <div className="empty"><div className="eicon">🔎</div><div className="etitle">No matches</div><div className="esub">Try a different search</div></div>;
             }
-            if (msgGroup && groupedConvos) {
-              return (
-                <div className="clist">
-                  {groupedConvos.map(([key, g])=>(
-                    <div key={key} className="cgroup">
-                      <div className="cgroup-head">Re: {g.wantTitle} <span className="cgroup-count">({g.items.length})</span></div>
-                      {g.items.map(renderItem)}
-                    </div>
-                  ))}
-                </div>
-              );
-            }
-            return <div className="clist">{displayedConvos.map(renderItem)}</div>;
+            const sentConvos=displayedConvos.filter(c=>c.wantUserId!==user.uid);
+            const recvConvos=displayedConvos.filter(c=>c.wantUserId===user.uid);
+            return (
+              <div className="clist">
+                {sentConvos.length>0&&(
+                  <>
+                    <div className="msg-section-hd">💸 Offers You Made</div>
+                    {sentConvos.map(renderItem)}
+                  </>
+                )}
+                {recvConvos.length>0&&(
+                  <>
+                    <div className="msg-section-hd">📋 Offers on Your Posts</div>
+                    {recvConvos.map(renderItem)}
+                  </>
+                )}
+              </div>
+            );
           })()}
         </>
       )}
@@ -2502,7 +2505,14 @@ return (
         <div className="modal" onClick={e=>e.stopPropagation()}>
           <div className="mhead">
             <div><div className="mttl">💬 {chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
-            <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <button className="mclose" style={{fontSize:18,background:"none",border:"none",cursor:"pointer",color:"var(--text2)",padding:"4px 6px"}} title="Share this chat" onClick={()=>{
+                const text=`Chatting with ${chat.otherName} about "${chat.wantTitle}" on WantBoard`;
+                if(navigator.share){navigator.share({title:"WantBoard",text}).catch(()=>{});}
+                else{navigator.clipboard?.writeText(text).then(()=>alert("Copied to clipboard!")).catch(()=>{});}
+              }}>⬆️</button>
+              <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+            </div>
           </div>
           <div className="msgs">
             {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13}}>No messages yet. Say hello!</div>}
