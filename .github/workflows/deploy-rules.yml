@@ -1,4 +1,7 @@
 name: Deploy Firebase Rules
+# FIREBASE_TOKEN must be rotated every 6–12 months.
+# Rotation runbook: docs/firebase-token-rotation.md
+# A scheduled reminder issue is opened automatically by firebase-token-reminder.yml.
 
 on:
   push:
@@ -7,6 +10,7 @@ on:
     paths:
       - firestore.rules
       - storage.rules
+  workflow_dispatch:
 
 jobs:
   deploy-rules:
