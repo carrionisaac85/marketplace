@@ -10,7 +10,8 @@
     "icons:ios": "capacitor-assets generate --ios --iconBackgroundColor '#F7F5F2' --iconBackgroundColorDark '#1A1A1A' --splashBackgroundColor '#F7F5F2' --splashBackgroundColorDark '#1A1A1A'",
     "icons:android": "capacitor-assets generate --android --iconBackgroundColor '#F7F5F2' --iconBackgroundColorDark '#1A1A1A' --splashBackgroundColor '#F7F5F2' --splashBackgroundColorDark '#1A1A1A'",
     "ios:setup": "npx cap add ios && npx cap sync ios",
-    "ios:sync": "npx cap sync ios"
+    "ios:sync": "npx cap sync ios",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage --token \"$FIREBASE_TOKEN\""
   },
   "dependencies": {
     "@capacitor/android": "^7.6.5",
