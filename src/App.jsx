@@ -1127,26 +1127,41 @@ await updateDoc(doc(db,"config","banned"),{uids:arrayRemove(uid)}).catch(()=>{})
 const adminDeleteWant = async (id) => {
 if (!isAdmin) return;
 if (!window.confirm("Delete this want permanently?")) return;
-await deleteDoc(doc(db,"wants",id));
+try {
+  await deleteDoc(doc(db,"wants",id));
+} catch(e) {
+  if (e.code === "permission-denied") {
+    alert("Permission denied. Update your Firestore rules in the Firebase Console to allow admin deletes — see the rules in firestore.rules in the project.");
+  } else {
+    alert("Delete failed: " + e.message);
+  }
+}
 };
 
 const clearAllData = async () => {
 if (!isAdmin) return;
 if (!window.confirm("⚠️ Delete ALL wants, messages, and conversations?\n\nThis cannot be undone.")) return;
 if (!window.confirm("Are you absolutely sure? This wipes everything permanently.")) return;
+let wantsFailed = 0, convosFailed = 0;
 try {
-  const gds = getDocs;
-  // Delete all wants
-  const wantsSnap = await gds(collection(db,"wants"));
-  await Promise.all(wantsSnap.docs.map(d => deleteDoc(doc(db,"wants",d.id))));
-  // Delete all conversations + their messages subcollection
-  const convosSnap = await gds(collection(db,"conversations"));
-  await Promise.all(convosSnap.docs.map(async d => {
-    const msgsSnap = await gds(collection(db,"conversations",d.id,"messages"));
-    await Promise.all(msgsSnap.docs.map(m => deleteDoc(doc(db,"conversations",d.id,"messages",m.id))));
-    await deleteDoc(doc(db,"conversations",d.id));
+  // Use in-memory state — avoids bulk-read permission errors
+  await Promise.all(wants.map(w =>
+    deleteDoc(doc(db,"wants",w.id)).catch(() => { wantsFailed++; })
+  ));
+  // Delete conversations the admin can see + their messages
+  await Promise.all(convos.map(async c => {
+    try {
+      const msgsSnap = await getDocs(collection(db,"conversations",c.id,"messages"));
+      await Promise.all(msgsSnap.docs.map(m =>
+        deleteDoc(doc(db,"conversations",c.id,"messages",m.id)).catch(()=>{})
+      ));
+      await deleteDoc(doc(db,"conversations",c.id));
+    } catch { convosFailed++; }
   }));
-  alert("✅ All data cleared successfully.");
+  const note = (wantsFailed || convosFailed)
+    ? `\n\n⚠️ ${wantsFailed} post(s) and ${convosFailed} conversation(s) could not be deleted due to permissions. Update Firestore rules to allow full admin access.`
+    : "";
+  alert("✅ All accessible data cleared." + note);
 } catch(err) {
   alert("Error: " + err.message);
 }
@@ -1309,7 +1324,14 @@ try {
 setReviewBusy(false);
 };
 
-const delWant = async id => { if(!window.confirm("Delete this want?")) return; await deleteDoc(doc(db,"wants",id)); };
+const delWant = async id => {
+  if (!window.confirm("Delete this want?")) return;
+  try {
+    await deleteDoc(doc(db,"wants",id));
+  } catch(e) {
+    alert("Could not delete: " + (e.code === "permission-denied" ? "Permission denied. You can only delete your own posts." : e.message));
+  }
+};
 
 const [deletingAccount, setDeletingAccount] = useState(false);
 const deleteAccount = async () => {
