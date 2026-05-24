@@ -490,7 +490,8 @@ const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
 {id:"post",icon:"➕",label:"Post Want"},
-{id:"offers",icon:"🤝",label:"Offers Sent"},
+{id:"offers",icon:"🤝",label:"Offers"},
+{id:"messages",icon:"💬",label:"Messages"},
 {id:"mine",icon:"📋",label:"My Posts"},
 ];
 
@@ -2193,6 +2194,7 @@ return (
         }}>
           <span className="bicon">{n.icon}</span>
           {n.id==="offers"&&hasUnread&&<span className="notif-badge" />}
+          {n.id==="messages"&&unreadCount>0&&<span className="notif-badge" />}
           <span>{n.label}</span>
         </div>
       ))}
