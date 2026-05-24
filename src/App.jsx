@@ -807,6 +807,10 @@ new Notification(`New message from ${last.senderName}`, { body: last.text, icon:
 prevMsgCount.current = newMsgs.length;
 setMsgs(newMsgs);
 setTimeout(()=>btm.current?.scrollIntoView({behavior:"smooth"}),100);
+// Mark conversation as read whenever messages load/update while chat is open
+if (user && chat?.convoId) {
+updateDoc(doc(db,"conversations",chat.convoId),{readBy:arrayUnion(user.uid)}).catch(()=>{});
+}
 });
 }, [chat, user]);
 
@@ -1107,6 +1111,7 @@ text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:se
 });
 await updateDoc(doc(db,"conversations",chat.convoId),{
 updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
+readBy:[user.uid],
 });
 };
 
