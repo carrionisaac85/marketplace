@@ -1130,6 +1130,28 @@ if (!window.confirm("Delete this want permanently?")) return;
 await deleteDoc(doc(db,"wants",id));
 };
 
+const clearAllData = async () => {
+if (!isAdmin) return;
+if (!window.confirm("⚠️ Delete ALL wants, messages, and conversations?\n\nThis cannot be undone.")) return;
+if (!window.confirm("Are you absolutely sure? This wipes everything permanently.")) return;
+try {
+  const gds = getDocs;
+  // Delete all wants
+  const wantsSnap = await gds(collection(db,"wants"));
+  await Promise.all(wantsSnap.docs.map(d => deleteDoc(doc(db,"wants",d.id))));
+  // Delete all conversations + their messages subcollection
+  const convosSnap = await gds(collection(db,"conversations"));
+  await Promise.all(convosSnap.docs.map(async d => {
+    const msgsSnap = await gds(collection(db,"conversations",d.id,"messages"));
+    await Promise.all(msgsSnap.docs.map(m => deleteDoc(doc(db,"conversations",d.id,"messages",m.id))));
+    await deleteDoc(doc(db,"conversations",d.id));
+  }));
+  alert("✅ All data cleared successfully.");
+} catch(err) {
+  alert("Error: " + err.message);
+}
+};
+
 const togglePin = async (c) => {
 const isPinned = c.pinnedBy?.includes(user.uid);
 await updateDoc(doc(db,"conversations",c.id),{
@@ -2097,7 +2119,12 @@ return (
                   <div className="admin-stat-label">Conversations</div>
                 </div>
               </div>
-              <div className="stitle" style={{fontSize:15,marginTop:4}}>Recent Posts</div>
+              <div style={{marginTop:20,padding:"16px",background:"#fff5f5",border:"1.5px solid #fca5a5",borderRadius:12}}>
+                <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"#dc2626",marginBottom:4}}>⚠️ Danger Zone</div>
+                <div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>Permanently delete all posts, offers, messages, and conversations from the database.</div>
+                <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
+              </div>
+              <div className="stitle" style={{fontSize:15,marginTop:16}}>Recent Posts</div>
               <div className="admin-table" style={{marginTop:8}}>
                 {[...wants].sort((a,b)=>(b.createdAt?.toMillis?.()??0)-(a.createdAt?.toMillis?.()??0)).slice(0,5).map(w=>(
                   <div key={w.id} className="admin-row">
