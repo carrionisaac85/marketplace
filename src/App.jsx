@@ -167,17 +167,20 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
 /* WANT CARD */
-.wcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s;cursor:pointer}
-.wcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.wcard{background:var(--surface);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.wcard:hover{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 .wcard-body{padding:14px 14px 10px;flex:1}
 .wcard-urow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.wcard-tbrow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.wbudget-pill{font-family:var(--fd);font-weight:700;font-size:13px;color:var(--green);background:#eef8f1;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;display:inline-block}
+.wphoto-hero{width:100%;height:160px;object-fit:cover;border-radius:10px;margin:8px 0 0;display:block}
 .av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:12px;flex-shrink:0}
 .av.sm{background:var(--surface3);color:var(--text2)}
 .wuser{font-size:12px;font-weight:600;color:var(--text)}
 .wtime{font-size:11px;color:var(--text2)}
 .wbudget{font-family:var(--fd);font-weight:800;font-size:18px;color:var(--green)}
 .blabel{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px}
-.wtitle{font-family:var(--fd);font-weight:700;font-size:13px;margin-bottom:6px;line-height:1.3;color:var(--text)}
+.wtitle{font-family:var(--fd);font-weight:700;font-size:13px;line-height:1.3;color:var(--text);flex:1}
 .wdesc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--surface2);color:var(--text2);display:inline-block}
 .wfoot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border);background:var(--surface2);gap:4px}
@@ -1645,25 +1648,30 @@ return (
                   <div className="wcard-body">
                     <div className="wcard-urow">
                       <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
-                      <div><div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
+                      <div style={{flex:1}}><div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
                     </div>
-
-                    <div className="wtitle">{w.title}</div>
+                    <div className="wcard-tbrow">
+                      <div className="wtitle">{w.title}</div>
+                      <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
+                    </div>
                     <div className="wdesc">{w.description}</div>
-                    {(w.photos||[]).length>0&&(
-                      <div className="want-photos">
-                        {(w.photos||[]).map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
-                      </div>
-                    )}
-                    <div className="blabel">Max Budget</div>
-                    <div className="wbudget">${(w.budget||0).toLocaleString()}</div>
                     <span className="tag">{w.category}</span>
+                    {(w.photos||[]).length>0&&(
+                      <>
+                        <img src={w.photos[0]} className="wphoto-hero" alt="" onClick={e=>e.stopPropagation()} />
+                        {w.photos.length>1&&(
+                          <div className="want-photos" style={{marginTop:6}}>
+                            {w.photos.slice(1).map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="wfoot">
-                    <div className="ocnt">{(w.offers||[]).length===0?<span>No offers</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
+                    <div className="ocnt">💬 {(w.offers||[]).length===0?<span>No offers</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)} title={savedWants.includes(w.id)?"Remove bookmark":"Save"}>{savedWants.includes(w.id)?"🔖":"🔖"}<span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:16}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
-                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Offer -></button>}
+                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Make Offer</button>}
                     </div>
                   </div>
                 </div>
