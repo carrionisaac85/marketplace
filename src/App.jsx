@@ -555,6 +555,8 @@ const [profileTab, setProfileTab] = useState("overview");
 const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
 const [onboardingChecked, setOnboardingChecked] = useState(false);
+const [onbLocation, setOnbLocation] = useState("");
+const [onbLocLoading, setOnbLocLoading] = useState(false);
 const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
 useEffect(() => {
   const on = () => setIsOffline(false);
@@ -2289,14 +2291,31 @@ return (
         {icon:"📝",title:"Post what you want",text:"Tell the community what you're looking for and set your budget."},
         {icon:"💬",title:"Sellers come to you",text:"People nearby will send offers with their price and a photo."},
         {icon:"🤝",title:"Chat & meet up",text:"Accept the best offer, message the seller, and make the deal."},
+        {icon:"📍",title:"Where are you?",text:"Help sellers near you find your posts. You can always change this later."},
       ];
       const finish = async () => {
         setOnboardingOpen(false);
         try {
-          const sd = setDoc;
-          await sd(doc(db,"users",user.uid),{onboardingDone:true},{merge:true});
+          const updates = {onboardingDone:true};
+          if (onbLocation.trim()) updates.location = onbLocation.trim();
+          await setDoc(doc(db,"users",user.uid), updates, {merge:true});
         } catch(err) { console.error("Onboarding save failed:",err); }
       };
+      const detectOnbLocation = () => {
+        if (!navigator.geolocation) return;
+        setOnbLocLoading(true);
+        navigator.geolocation.getCurrentPosition(async pos => {
+          const {latitude:lat,longitude:lng} = pos.coords;
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+            const data = await res.json();
+            const loc = data.address?.suburb||data.address?.neighbourhood||data.address?.city||data.address?.town||"Nearby";
+            setOnbLocation(loc);
+          } catch { setOnbLocation("Nearby"); }
+          setOnbLocLoading(false);
+        }, ()=>setOnbLocLoading(false));
+      };
+      const isLocStep = onboardingStep === steps.length-1;
       const next = () => onboardingStep < steps.length-1 ? setOnboardingStep(onboardingStep+1) : finish();
       const s = steps[onboardingStep];
       return (
@@ -2306,10 +2325,16 @@ return (
             <div className="onb-icon">{s.icon}</div>
             <div className="onb-title">{s.title}</div>
             <div className="onb-text">{s.text}</div>
+            {isLocStep&&(
+              <div className="loc-row" style={{marginTop:14}}>
+                <input className="fi" placeholder="Neighborhood or city" value={onbLocation} onChange={e=>setOnbLocation(e.target.value)} style={{flex:1}} />
+                <button className="loc-btn" onClick={detectOnbLocation} title="Auto-detect location">{onbLocLoading?"⏳":"📍"}</button>
+              </div>
+            )}
             <div className="onb-dots">
               {steps.map((_,i)=>(<span key={i} className={`onb-dot${i===onboardingStep?" active":""}`} onClick={()=>setOnboardingStep(i)}/>))}
             </div>
-            <button className="onb-next" onClick={next}>{onboardingStep===steps.length-1?"Get Started":"Next →"}</button>
+            <button className="onb-next" onClick={next}>{isLocStep?"Get Started →":"Next →"}</button>
           </div>
         </div>
       );
