@@ -928,7 +928,7 @@ return () => {
 // Request notification permission on login
 useEffect(() => {
 if (user && "Notification" in window && Notification.permission === "default") {
-Notification.requestPermission().then(perm => setNotifPerm(perm));
+Notification.requestPermission().then(perm => setNotifPerm(perm)).catch(()=>{});
 }
 }, [user]);
 
@@ -2313,7 +2313,7 @@ return (
                 <div style={{fontWeight:700,fontSize:13,fontFamily:"var(--fd)"}}>Get notified of new offers</div>
                 <div style={{fontSize:12,color:"var(--text2)"}}>Enable notifications so you never miss an offer on your posts.</div>
               </div>
-              <button onClick={async()=>{const p=await Notification.requestPermission();setNotifPerm(p);}} style={{padding:"6px 14px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",whiteSpace:"nowrap"}}>Enable</button>
+              <button onClick={async()=>{try{const p=await Notification.requestPermission();setNotifPerm(p);}catch(e){}}} style={{padding:"6px 14px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",whiteSpace:"nowrap"}}>Enable</button>
             </div>
           )}
           {notifPerm==="granted"&&(
