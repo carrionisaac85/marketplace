@@ -344,6 +344,10 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .fi{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s}
 .fi:focus{border-color:var(--accent)}
 textarea.fi{resize:vertical;min-height:80px}
+.pac-container-wrap{flex:1;min-width:0}
+.pac-container-wrap gmp-place-autocomplete{display:block;width:100%}
+.pac-container-wrap gmp-place-autocomplete::part(input){width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;transition:border-color .15s}
+.pac-container-wrap gmp-place-autocomplete::part(input):focus{border-color:var(--accent)}
 .fr2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .sbtn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:var(--fd);margin-top:8px}
 .sbtn:hover{background:#c73d22}
@@ -731,40 +735,62 @@ useEffect(() => {
 if (sheet) setSheet(prev => wants.find(w => w.id === prev?.id) || prev);
 }, [wants]);
 
-// Load Google Maps Places script once
+// Load Google Maps Places script once (new async pattern required by PlaceAutocompleteElement)
 useEffect(() => {
 const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 if (!key || document.querySelector('script[data-gmaps]')) return;
 const s = document.createElement("script");
-s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&v=weekly&loading=async`;
 s.async = true;
 s.setAttribute("data-gmaps", "1");
 document.head.appendChild(s);
 }, []);
 
-// Init Places Autocomplete on the location input when Post view is active
+// Init PlaceAutocompleteElement on the location container when Post view is active
 useEffect(() => {
-if (view !== "post") { autocompleteRef.current = null; return; }
+if (view !== "post") {
+  autocompleteRef.current = null;
+  return;
+}
 const attach = () => {
   if (!locationInputRef.current || autocompleteRef.current) return;
-  if (!window.google?.maps?.places) return;
-  const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+  if (!window.google?.maps?.places?.PlaceAutocompleteElement) return;
+  const container = locationInputRef.current;
+  // Clear any previous element
+  container.innerHTML = "";
+  const acEl = new window.google.maps.places.PlaceAutocompleteElement({
     types: ["geocode"],
-    fields: ["formatted_address","name"],
   });
-  ac.addListener("place_changed", () => {
-    const place = ac.getPlace();
-    const addr = place.formatted_address || place.name || "";
-    setForm(p => ({...p, location: addr}));
+  acEl.style.cssText = "display:block;width:100%";
+  container.appendChild(acEl);
+  // Place selected from dropdown
+  acEl.addEventListener("gmp-placeselect", async (e) => {
+    try {
+      const place = e.placePrediction.toPlace();
+      await place.fetchFields({ fields: ["displayName", "formattedAddress"] });
+      const addr = place.formattedAddress || place.displayName || "";
+      setForm(p => ({...p, location: addr}));
+    } catch(err) {
+      console.warn("PlaceAutocomplete fetchFields error", err);
+    }
   });
-  autocompleteRef.current = ac;
+  // Manual typing — keep form state in sync
+  acEl.addEventListener("input", (e) => {
+    setForm(p => ({...p, location: e.target?.value || ""}));
+  });
+  autocompleteRef.current = acEl;
 };
-if (window.google?.maps?.places) {
-  attach();
-} else {
-  const s = document.querySelector('script[data-gmaps]');
-  if (s) s.addEventListener("load", attach);
-}
+const tryAttach = () => {
+  if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+    attach();
+  } else {
+    const s = document.querySelector('script[data-gmaps]');
+    if (s) {
+      s.addEventListener("load", () => setTimeout(attach, 100));
+    }
+  }
+};
+tryAttach();
 }, [view]);
 
 // Conversations — fetch all and filter client-side so legacy docs without participants are visible
@@ -1051,7 +1077,11 @@ const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&
 const data = await res.json();
 const loc = data.address?.suburb || data.address?.neighbourhood || data.address?.city || data.address?.town || "Nearby";
 setForm(p=>({...p,location:loc,_lat:lat,_lng:lng}));
-} catch { setForm(p=>({...p,location:"Nearby",_lat:lat,_lng:lng})); }
+if (autocompleteRef.current) autocompleteRef.current.value = loc;
+} catch {
+  setForm(p=>({...p,location:"Nearby",_lat:lat,_lng:lng}));
+  if (autocompleteRef.current) autocompleteRef.current.value = "Nearby";
+}
 setLocLoading(false);
 }, () => setLocLoading(false));
 };
@@ -2250,7 +2280,7 @@ return (
               <div className="fg">
                 <label className="fl">Location</label>
                 <div className="loc-row">
-                  <input ref={locationInputRef} className="fi" placeholder="Neighborhood or city" value={form.location} onChange={e=>setForm(p=>({...p,location:e.target.value}))} />
+                  <div ref={locationInputRef} className="pac-container-wrap" />
                   <button className="loc-btn" onClick={detectLocation} title="Auto-detect location">{locLoading?"⏳":"📍"}</button>
                 </div>
               </div>
