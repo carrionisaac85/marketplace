@@ -820,13 +820,9 @@ return onSnapshot(doc(db,"config","banned"), snap => {
 // Messages in open chat
 useEffect(() => {
 if (!chat || !user) return;
-const q = query(
-  collection(db,"conversations",chat.convoId,"messages"),
-  where("participants","array-contains",user.uid),
-  orderBy("createdAt","asc")
-);
+const q = collection(db,"conversations",chat.convoId,"messages");
 return onSnapshot(q, snap => {
-const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()}));
+const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.toMillis?.()??0)-(b.createdAt?.toMillis?.()??0));
 // Push notification for new messages
 if (newMsgs.length > prevMsgCount.current && prevMsgCount.current > 0) {
 const last = newMsgs[newMsgs.length-1];
