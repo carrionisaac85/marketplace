@@ -837,6 +837,9 @@ setTimeout(()=>btm.current?.scrollIntoView({behavior:"smooth"}),100);
 if (user && chat?.convoId) {
 updateDoc(doc(db,"conversations",chat.convoId),{readBy:arrayUnion(user.uid)}).catch(()=>{});
 }
+}, err => {
+  console.error("messages listener error", err);
+  setMsgSendErr("Chat sync failed. Reopen the chat to try again.");
 });
 }, [chat, user]);
 
@@ -873,7 +876,7 @@ if (!pendingConvoId || convos.length === 0) return;
 const convo = convos.find(c => c.id === pendingConvoId);
 if (convo) {
 const on = convo.participants?.find(uid => uid !== user?.uid) ? convo.lastSenderName || "User" : "User";
-setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "", offerPrice: convo.offerPrice||null, offerPhotoUrl: convo.offerPhotoUrl||null });
+setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "", offerPrice: convo.offerPrice||null, offerPhotoUrl: convo.offerPhotoUrl||null, participants:convo.participants||[] });
 setPendingConvoId(null);
 }
 }, [pendingConvoId, convos, user]);
@@ -1158,6 +1161,7 @@ try {
       type:"offer",
       offerPrice:offerPrice,
       offerPhotoUrl:photoUrl||null,
+      participants:[user.uid,want.userId],
       senderId:user.uid,
       senderName:senderName,
       createdAt:serverTimestamp(),
@@ -1200,6 +1204,7 @@ setChat({
   wantTitle:want.title,
   offerPrice:offer?.price||data.offerPrice||null,
   offerPhotoUrl:offer?.photoUrl||data.offerPhotoUrl||null,
+  participants:[user.uid,otherId],
 });
 };
 
@@ -1208,7 +1213,7 @@ if (!ci.trim()||!chat) return;
 const m=ci.trim(); setCi(""); setMsgSendErr("");
 try {
   await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
-    text:m, senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
+    text:m, participants:chat.participants||[], senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
   });
   await updateDoc(doc(db,"conversations",chat.convoId),{
     updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
@@ -1640,7 +1645,7 @@ if (!snap.exists()) {
   await updateDoc(convoRef,{updatedAt:serverTimestamp(),lastMessage:text,lastSenderId:user.uid,lastSenderName:senderName,readBy:[user.uid]});
 }
 await addDoc(collection(db,"conversations",cid,"messages"),{
-  text, type:"system", senderId:user.uid, senderName, createdAt:serverTimestamp(),
+  text, type:"system", participants:[want.userId, buyerOffer.fromId], senderId:user.uid, senderName, createdAt:serverTimestamp(),
 });
 };
 
@@ -1910,7 +1915,7 @@ return (
                     {unreadConvos.map(c=>{
                       const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
                       return (
-                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null});setNotifOpen(false);}}>
+                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});setNotifOpen(false);}}>
                           <div className="notif-dot unread"/>
                           <div className="notif-body">
                             <div className="notif-name">💬 {on}</div>
@@ -2330,7 +2335,7 @@ return (
                 :wantData?.offers?.find(o=>{const oid=Object.keys(c.participantNames||{}).find(id=>id!==user.uid);return o.fromId===oid;});
               const price=myOffer?.price||c.offerPrice||null;
               return (
-                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null})}>
+                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]})}>
                   <div className="av sm">{on[0]?.toUpperCase()}</div>
                   <div className="cinfo">
                     <div className="cinfo-top">
