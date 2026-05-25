@@ -578,6 +578,7 @@ const [reportDone, setReportDone] = useState(false);
 const [adminReports, setAdminReports] = useState([]);
 const [adminReportsLoaded, setAdminReportsLoaded] = useState(false);
 const [profileTab, setProfileTab] = useState("overview");
+const [offerFilter, setOfferFilter] = useState("all"); // owner offer pipeline filter: all|pending|accepted|declined
 const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
 const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -1045,6 +1046,7 @@ setPostPhotoPreviews(p => p.filter((_,i)=>i!==idx));
 
 const distMiles = dist === "Any distance" ? null : parseInt(dist);
 const filtered = wants.filter(w=>{
+if (w.status === "sold") return false; // hide sold wants from public feed
 const ms=w.title?.toLowerCase().includes(search.toLowerCase())||w.description?.toLowerCase().includes(search.toLowerCase());
 const catOk = cat==="All"||w.category===cat;
 const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
@@ -1105,6 +1107,8 @@ setTimeout(()=>{setPosted(false);setView("mine");},1800);
 
 const sendOffer = async wid => {
 if (!oc.message||!oc.price||!user||sending) return;
+const targetWant = wants.find(w=>w.id===wid);
+if (targetWant?.status==="sold") { setOfferError("This want has been sold. New offers can no longer be sent."); return; }
 setSending(true);
 setOfferError("");
 const offerMsg = oc.message;
@@ -1611,6 +1615,68 @@ try {
 const setOfferStatus = async (want, idx, status) => {
 const updated = (want.offers||[]).map((o,i)=>i===idx?{...o,status}:o);
 await updateDoc(doc(db,"wants",want.id),{offers:updated});
+};
+
+// Post a system-style message into the (owner ↔ buyer) conversation for a want.
+const postSystemChatMessage = async (want, buyerOffer, text) => {
+if (!buyerOffer?.fromId || !want?.userId) return;
+const ids = [want.userId, buyerOffer.fromId].sort();
+const cid = `${ids[0]}_${ids[1]}_${want.id}`;
+const convoRef = doc(db,"conversations",cid);
+const snap = await getDoc(convoRef);
+const senderName = user.displayName || user.email || "Seller";
+if (!snap.exists()) {
+  await setDoc(convoRef,{
+    participants:[want.userId, buyerOffer.fromId],
+    participantNames:{[want.userId]:want.user, [buyerOffer.fromId]:buyerOffer.from},
+    wantId:want.id, wantTitle:want.title, wantUserId:want.userId,
+    offerPrice:buyerOffer.price||null,
+    offerPhotoUrl:buyerOffer.photoUrl||null,
+    updatedAt:serverTimestamp(),
+    lastMessage:text, lastSenderId:user.uid, lastSenderName:senderName,
+    readBy:[user.uid],
+  });
+} else {
+  await updateDoc(convoRef,{updatedAt:serverTimestamp(),lastMessage:text,lastSenderId:user.uid,lastSenderName:senderName,readBy:[user.uid]});
+}
+await addDoc(collection(db,"conversations",cid,"messages"),{
+  text, type:"system", senderId:user.uid, senderName, createdAt:serverTimestamp(),
+});
+};
+
+const acceptOffer = async (want, idx) => {
+const offers = want.offers || [];
+const accepted = offers[idx];
+if (!accepted) return;
+// Build new offers array: accept the chosen, auto-decline all other pending.
+const updated = offers.map((o,i)=>{
+  if (i===idx) return {...o, status:"accepted"};
+  if (!o.status) return {...o, status:"declined", declineReason:"auto"};
+  return o;
+});
+await updateDoc(doc(db,"wants",want.id),{
+  offers: updated,
+  status: "sold",
+  soldTo: accepted.fromId || null,
+  soldAt: serverTimestamp(),
+});
+// Notify buyers via system chat messages.
+try {
+  await postSystemChatMessage(want, accepted, `✅ Your offer of $${(accepted.price||0).toLocaleString()} was accepted!`);
+  const otherPending = offers.map((o,i)=>({o,i})).filter(({o,i})=>i!==idx && !o.status);
+  await Promise.all(otherPending.map(({o})=>postSystemChatMessage(want, o, "❌ This want was sold to another buyer.")));
+} catch(e) { console.warn("acceptOffer notify failed", e); }
+};
+
+const declineOffer = async (want, idx) => {
+const offers = want.offers || [];
+const target = offers[idx];
+if (!target) return;
+const updated = offers.map((o,i)=>i===idx?{...o, status:"declined", declineReason:"manual"}:o);
+await updateDoc(doc(db,"wants",want.id),{offers:updated});
+try {
+  await postSystemChatMessage(want, target, "❌ Your offer was declined.");
+} catch(e) { console.warn("declineOffer notify failed", e); }
 };
 
 const handleEditPhoto = async (e) => {
@@ -2153,7 +2219,7 @@ return (
           ):myWants.map(w=>(
             <div key={w.id} className="mcard">
               <div className="mtop">
-                <div className="mtitle">{w.title}</div>
+                <div className="mtitle">{w.title}{w.status==="sold"&&<span style={{marginLeft:8,padding:"2px 8px",fontSize:10,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999,verticalAlign:"middle"}}>SOLD</span>}</div>
                 <span className={`badge ${(w.offers||[]).length>0?"bo":"bn"}`}>{(w.offers||[]).length>0?`${w.offers.length} offer${w.offers.length>1?"s":""}`:"No offers"}</span>
               </div>
               <div className="mbudget">Up to ${(w.budget||0).toLocaleString()}</div>
@@ -2181,10 +2247,8 @@ return (
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {o.fromId&&<button className="reply-btn" onClick={()=>openChat(w,o)}>Reply</button>}
-                    {!o.status&&<button className="offer-accept" onClick={()=>setOfferStatus(w,i,"accepted")}>✅</button>}
-                    {!o.status&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
-                    {o.status==="declined"&&<button className="offer-accept" onClick={()=>setOfferStatus(w,i,"accepted")}>✅</button>}
-                    {o.status==="accepted"&&<button className="offer-decline" onClick={()=>setOfferStatus(w,i,"declined")}>❌</button>}
+                    {!o.status&&w.status!=="sold"&&<button className="offer-accept" onClick={()=>acceptOffer(w,i)}>✅</button>}
+                    {!o.status&&w.status!=="sold"&&<button className="offer-decline" onClick={()=>declineOffer(w,i)}>❌</button>}
                     {o.status==="accepted"&&o.fromId&&o.fromId!==user.uid&&!myReviewedKeys.includes(w.id+"_"+i+"_"+o.fromId)&&(
                       <button className="rate-btn" onClick={()=>{setReviewSheet({targetUid:o.fromId,targetName:o.from,wantId:w.id,wantTitle:w.title,offerKey:w.id+"_"+i+"_"+o.fromId});setReviewStars(0);setReviewComment("");}}>⭐ Rate</button>
                     )}
@@ -2277,6 +2341,8 @@ return (
                     {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
                   </div>
                   {price&&<span className="cprice-tag">${price.toLocaleString()}</span>}
+                  {myOffer?.status==="accepted"&&<span style={{fontSize:9,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999,padding:"2px 7px",marginLeft:4,whiteSpace:"nowrap"}}>✅ ACCEPTED</span>}
+                  {myOffer?.status==="declined"&&<span style={{fontSize:9,fontWeight:700,color:"#991b1b",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:999,padding:"2px 7px",marginLeft:4,whiteSpace:"nowrap"}}>❌ DECLINED</span>}
                   {isUnread&&<div className="cunread-dot"/>}
                 </div>
               );
@@ -2667,11 +2733,11 @@ return (
 
     {/* EXPANDED WANT SHEET */}
     {sheet&&(
-      <div className="soverlay" onClick={()=>setSheet(null)}>
+      <div className="soverlay" onClick={()=>{setSheet(null);setOfferFilter("all");}}>
         <div className="sheet" onClick={e=>e.stopPropagation()}>
           <div className="sh-head">
             <div className="sh-title">{sheet.title}</div>
-            <button className="sh-close" onClick={()=>setSheet(null)}>✕</button>
+            <button className="sh-close" onClick={()=>{setSheet(null);setOfferFilter("all");}}>✕</button>
           </div>
           <div className="sh-body">
             <div className="sh-budget">${(sheet.budget||0).toLocaleString()}</div>
@@ -2690,36 +2756,63 @@ return (
                 }
               </div>
             )}
-            {sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(
-              <>
-                <div className="offers-ttl">Offers ({sheet.offers.length})</div>
-                {sheet.offers.map((o,i)=>(
-                  <div key={i} className={`oitem${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
-                    <div className="av sm profile-link" onClick={()=>openProfile(o.fromId,o.from)}>{(o.from||"?")[0].toUpperCase()}</div>
-                    <div className="obody">
-                      <div className="oname" style={{display:"flex",alignItems:"center",gap:8}}>
-                        {o.from}
-                        {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
-                        {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
-                      </div>
-                      {o.photoUrl&&<img src={o.photoUrl} className="ophoto" alt="offer" />}
-                      <div className="omsg">{o.message}</div>
-                      <div className="orow">
-                        <span className="oprice">${(o.price||0).toLocaleString()}</span>
-                        <span className="otime">{o.time}</span>
-                        {o.fromId&&(
-                          <button className="mbtn" onClick={()=>{openChat(sheet,o);setSheet(null);}}>💬 Message</button>
-                        )}
-                        {!o.status&&<button className="offer-accept" onClick={()=>setOfferStatus(sheet,i,"accepted")}>✅ Accept</button>}
-                        {!o.status&&<button className="offer-decline" onClick={()=>setOfferStatus(sheet,i,"declined")}>❌ Decline</button>}
-                        {o.status==="declined"&&<button className="offer-accept" onClick={()=>setOfferStatus(sheet,i,"accepted")}>✅ Accept</button>}
-                        {o.status==="accepted"&&<button className="offer-decline" onClick={()=>setOfferStatus(sheet,i,"declined")}>❌ Decline</button>}
+            {sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(()=>{
+              const all = sheet.offers || [];
+              const counts = {
+                all: all.length,
+                pending: all.filter(o=>!o.status).length,
+                accepted: all.filter(o=>o.status==="accepted").length,
+                declined: all.filter(o=>o.status==="declined").length,
+              };
+              const visible = all.map((o,i)=>({o,i})).filter(({o})=>
+                offerFilter==="all" ? o.status!=="declined" || counts.declined===all.length :
+                offerFilter==="pending" ? !o.status :
+                offerFilter==="accepted" ? o.status==="accepted" :
+                offerFilter==="declined" ? o.status==="declined" : true
+              );
+              const isSold = sheet.status==="sold";
+              const pillStyle = (active)=>({padding:"5px 12px",borderRadius:999,fontSize:12,fontWeight:700,whiteSpace:"nowrap",cursor:"pointer",border:active?"1px solid var(--accent)":"1px solid var(--border)",background:active?"var(--accent)":"var(--surface2)",color:active?"#fff":"var(--text)"});
+              return (
+                <>
+                  <div className="offers-ttl" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+                    <span>Offers ({all.length}){isSold&&<span style={{marginLeft:8,padding:"2px 8px",fontSize:10,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999}}>SOLD</span>}</span>
+                  </div>
+                  <div style={{display:"flex",gap:6,overflowX:"auto",padding:"6px 0 10px",marginBottom:4}}>
+                    <div onClick={()=>setOfferFilter("all")} style={pillStyle(offerFilter==="all")}>All {counts.all}</div>
+                    <div onClick={()=>setOfferFilter("pending")} style={pillStyle(offerFilter==="pending")}>🟡 Pending {counts.pending}</div>
+                    <div onClick={()=>setOfferFilter("accepted")} style={pillStyle(offerFilter==="accepted")}>✅ Accepted {counts.accepted}</div>
+                    <div onClick={()=>setOfferFilter("declined")} style={pillStyle(offerFilter==="declined")}>❌ Declined {counts.declined}</div>
+                  </div>
+                  {visible.length===0?(
+                    <div style={{padding:"16px",textAlign:"center",color:"var(--text2)",fontSize:13,background:"var(--surface2)",borderRadius:12,marginBottom:8}}>No offers in this filter.</div>
+                  ):visible.map(({o,i})=>(
+                    <div key={i} className={`oitem${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`} style={o.status==="declined"?{opacity:.6}:{}}>
+                      <div className="av sm profile-link" onClick={()=>openProfile(o.fromId,o.from)}>{(o.from||"?")[0].toUpperCase()}</div>
+                      <div className="obody">
+                        <div className="oname" style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          {o.from}
+                          {!o.status&&<span style={{fontSize:11,fontWeight:700,color:"#92400e",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:999,padding:"2px 8px"}}>🟡 Pending</span>}
+                          {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
+                          {o.status==="declined"&&<span className="offer-status-declined">❌ {o.declineReason==="auto"?"Auto-declined":"Declined"}</span>}
+                        </div>
+                        {o.photoUrl&&<img src={o.photoUrl} className="ophoto" alt="offer" />}
+                        <div className="omsg">{o.message}</div>
+                        <div className="orow" style={{flexWrap:"wrap",gap:6}}>
+                          <span className="oprice">${(o.price||0).toLocaleString()}</span>
+                          <span className="otime">{o.time}</span>
+                          {o.fromId&&(
+                            <button className="mbtn" onClick={()=>{openChat(sheet,o);setSheet(null);}}>💬 {o.status==="accepted"?"Arrange pickup":"Message"}</button>
+                          )}
+                          {!o.status&&!isSold&&<button className="offer-accept" onClick={()=>{if(window.confirm("Accept this offer? Your want will be marked SOLD and all other pending offers will be auto-declined.")) acceptOffer(sheet,i);}}>✅ Accept</button>}
+                          {!o.status&&!isSold&&o.fromId&&<button className="mbtn" onClick={()=>{openChat(sheet,o);setSheet(null);}}>↔ Counter</button>}
+                          {!o.status&&!isSold&&<button className="offer-decline" onClick={()=>declineOffer(sheet,i)}>❌ Decline</button>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            )}
+                  ))}
+                </>
+              );
+            })()}
             {sheet.userId!==user.uid&&(()=>{
               const myAccepted = (sheet.offers||[]).map((o,i)=>({o,i})).find(({o})=>o.fromId===user.uid&&o.status==="accepted");
               const rateKey = myAccepted ? sheet.id+"_"+myAccepted.i+"_"+sheet.userId : null;
@@ -2729,7 +2822,10 @@ return (
                 </div>
               ):null;
             })()}
-            {sheet.userId!==user.uid&&(
+            {sheet.userId!==user.uid&&sheet.status==="sold"&&(
+              <div style={{padding:"14px",textAlign:"center",background:"#f0fdf4",border:"1px solid #6ee7b7",borderRadius:12,marginTop:10,fontSize:13,fontWeight:600,color:"#065f46"}}>✅ This want has been sold. New offers can no longer be sent.</div>
+            )}
+            {sheet.userId!==user.uid&&sheet.status!=="sold"&&(
               <div className="compose">
                 <div className="clabel">Send Your Offer</div>
                 {sent[sheet.id]?(

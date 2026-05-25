@@ -21,8 +21,11 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid
         || isAdmin()
         || (
+          // Non-owners may only append a new offer to an active (unsold) want.
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['offers'])
           && request.resource.data.userId == resource.data.userId
+          && resource.data.get('status', 'active') != 'sold'
+          && request.resource.data.offers.size() == resource.data.get('offers', []).size() + 1
         )
       );
 
