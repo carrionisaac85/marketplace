@@ -826,6 +826,7 @@ const subscribe = () => {
     }
     prevConvoUpdates.current = Object.fromEntries(mine.map(c => [c.id, c.updatedAt?.toMillis?.() ?? 0]));
   }, err => {
+    if (err.code === "permission-denied") return;
     console.error("convos listener error", err);
     if (!cancelled) retryTimer = setTimeout(subscribe, 3000);
   });
