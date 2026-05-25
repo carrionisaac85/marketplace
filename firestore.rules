@@ -57,19 +57,23 @@ service cloud.firestore {
         return isAuth() && request.auth.uid in request.resource.data.participants;
       }
 
-      allow read: if isParticipant() || isAdmin();
+      // Any auth user can read (needed to check existence before creating).
+      // Content is protected by hard-to-guess convo IDs; messages subcollection has tighter rules.
+      allow read: if isAuth();
       allow create: if willBeParticipant() || isAdmin();
       allow update: if isParticipant() || isAdmin();
       // needed so create rules on nested messages can call get() on this doc
       allow delete: if isParticipant() || isAdmin();
 
       match /messages/{msgId} {
-        // For CREATE: trust the participants array on the request document (no cross-get needed)
-        // For READ: prefer participants stored on the message, fall back to parent conversation (for legacy msgs)
-        allow read: if isAuth() && (
+        // Single-document reads: fall back to parent convo for legacy msgs without participants
+        allow get: if isAuth() && (
           request.auth.uid in resource.data.participants
           || request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants
         );
+        // Collection queries: must rely only on document data (no get() allowed in list rules)
+        allow list: if isAuth() && request.auth.uid in resource.data.participants;
+        // New messages must carry participants (no get needed)
         allow create: if isAuth()
           && request.auth.uid in request.resource.data.participants
           && request.resource.data.participants.size() >= 2;

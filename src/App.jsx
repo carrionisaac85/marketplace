@@ -819,8 +819,12 @@ return onSnapshot(doc(db,"config","banned"), snap => {
 
 // Messages in open chat
 useEffect(() => {
-if (!chat) return;
-const q = query(collection(db,"conversations",chat.convoId,"messages"), orderBy("createdAt","asc"));
+if (!chat || !user) return;
+const q = query(
+  collection(db,"conversations",chat.convoId,"messages"),
+  where("participants","array-contains",user.uid),
+  orderBy("createdAt","asc")
+);
 return onSnapshot(q, snap => {
 const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()}));
 // Push notification for new messages
@@ -1188,15 +1192,31 @@ if (!otherId) return;
 const ids = [user.uid, otherId].sort();
 const cid = `${ids[0]}_${ids[1]}_${want.id}`;
 const convoRef = doc(db,"conversations",cid);
-const snap = await getDoc(convoRef);
-if (!snap.exists()) {
-  await setDoc(convoRef,{
-    participants:[user.uid,otherId],
-    participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
-    wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
-  });
+let data = {};
+try {
+  const snap = await getDoc(convoRef);
+  if (!snap.exists()) {
+    await setDoc(convoRef,{
+      participants:[user.uid,otherId],
+      participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
+      wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
+    });
+  } else {
+    data = snap.data();
+  }
+} catch(e) {
+  console.warn("openChat getDoc/create failed", e);
+  // If reading failed (e.g. non-existent doc blocked by rules), still try to create
+  try {
+    await setDoc(convoRef,{
+      participants:[user.uid,otherId],
+      participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
+      wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
+    });
+  } catch(e2) {
+    console.error("openChat setDoc also failed", e2);
+  }
 }
-const data = snap.exists() ? snap.data() : {};
 setMsgSendErr("");
 setChat({
   convoId:cid,
