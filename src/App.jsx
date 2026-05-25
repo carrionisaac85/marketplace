@@ -767,45 +767,67 @@ if (window.google?.maps?.places) {
 }
 }, [view]);
 
-// Conversations
+// Conversations — fetch all and filter client-side so legacy docs without participants are visible
 useEffect(() => {
 if (!user) return;
-const q = query(
-  collection(db,"conversations"),
-  where("participants","array-contains",user.uid)
-);
-return onSnapshot(q, snap => {
-const mine = snap.docs
-  .map(d=>({id:d.id,...d.data()}))
-  .sort((a,b)=>(b.updatedAt?.toMillis?.()??0)-(a.updatedAt?.toMillis?.()??0));
-setConvos(mine);
-setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid) && !c.archivedBy?.includes(user.uid)));
-// Notify on new incoming messages (background — works even when chat isn't open)
-if (prevConvoUpdates.current !== null) {
-  mine.forEach(c => {
-    const prevTs = prevConvoUpdates.current[c.id];
-    const currTs = c.updatedAt?.toMillis?.() ?? 0;
-    if (c.lastSenderId && c.lastSenderId !== user.uid && currTs > (prevTs ?? 0)) {
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(`New message from ${c.lastSenderName || "someone"}`, {
-          body: c.lastMessage || "You have a new message",
-          icon: "/favicon.ico",
-        });
-      }
+let unsub = null;
+let retryTimer = null;
+let cancelled = false;
+const subscribe = () => {
+  if (cancelled) return;
+  const q = query(collection(db,"conversations"),limit(200));
+  unsub = onSnapshot(q, snap => {
+    if (cancelled) return;
+    const all = snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Client-side filter: convo ID contains this user's uid (legacy docs) OR participants array includes them
+    const mine = all.filter(c => {
+      if (c.participants && c.participants.includes(user.uid)) return true;
+      return c.id && c.id.includes(user.uid);
+    }).sort((a,b)=>(b.updatedAt?.toMillis?.()??0)-(a.updatedAt?.toMillis?.()??0));
+    setConvos(mine);
+    setHasUnread(mine.some(c=>c.lastSenderId && c.lastSenderId !== user.uid && !c.readBy?.includes(user.uid) && !c.archivedBy?.includes(user.uid)));
+    if (prevConvoUpdates.current !== null) {
+      mine.forEach(c => {
+        const prevTs = prevConvoUpdates.current[c.id];
+        const currTs = c.updatedAt?.toMillis?.() ?? 0;
+        if (c.lastSenderId && c.lastSenderId !== user.uid && currTs > (prevTs ?? 0)) {
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(`New message from ${c.lastSenderName || "someone"}`, {
+              body: c.lastMessage || "You have a new message", icon: "/favicon.ico",
+            });
+          }
+        }
+      });
     }
+    prevConvoUpdates.current = Object.fromEntries(mine.map(c => [c.id, c.updatedAt?.toMillis?.() ?? 0]));
+  }, err => {
+    console.error("convos listener error", err);
+    if (!cancelled) retryTimer = setTimeout(subscribe, 3000);
   });
-}
-prevConvoUpdates.current = Object.fromEntries(mine.map(c => [c.id, c.updatedAt?.toMillis?.() ?? 0]));
-});
+};
+subscribe();
+return () => { cancelled = true; if (unsub) unsub(); if (retryTimer) clearTimeout(retryTimer); };
 }, [user]);
 
-// Backfill missing wantUserId on legacy convos so As Buyer/Seller filters work
+// Backfill missing fields on legacy convos
 useEffect(() => {
-if (!user || convos.length === 0 || wants.length === 0) return;
+if (!user || convos.length === 0) return;
 convos.forEach(c => {
-  if (!c.wantUserId && c.wantId) {
+  const patches = {};
+  // Backfill participants from convo ID if missing
+  if (!c.participants && c.id && c.id.includes("_")) {
+    const parts = c.id.split("_");
+    if (parts.length >= 3) {
+      patches.participants = [parts[0], parts[1]];
+    }
+  }
+  // Backfill wantUserId
+  if (!c.wantUserId && c.wantId && wants.length > 0) {
     const w = wants.find(w => w.id === c.wantId);
-    if (w?.userId) updateDoc(doc(db,"conversations",c.id),{wantUserId:w.userId}).catch(()=>{});
+    if (w?.userId) patches.wantUserId = w.userId;
+  }
+  if (Object.keys(patches).length > 0) {
+    updateDoc(doc(db,"conversations",c.id), patches).catch(()=>{});
   }
 });
 }, [convos, wants, user]);
@@ -817,11 +839,12 @@ return onSnapshot(doc(db,"config","banned"), snap => {
 });
 }, []);
 
-// Messages in open chat — auto-retries if the listener dies
+// Messages in open chat — listener + polling fallback
 useEffect(() => {
 if (!chat || !user) return;
 let unsub = null;
 let retryTimer = null;
+let pollTimer = null;
 let cancelled = false;
 
 const subscribe = () => {
@@ -851,11 +874,28 @@ const subscribe = () => {
   });
 };
 
+// Fallback: poll every 4s if real-time listener is struggling
+const poll = () => {
+  if (cancelled || !chat?.convoId) return;
+  getDocs(query(collection(db,"conversations",chat.convoId,"messages"), orderBy("createdAt","desc"), limit(30)))
+    .then(snap => {
+      if (cancelled) return;
+      const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.toMillis?.()??0)-(b.createdAt?.toMillis?.()??0));
+      if (newMsgs.length !== prevMsgCount.current) {
+        setMsgs(newMsgs);
+        prevMsgCount.current = newMsgs.length;
+      }
+    })
+    .catch(e => console.error("poll fallback error", e));
+};
+
 subscribe();
+pollTimer = setInterval(poll, 4000);
 return () => {
   cancelled = true;
   if (unsub) unsub();
   if (retryTimer) clearTimeout(retryTimer);
+  if (pollTimer) clearInterval(pollTimer);
 };
 }, [chat, user]);
 
@@ -1247,13 +1287,16 @@ try {
   await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
     text:m, participants:chat.participants||[], senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
   });
+  console.log("[sendMsg] message written to", chat.convoId, "participants:", chat.participants);
   await updateDoc(doc(db,"conversations",chat.convoId),{
     updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
     readBy:[user.uid],
   });
+  console.log("[sendMsg] conversation updated", chat.convoId);
 } catch(e) {
+  console.error("sendMsg failed", e, chat?.convoId, chat?.participants);
   setCi(m);
-  setMsgSendErr("Message failed to send. Check your connection and try again.");
+  setMsgSendErr(`Send failed: ${e.message||e.code||"unknown"}`);
 }
 };
 
