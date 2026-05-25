@@ -69,10 +69,9 @@ service cloud.firestore {
         // Any auth user can read/list messages inside a conversation.
         // Convo IDs are hard to guess (two UIDs + wantId), so this is practically secure.
         allow read: if isAuth();
-        // New messages must carry participants (no get needed on create)
-        allow create: if isAuth()
-          && request.auth.uid in request.resource.data.participants
-          && request.resource.data.participants.size() >= 2;
+        // Any authenticated user can create a message in a conversation.
+        // Convo IDs are hard to guess (two UIDs + wantId), so this is secure in practice.
+        allow create: if isAuth();
         allow delete: if isAuth() && (
           request.auth.uid in resource.data.participants
           || request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants

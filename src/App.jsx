@@ -817,30 +817,46 @@ return onSnapshot(doc(db,"config","banned"), snap => {
 });
 }, []);
 
-// Messages in open chat
+// Messages in open chat — auto-retries if the listener dies
 useEffect(() => {
 if (!chat || !user) return;
-const q = collection(db,"conversations",chat.convoId,"messages");
-return onSnapshot(q, snap => {
-const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.toMillis?.()??0)-(b.createdAt?.toMillis?.()??0));
-// Push notification for new messages
-if (newMsgs.length > prevMsgCount.current && prevMsgCount.current > 0) {
-const last = newMsgs[newMsgs.length-1];
-if (last.senderId !== user?.uid && "Notification" in window && Notification.permission === "granted") {
-new Notification(`New message from ${last.senderName}`, { body: last.text, icon: "/favicon.ico" });
-}
-}
-prevMsgCount.current = newMsgs.length;
-setMsgs(newMsgs);
-setTimeout(()=>btm.current?.scrollIntoView({behavior:"smooth"}),100);
-// Mark conversation as read whenever messages load/update while chat is open
-if (user && chat?.convoId) {
-updateDoc(doc(db,"conversations",chat.convoId),{readBy:arrayUnion(user.uid)}).catch(()=>{});
-}
-}, err => {
-  console.error("messages listener error", err);
-  setMsgSendErr("Chat sync failed. Reopen the chat to try again.");
-});
+let unsub = null;
+let retryTimer = null;
+let cancelled = false;
+
+const subscribe = () => {
+  if (cancelled) return;
+  const q = collection(db,"conversations",chat.convoId,"messages");
+  unsub = onSnapshot(q, snap => {
+    if (cancelled) return;
+    const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.toMillis?.()??0)-(b.createdAt?.toMillis?.()??0));
+    if (newMsgs.length > prevMsgCount.current && prevMsgCount.current > 0) {
+      const last = newMsgs[newMsgs.length-1];
+      if (last.senderId !== user?.uid && "Notification" in window && Notification.permission === "granted") {
+        new Notification(`New message from ${last.senderName}`, { body: last.text, icon: "/favicon.ico" });
+      }
+    }
+    prevMsgCount.current = newMsgs.length;
+    setMsgs(newMsgs);
+    setMsgSendErr("");
+    setTimeout(()=>btm.current?.scrollIntoView({behavior:"smooth"}),100);
+    if (user && chat?.convoId) {
+      updateDoc(doc(db,"conversations",chat.convoId),{readBy:arrayUnion(user.uid)}).catch(()=>{});
+    }
+  }, err => {
+    console.error("messages listener error", err);
+    if (!cancelled) {
+      retryTimer = setTimeout(subscribe, 3000);
+    }
+  });
+};
+
+subscribe();
+return () => {
+  cancelled = true;
+  if (unsub) unsub();
+  if (retryTimer) clearTimeout(retryTimer);
+};
 }, [chat, user]);
 
 // Request notification permission on login
