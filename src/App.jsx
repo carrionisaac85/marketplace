@@ -520,7 +520,6 @@ const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
 {id:"mine",icon:"📋",label:"My Posts"},
 {id:"post",icon:"➕",label:"Post Want"},
-{id:"messages",icon:"💬",label:"Messages"},
 {id:"offers",icon:"🤝",label:"Offers"},
 ];
 
@@ -944,7 +943,6 @@ useEffect(() => {
 if (!("serviceWorker" in navigator)) return;
 const handler = event => {
 if (event.data?.type === "OPEN_CONVERSATION" && event.data.convoId) {
-setView("messages");
 setPendingConvoId(event.data.convoId);
 }
 };
@@ -969,7 +967,6 @@ const params = new URLSearchParams(window.location.search);
 const convoParam = params.get("convo");
 if (convoParam) {
 setPendingConvoId(convoParam);
-setView("messages");
 window.history.replaceState({}, "", window.location.pathname);
 }
 }, []);
@@ -1252,9 +1249,8 @@ try {
       senderName:senderName,
       createdAt:serverTimestamp(),
     });
-    // Navigate to Messages tab so user sees the conversation
     setSheet(null);
-    setView("messages");
+    setView("offers");
   }
 } catch(err) {
   const msg = photoFile && err.code?.includes("storage")
@@ -2421,70 +2417,6 @@ return (
         );
       })()}
 
-      {view==="messages"&&(
-        <>
-          <div className="stitle">Messages</div>
-          <div className="ssub">Chats from offers you've made and received.</div>
-
-          {convos.length>0&&(
-            <input className="msg-search" type="text" placeholder="🔍 Search by name or want…" value={msgSearch} onChange={e=>setMsgSearch(e.target.value)} style={{marginBottom:12}} />
-          )}
-
-          {(() => {
-            const renderItem = (c) => {
-              const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Unknown";
-              const isUnread=isUnreadConvo(c);
-              const wantData=wants.find(w=>w.id===c.wantId);
-              const myOffer=c.wantUserId!==user.uid
-                ?wantData?.offers?.find(o=>o.fromId===user.uid)
-                :wantData?.offers?.find(o=>{const oid=Object.keys(c.participantNames||{}).find(id=>id!==user.uid);return o.fromId===oid;});
-              const price=myOffer?.price||c.offerPrice||null;
-              return (
-                <div key={c.id} className={`citem${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]})}>
-                  <div className="av sm">{on[0]?.toUpperCase()}</div>
-                  <div className="cinfo">
-                    <div className="cinfo-top">
-                      <div className={`cwith${isUnread?" unread":""}`}>{on}</div>
-                      <div className="ctime">{ta(c.updatedAt)}</div>
-                    </div>
-                    <div className="cwant">Re: {c.wantTitle}</div>
-                    {c.lastMessage&&<div className={`cprev${isUnread?" unread":""}`}>{c.lastSenderId===user.uid?"You: ":""}{c.lastMessage}</div>}
-                  </div>
-                  {price&&<span className="cprice-tag">${price.toLocaleString()}</span>}
-                  {myOffer?.status==="accepted"&&<span style={{fontSize:9,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999,padding:"2px 7px",marginLeft:4,whiteSpace:"nowrap"}}>✅ ACCEPTED</span>}
-                  {myOffer?.status==="declined"&&<span style={{fontSize:9,fontWeight:700,color:"#991b1b",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:999,padding:"2px 7px",marginLeft:4,whiteSpace:"nowrap"}}>❌ DECLINED</span>}
-                  {isUnread&&<div className="cunread-dot"/>}
-                </div>
-              );
-            };
-
-            if (convos.length===0) {
-              return <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Send an offer to start a conversation</div></div>;
-            }
-            if (displayedConvos.length===0) {
-              return <div className="empty"><div className="eicon">🔎</div><div className="etitle">No matches</div><div className="esub">Try a different search</div></div>;
-            }
-            const sentConvos=displayedConvos.filter(c=>c.wantUserId!==user.uid);
-            const recvConvos=displayedConvos.filter(c=>c.wantUserId===user.uid);
-            return (
-              <div className="clist">
-                {sentConvos.length>0&&(
-                  <>
-                    <div className="msg-section-hd">💸 Offers You Made</div>
-                    {sentConvos.map(renderItem)}
-                  </>
-                )}
-                {recvConvos.length>0&&(
-                  <>
-                    <div className="msg-section-hd">📋 Offers on Your Posts</div>
-                    {recvConvos.map(renderItem)}
-                  </>
-                )}
-              </div>
-            );
-          })()}
-        </>
-      )}
 
       {/* ADMIN PANEL */}
       {view==="admin"&&isAdmin&&(
@@ -2629,7 +2561,6 @@ return (
         }}>
           <span className="bicon">{n.icon}</span>
           {n.id==="offers"&&hasUnread&&<span className="notif-badge" />}
-          {n.id==="messages"&&unreadCount>0&&<span className="notif-badge" />}
           <span>{n.label}</span>
         </div>
       ))}
