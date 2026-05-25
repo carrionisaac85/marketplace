@@ -758,17 +758,21 @@ const attach = () => {
   // Clear any previous element
   container.innerHTML = "";
   const acEl = new window.google.maps.places.PlaceAutocompleteElement({
-    types: ["geocode"],
+    types: ["locality", "sublocality", "neighborhood"],
   });
   acEl.style.cssText = "display:block;width:100%";
   container.appendChild(acEl);
-  // Place selected from dropdown
+  // Place selected from dropdown — store city/neighborhood only, never a street address
   acEl.addEventListener("gmp-placeselect", async (e) => {
     try {
       const place = e.placePrediction.toPlace();
-      await place.fetchFields({ fields: ["displayName", "formattedAddress"] });
-      const addr = place.formattedAddress || place.displayName || "";
+      await place.fetchFields({ fields: ["displayName", "addressComponents"] });
+      const comps = place.addressComponents || [];
+      const state = comps.find(c => c.types?.includes("administrative_area_level_1"))?.shortText || "";
+      const city = place.displayName || "";
+      const addr = state ? `${city}, ${state}` : city;
       setForm(p => ({...p, location: addr}));
+      if (autocompleteRef.current) autocompleteRef.current.value = addr;
     } catch(err) {
       console.warn("PlaceAutocomplete fetchFields error", err);
     }
@@ -2275,7 +2279,7 @@ return (
                 </div>
               </div>
               <div className="fg">
-                <label className="fl">Location</label>
+                <label className="fl">Location <span style={{color:"var(--text2)",fontWeight:400,fontSize:12}}>(city or neighborhood)</span></label>
                 <div className="loc-row">
                   <div ref={locationInputRef} className="pac-container-wrap" />
                   <button className="loc-btn" onClick={detectLocation} title="Auto-detect location">{locLoading?"⏳":"📍"}</button>
