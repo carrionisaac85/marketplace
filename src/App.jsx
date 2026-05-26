@@ -6,9 +6,9 @@ deleteDoc, doc, serverTimestamp, orderBy, query, where, arrayUnion, arrayRemove,
 setDoc, getDocs, getDoc, limit, increment,
 } from "firebase/firestore";
 import {
-initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
+initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, browserPopupRedirectResolver,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential,
+signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect, getRedirectResult,
 sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 } from "firebase/auth";
 import {
@@ -26,11 +26,12 @@ appId: "1:445461567451:web:aa2eb29f5e8449d405b9fe",
 measurementId: "G-WGWS8Y69F0",
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
-});
+const auth = (() => {
+  try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence], popupRedirectResolver: browserPopupRedirectResolver }); }
+  catch { return getAuth(app); }
+})();
 const storage = getStorage(app);
 
 async function compressImage(file, maxSizePx = 1200, quality = 0.82) {
@@ -691,6 +692,21 @@ if (u) {
 }
 }), []);
 
+// Handle Google redirect result on page load (redirect sign-in flow for iframe environments)
+useEffect(() => {
+  getRedirectResult(auth, browserPopupRedirectResolver).then(result => {
+    if (result?.user) {
+      setUser(result.user);
+      if (getAdditionalUserInfo(result)?.isNewUser) justSignedUp.current = true;
+      const sd = setDoc, st = serverTimestamp;
+      sd(doc(db,"users",result.user.uid),{name:result.user.displayName||result.user.email,email:result.user.email,uid:result.user.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("Redirect user upsert failed:",err));
+    }
+  }).catch(e => {
+    // Silently swallow expected "no redirect" / cancelled cases
+    console.warn("Google redirect result error:", e.message || e);
+  });
+}, []);
+
 // Live listener for user doc (savedWants, reviewedKeys, reportedWants)
 useEffect(() => {
 if (!user) return;
@@ -1042,8 +1058,9 @@ const credential = GoogleAuthProvider.credential(googleUser.authentication.idTok
 await signInWithCredential(auth, credential);
 } else {
 const provider = new GoogleAuthProvider();
-const result = await signInWithPopup(auth, provider);
-if (getAdditionalUserInfo(result)?.isNewUser) justSignedUp.current = true;
+provider.addScope("email");
+provider.addScope("profile");
+await signInWithRedirect(auth, provider);
 }
 } catch(e) {
 setAuthErr("Google sign-in failed. Please try again.");
