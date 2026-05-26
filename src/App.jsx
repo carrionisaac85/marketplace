@@ -665,9 +665,9 @@ if (!Capacitor.isNativePlatform()) {
       scopes: ["profile", "email"],
       grantOfflineAccess: true,
     });
-  });
+  }).catch(() => {});
 }
-});
+}).catch(() => {});
 }, []);
 
 // Auth
@@ -866,7 +866,7 @@ convos.forEach(c => {
 useEffect(() => {
 return onSnapshot(doc(db,"config","banned"), snap => {
   setBanned(snap.exists() ? (snap.data().uids || []) : []);
-});
+}, () => {});
 }, []);
 
 // Messages in open chat — listener + polling fallback
