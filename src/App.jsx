@@ -15,6 +15,8 @@ import {
 getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
 } from "firebase/storage";
 import { getMessaging, getToken } from "firebase/messaging";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -56,6 +58,7 @@ async function compressImage(file, maxSizePx = 1200, quality = 0.82) {
 }
 
 async function registerFcmToken(uid) {
+  if (Capacitor.isNativePlatform()) return;
   if (!("serviceWorker" in navigator)) return;
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   if (!vapidKey) return;
@@ -68,6 +71,43 @@ async function registerFcmToken(uid) {
     }
   } catch (e) {
     console.warn("FCM token registration failed:", e);
+  }
+}
+
+async function registerNativePush(uid, onConvoTap) {
+  if (!Capacitor.isNativePlatform()) return () => {};
+  try {
+    let perm = await PushNotifications.checkPermissions();
+    if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
+      perm = await PushNotifications.requestPermissions();
+    }
+    if (perm.receive !== "granted") return () => {};
+
+    const regListener = await PushNotifications.addListener("registration", async token => {
+      try {
+        await setDoc(doc(db, "fcmTokens", uid), { token: token.value, updatedAt: serverTimestamp() });
+      } catch (e) {
+        console.warn("Native FCM token save failed:", e);
+      }
+    });
+    const errListener = await PushNotifications.addListener("registrationError", err => {
+      console.warn("Native push registration error:", err);
+    });
+    const tapListener = await PushNotifications.addListener("pushNotificationActionPerformed", action => {
+      const convoId = action.notification?.data?.convoId;
+      if (convoId && typeof onConvoTap === "function") onConvoTap(convoId);
+    });
+
+    await PushNotifications.register();
+
+    return () => {
+      regListener.remove();
+      errListener.remove();
+      tapListener.remove();
+    };
+  } catch (e) {
+    console.warn("Native push setup failed:", e);
+    return () => {};
   }
 }
 
@@ -972,6 +1012,17 @@ if (user && notifPerm === "granted") {
 registerFcmToken(user.uid);
 }
 }, [user, notifPerm]);
+
+// Native push (iOS/Android) registration + tap handling
+useEffect(() => {
+if (!user || !Capacitor.isNativePlatform()) return;
+let cleanup = () => {};
+let cancelled = false;
+registerNativePush(user.uid, convoId => setPendingConvoId(convoId)).then(c => {
+  if (cancelled) c(); else cleanup = c;
+});
+return () => { cancelled = true; cleanup(); };
+}, [user]);
 
 // Listen for service worker messages (notification tap → open conversation)
 useEffect(() => {
