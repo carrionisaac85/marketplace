@@ -774,18 +774,21 @@ const attach = () => {
   acEl.style.cssText = "display:block;width:100%";
   container.appendChild(acEl);
   // Place selected from dropdown — store city/neighborhood only, never a street address
-  acEl.addEventListener("gmp-placeselect", async (e) => {
+  acEl.addEventListener("gmp-placeselect", (e) => {
     try {
-      const place = e.placePrediction.toPlace();
-      await place.fetchFields({ fields: ["displayName", "addressComponents"] });
-      const comps = place.addressComponents || [];
-      const state = comps.find(c => c.types?.includes("administrative_area_level_1"))?.shortText || "";
-      const city = place.displayName || "";
-      const addr = state ? `${city}, ${state}` : city;
+      const prediction = e.placePrediction;
+      // Use prediction text directly — avoids billing-gated fetchFields call.
+      // text.text is e.g. "Miami, FL, USA" or "Coconut Grove, Miami, FL, USA"
+      const full = prediction?.text?.text || prediction?.toString() || "";
+      const parts = full.split(",").map(s => s.trim());
+      // Strip trailing country entry ("USA", "United States", etc.)
+      const countryTerms = ["USA", "United States", "US", "Canada", "Mexico"];
+      const filtered = countryTerms.includes(parts[parts.length - 1]) ? parts.slice(0, -1) : parts;
+      const addr = filtered.join(", ") || full;
       setForm(p => ({...p, location: addr}));
       if (autocompleteRef.current) autocompleteRef.current.value = addr;
     } catch(err) {
-      console.warn("PlaceAutocomplete fetchFields error", err);
+      console.warn("PlaceAutocomplete select error", err);
     }
   });
   // Manual typing — keep form state in sync
