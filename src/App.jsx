@@ -1164,18 +1164,29 @@ return ms && catOk && distOk && budgetOk;
 });
 const myWants = wants.filter(w=>w.userId===user?.uid);
 
-const seedNYCPost = async () => {
-const coords = await geocodeLocation("New York, NY, USA");
-await addDoc(collection(db,"wants"),{
-title:"Looking for a vintage leather couch",
-description:"Want a brown or tan vintage leather couch in good condition, mid-century modern style.",
-budget:600, category:"Furniture",
-location:"New York, NY, USA",
-user:user.displayName||user.email, userId:user.uid, offers:[],
-createdAt:serverTimestamp(),
-...(coords ? {lat:coords.lat, lng:coords.lng} : {lat:40.7128, lng:-74.0060}),
-});
-alert("NYC test post added!");
+const seedTestData = async () => {
+const posts = [
+  { title:"Looking for a vintage leather couch", description:"Brown or tan, mid-century modern style, good condition. Not interested in fabric. Must be able to deliver to Miami.", budget:600, category:"Furniture", location:"Miami, FL", lat:25.7617, lng:-80.1918 },
+  { title:"Need a road bike — Trek or Specialized preferred", description:"Looking for a quality road bike, 54cm or 56cm frame. Carbon or aluminum both fine. Budget is firm.", budget:450, category:"Sports & Outdoors", location:"Miami, FL", lat:25.7617, lng:-80.1918 },
+  { title:"ISO a KitchenAid stand mixer — any color", description:"Moving into a new place and would love a stand mixer. Any color works, preferably 5qt or larger. Attachments are a bonus!", budget:150, category:"Electronics", location:"Fort Lauderdale, FL", lat:26.1224, lng:-80.1373 },
+  { title:"Looking for a MacBook Pro 13\" or 14\"", description:"Need a reliable laptop for design work. M1 or M2 chip preferred. Must have at least 16GB RAM. Cracked screens OK if price reflects it.", budget:800, category:"Electronics", location:"Miami, FL", lat:25.7617, lng:-80.1918 },
+  { title:"Baby gear — high chair + stroller combo", description:"Expecting our first! Looking for a Uppababy, Nuna, or similar quality stroller + a high chair. Open to bundles. Good condition only.", budget:350, category:"Baby & Kids", location:"Coral Gables, FL", lat:25.7215, lng:-80.2684 },
+  { title:"Vintage denim jacket — men's L or XL", description:"Hunting for an 80s or 90s Levi's or Lee denim jacket in a larger size. Distressed/worn is perfectly fine — actually preferred!", budget:80, category:"Clothing", location:"Wynwood, Miami, FL", lat:25.8007, lng:-80.1996 },
+  { title:"Golf clubs — full set or irons only", description:"Getting back into golf after years away. Looking for a mid-range set, any brand. Driver + irons + putter ideal but will take irons-only deal too.", budget:300, category:"Sports & Outdoors", location:"Doral, FL", lat:25.8195, lng:-80.3556 },
+  { title:"Record player / turntable — belt drive preferred", description:"Getting into vinyl. Audio-Technica, Pro-Ject, or similar. Belt drive only please. Must be fully working with no skipping.", budget:120, category:"Electronics", location:"Little Havana, Miami, FL", lat:25.7689, lng:-80.2205 },
+];
+let count = 0;
+for (const p of posts) {
+  await addDoc(collection(db,"wants"),{
+    ...p,
+    user: user.displayName || user.email,
+    userId: user.uid,
+    offers: [],
+    createdAt: serverTimestamp(),
+  });
+  count++;
+}
+alert(`✅ ${count} test posts added!`);
 };
 
 const postWant = async () => {
@@ -2482,7 +2493,12 @@ return (
                   <div className="admin-stat-label">Conversations</div>
                 </div>
               </div>
-              <div style={{marginTop:20,padding:"16px",background:"#fff5f5",border:"1.5px solid #fca5a5",borderRadius:12}}>
+              <div style={{marginTop:20,padding:"16px",background:"#f0fdf4",border:"1.5px solid #86efac",borderRadius:12}}>
+                <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"#16a34a",marginBottom:4}}>🌱 Seed Test Data</div>
+                <div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>Add 8 realistic fake posts (Miami area, various categories) so you can test browsing, offers, and messaging.</div>
+                <button onClick={seedTestData} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🌱 Add Test Posts</button>
+              </div>
+              <div style={{marginTop:12,padding:"16px",background:"#fff5f5",border:"1.5px solid #fca5a5",borderRadius:12}}>
                 <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"#dc2626",marginBottom:4}}>⚠️ Danger Zone</div>
                 <div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>Permanently delete all posts, offers, messages, and conversations from the database.</div>
                 <button onClick={clearAllData} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontFamily:"var(--fb)",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑 Clear All Data</button>
