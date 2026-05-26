@@ -16,7 +16,7 @@ getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
 } from "firebase/storage";
 import { getMessaging, getToken } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
+import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -77,32 +77,36 @@ async function registerFcmToken(uid) {
 async function registerNativePush(uid, onConvoTap) {
   if (!Capacitor.isNativePlatform()) return () => {};
   try {
-    let perm = await PushNotifications.checkPermissions();
+    let perm = await FirebaseMessaging.checkPermissions();
     if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
-      perm = await PushNotifications.requestPermissions();
+      perm = await FirebaseMessaging.requestPermissions();
     }
     if (perm.receive !== "granted") return () => {};
 
-    const regListener = await PushNotifications.addListener("registration", async token => {
+    const saveToken = async value => {
+      if (!value) return;
       try {
-        await setDoc(doc(db, "fcmTokens", uid), { token: token.value, updatedAt: serverTimestamp() });
+        await setDoc(doc(db, "fcmTokens", uid), { token: value, updatedAt: serverTimestamp() });
       } catch (e) {
         console.warn("Native FCM token save failed:", e);
       }
-    });
-    const errListener = await PushNotifications.addListener("registrationError", err => {
-      console.warn("Native push registration error:", err);
-    });
-    const tapListener = await PushNotifications.addListener("pushNotificationActionPerformed", action => {
+    };
+
+    const tokenListener = await FirebaseMessaging.addListener("tokenReceived", e => saveToken(e.token));
+    const tapListener = await FirebaseMessaging.addListener("notificationActionPerformed", action => {
       const convoId = action.notification?.data?.convoId;
       if (convoId && typeof onConvoTap === "function") onConvoTap(convoId);
     });
 
-    await PushNotifications.register();
+    try {
+      const { token } = await FirebaseMessaging.getToken();
+      await saveToken(token);
+    } catch (e) {
+      console.warn("FirebaseMessaging.getToken failed (will retry via tokenReceived):", e);
+    }
 
     return () => {
-      regListener.remove();
-      errListener.remove();
+      tokenListener.remove();
       tapListener.remove();
     };
   } catch (e) {

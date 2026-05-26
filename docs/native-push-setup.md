@@ -15,6 +15,15 @@ Capacitor's push plugin asks iOS for an APNs token, which FCM then exchanges for
 
 The Push Notifications capability is already wired in the Xcode project (`App.entitlements` with `aps-environment = development`, `CODE_SIGN_ENTITLEMENTS` set on Debug + Release, and `remote-notification` background mode in `Info.plist`). For App Store / TestFlight builds, Xcode will automatically switch `aps-environment` to `production` when archiving with a distribution provisioning profile — no manual change needed.
 
+## iOS — `GoogleService-Info.plist` (required)
+
+The native push plugin uses the Firebase iOS SDK to convert the APNs device token into an FCM registration token (which is what our Cloud Functions send to). The SDK needs the Firebase config plist.
+
+1. Firebase console → project `marketplace305` → **Project settings** → **General** → **Your apps** → **Add app** → iOS (if not already added).
+2. Bundle ID: `com.wantboard.app`. Register the app.
+3. Download `GoogleService-Info.plist` and drop it into `ios/App/App/GoogleService-Info.plist`.
+4. In Xcode (one-time): drag the file into the `App` group of the `App` target so it gets bundled into the .app. Make sure "Copy items if needed" is checked and the App target is selected.
+
 ## Android — `google-services.json` (required)
 
 1. Firebase console → project `marketplace305` → **Project settings** → **General** → **Your apps** → **Add app** → Android.
