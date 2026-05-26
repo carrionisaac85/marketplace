@@ -2172,7 +2172,7 @@ return (
                     <div className="ocnt">💬 {(w.offers||[]).length===0?<span>No offers</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)} title={savedWants.includes(w.id)?"Remove bookmark":"Save"}>{savedWants.includes(w.id)?"🔖":"🔖"}<span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:16}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
-                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Make Offer</button>}
+                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact</button>}
                     </div>
                   </div>
                 </div>
