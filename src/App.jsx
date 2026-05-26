@@ -33,6 +33,27 @@ const auth = initializeAuth(app, {
 });
 const storage = getStorage(app);
 
+async function compressImage(file, maxSizePx = 1200, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width <= maxSizePx && height <= maxSizePx) { resolve(file); return; }
+      const ratio = Math.min(maxSizePx / width, maxSizePx / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob || file), file.type === "image/png" ? "image/png" : "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 async function registerFcmToken(uid) {
   if (!("serviceWorker" in navigator)) return;
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -109,8 +130,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .hsearch input::placeholder{color:var(--text2)}
 
 /* PULL TO REFRESH */
-.ptr{text-align:center;padding:12px;font-size:13px;color:var(--text2);transition:all .2s}
-.ptr.active{color:var(--accent)}
+.ptr{display:flex;align-items:center;justify-content:center;padding:14px 0 4px;transition:all .25s}
+.ptr-icon{width:24px;height:24px;transition:transform .3s ease}
+.ptr-icon circle{fill:none;stroke:var(--text2);stroke-width:2.5;stroke-linecap:round}
+.ptr.active .ptr-icon circle{stroke:var(--accent)}
+@keyframes ptr-spin{to{transform:rotate(360deg)}}
+.ptr.active .ptr-icon{animation:ptr-spin .7s linear infinite}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
@@ -1169,8 +1194,9 @@ userId:user.uid, offers:[], createdAt:serverTimestamp(),
 if (postPhotos.length > 0) {
   try {
     const urls = await Promise.all(postPhotos.map(async (f, i) => {
+      const compressed = await compressImage(f);
       const sRef = ref(storage, `wants/${docRef.id}/photos/${user.uid}_${i}_${Date.now()}.jpg`);
-      const snap = await uploadBytes(sRef, f);
+      const snap = await uploadBytes(sRef, compressed);
       return getDownloadURL(snap.ref);
     }));
     await updateDoc(doc(db,"wants",docRef.id), {photos: urls});
@@ -1194,8 +1220,9 @@ const senderName = user.displayName||user.email;
 try {
   let photoUrl = null;
   if (photoFile) {
+    const compressed = await compressImage(photoFile);
     const storageRef = ref(storage, `offers/${user.uid}/${Date.now()}_${photoFile.name}`);
-    const snapshot = await uploadBytes(storageRef, photoFile);
+    const snapshot = await uploadBytes(storageRef, compressed);
     photoUrl = await getDownloadURL(snapshot.ref);
   }
   await updateDoc(doc(db,"wants",wid),{offers:arrayUnion({
@@ -1812,8 +1839,9 @@ try {
   let photos = ef.photos || [];
   if (editPhotos.length > 0) {
     const newUrls = await Promise.all(editPhotos.map(async (f,i) => {
+      const compressed = await compressImage(f);
       const sRef = ref(storage, `wants/${editId}/photos/${user.uid}_edit_${i}_${Date.now()}.jpg`);
-      const snap = await uploadBytes(sRef, f);
+      const snap = await uploadBytes(sRef, compressed);
       return getDownloadURL(snap.ref);
     }));
     photos = [...photos, ...newUrls];
@@ -2044,8 +2072,12 @@ return (
 
       {/* PULL TO REFRESH INDICATOR */}
       {view==="browse"&&(pullY>20||refreshing)&&(
-        <div className={`ptr ${refreshing?"active":""}`} style={{transform:`translateY(${pullY/3}px)`}}>
-          {refreshing?"Refreshing...":"v Pull to refresh"}
+        <div className={`ptr ${refreshing?"active":""}`} style={{transform:`translateY(${Math.min(pullY/3,20)}px)`}}>
+          <svg className="ptr-icon" viewBox="0 0 24 24" style={{transform:refreshing?"none":`rotate(${Math.min(pullY/80*180,180)}deg)`}}>
+            {refreshing
+              ? <circle cx="12" cy="12" r="9" strokeDasharray="28 56"/>
+              : <circle cx="12" cy="12" r="9" strokeDasharray="56 0"/>}
+          </svg>
         </div>
       )}
 
