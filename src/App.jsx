@@ -655,20 +655,6 @@ const btm = useRef(null);
 const prevMsgCount = useRef(0);
 
 
-// Initialize GoogleAuth on web (native platforms init via Capacitor plugin system)
-useEffect(() => {
-import("@capacitor/core").then(({ Capacitor }) => {
-if (!Capacitor.isNativePlatform()) {
-  import("@codetrix-studio/capacitor-google-auth").then(({ GoogleAuth }) => {
-    GoogleAuth.initialize({
-      clientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "",
-      scopes: ["profile", "email"],
-      grantOfflineAccess: true,
-    });
-  }).catch(() => {});
-}
-}).catch(() => {});
-}, []);
 
 // Auth
 useEffect(() => onAuthStateChanged(auth, async u => {
