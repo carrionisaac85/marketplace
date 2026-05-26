@@ -544,7 +544,7 @@ const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","F
 const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
-{id:"mine",icon:"📋",label:"My Posts"},
+{id:"mine",icon:"📋",label:"My Wants"},
 {id:"post",icon:"➕",label:"Post Want"},
 {id:"offers",icon:"🤝",label:"Offers"},
 ];
@@ -2357,7 +2357,7 @@ return (
       {/* MY POSTS */}
       {view==="mine"&&(
         <>
-          <div className="stitle">My Posts</div>
+          <div className="stitle">My Wants</div>
           <div className="ssub">Manage your wants and review incoming offers.</div>
           {notifPerm==="default"&&(
             <div style={{display:"flex",alignItems:"center",gap:10,background:"#fff8f0",border:"1px solid #fed7aa",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
