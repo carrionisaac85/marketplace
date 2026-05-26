@@ -13,7 +13,7 @@ Capacitor's push plugin asks iOS for an APNs token, which FCM then exchanges for
 5. Firebase console → project `marketplace305` → **Project settings** → **Cloud Messaging** tab → under **Apple app configuration** → **APNs Authentication Key** → **Upload**.
 6. Upload the `.p8`, paste the Key ID and Team ID → Upload.
 
-In Xcode, also confirm the App target has the **Push Notifications** capability (Signing & Capabilities → + Capability → Push Notifications). The `remote-notification` background mode is already in `Info.plist`.
+The Push Notifications capability is already wired in the Xcode project (`App.entitlements` with `aps-environment = development`, `CODE_SIGN_ENTITLEMENTS` set on Debug + Release, and `remote-notification` background mode in `Info.plist`). For App Store / TestFlight builds, Xcode will automatically switch `aps-environment` to `production` when archiving with a distribution provisioning profile — no manual change needed.
 
 ## Android — `google-services.json` (required)
 
