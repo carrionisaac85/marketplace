@@ -66,8 +66,9 @@ const db = getFirestore(app);
 // — they can hang in WKWebView and leave the app stuck on "Loading..." forever.
 const auth = (() => {
   if (Capacitor.isNativePlatform()) {
-    try { return getAuth(app); }
-    catch { return initializeAuth(app, { persistence: inMemoryPersistence }); }
+    // Native WKWebView: NO popupRedirectResolver — it opens a hidden iframe that hangs forever.
+    // inMemoryPersistence avoids any indexedDB/localStorage access that could also block.
+    return initializeAuth(app, { persistence: inMemoryPersistence });
   }
   try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence], popupRedirectResolver: browserPopupRedirectResolver }); }
   catch { return getAuth(app); }
@@ -782,8 +783,9 @@ useEffect(() => {
   return () => { unsub(); clearTimeout(safety); };
 }, []);
 
-// Handle Google redirect result on page load (redirect sign-in flow for iframe environments)
+// Handle Google redirect result on page load (web only — native uses GoogleAuth.signIn() instead)
 useEffect(() => {
+  if (Capacitor.isNativePlatform()) return;
   getRedirectResult(auth, browserPopupRedirectResolver).then(result => {
     if (result?.user) {
       setUser(result.user);
