@@ -62,7 +62,13 @@ measurementId: "G-WGWS8Y69F0",
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+// On native iOS/Android webviews, skip browserPopupRedirectResolver and indexedDBLocalPersistence 
+// — they can hang in WKWebView and leave the app stuck on "Loading..." forever.
 const auth = (() => {
+  if (Capacitor.isNativePlatform()) {
+    try { return getAuth(app); }
+    catch { return initializeAuth(app, { persistence: inMemoryPersistence }); }
+  }
   try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence], popupRedirectResolver: browserPopupRedirectResolver }); }
   catch { return getAuth(app); }
 })();
@@ -761,15 +767,20 @@ const prevMsgCount = useRef(0);
 
 
 
-// Auth
-useEffect(() => onAuthStateChanged(auth, async u => {
-setUser(u);
-setAuthLoading(false);
-if (u) {
-  const sd = setDoc, st = serverTimestamp;
-  sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
-}
-}), []);
+// Auth listener — auth is already platform-aware (getAuth() on native, initializeAuth on web)
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, async u => {
+    setUser(u);
+    setAuthLoading(false);
+    if (u) {
+      const sd = setDoc, st = serverTimestamp;
+      sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
+    }
+  });
+  // Safety timeout: if onAuthStateChanged never fires in a native webview, unfreeze the UI
+  const safety = setTimeout(() => setAuthLoading(false), 5000);
+  return () => { unsub(); clearTimeout(safety); };
+}, []);
 
 // Handle Google redirect result on page load (redirect sign-in flow for iframe environments)
 useEffect(() => {
