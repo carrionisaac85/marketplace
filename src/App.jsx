@@ -165,11 +165,12 @@ const css = `
 --red:#DC2626;--border:#E2DDD8;--r:16px;
 --fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
 }
-body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-.app{min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+html,body{overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;height:100%}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;position:relative;width:100%}
+.app{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
 
 /* AUTH */
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.auth-wrap{min-height:100vh;min-height:-webkit-fill-available;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
 .auth-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
 .auth-logo{font-family:var(--fd);font-weight:800;font-size:28px;margin-bottom:6px}
 .auth-logo span{color:var(--accent)}
