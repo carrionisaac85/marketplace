@@ -1192,8 +1192,12 @@ justSignedUp.current = true;
 } else {
 await signInWithEmailAndPassword(auth,af.email,af.password);
 }
-} catch(e) { setAuthErr(e.message.replace("Firebase:","").replace(/(auth.*).?/,"")); }
-setAuthBusy(false);
+} catch(e) {
+  console.error("doAuth failed:", e?.code, e?.message, e);
+  setAuthErr((e?.message || "Sign-in failed.").replace("Firebase:","").replace(/\(auth\/[^)]+\)\.?/,"").trim() || "Sign-in failed. Please try again.");
+} finally {
+  setAuthBusy(false);
+}
 };
 
 const sendPasswordReset = async () => {
