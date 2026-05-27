@@ -6,15 +6,21 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
+function isPendingOffer(o) {
+  if (!o) return false;
+  const s = o.status;
+  return !s || s === "pending";
+}
+
 async function computeUnreadBadge(uid, forceUnreadConvoId = null) {
   try {
-    const snap = await db
-      .collection("conversations")
-      .where("participants", "array-contains", uid)
-      .get();
+    const [convoSnap, wantsSnap] = await Promise.all([
+      db.collection("conversations").where("participants", "array-contains", uid).get(),
+      db.collection("wants").where("userId", "==", uid).get(),
+    ]);
     let count = 0;
     let forcedAlreadyCounted = false;
-    snap.forEach(doc => {
+    convoSnap.forEach(doc => {
       const c = doc.data();
       const archivedBy = c.archivedBy || [];
       if (archivedBy.includes(uid)) return;
@@ -29,6 +35,13 @@ async function computeUnreadBadge(uid, forceUnreadConvoId = null) {
     // (lastSenderId / readBy). If the convo that just received a message is
     // not yet reflected as unread, count it explicitly so the badge is right.
     if (forceUnreadConvoId && !forcedAlreadyCounted) count += 1;
+    wantsSnap.forEach(doc => {
+      const w = doc.data();
+      const offers = w.offers || [];
+      for (const o of offers) {
+        if (o && o.fromId !== uid && isPendingOffer(o)) count += 1;
+      }
+    });
     return count;
   } catch (err) {
     console.warn("computeUnreadBadge failed:", err);

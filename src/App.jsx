@@ -1069,17 +1069,23 @@ registerNativePush(user.uid, convoId => setPendingConvoId(convoId)).then(c => {
 return () => { cancelled = true; cleanup(); };
 }, [user]);
 
-// Sync app icon badge with unread conversation count
+// Sync app icon badge with unread conversations + pending offers on my wants
 useEffect(() => {
 if (!user) { setAppBadge(0); return; }
-const count = convos.filter(c =>
+const unreadConvos = convos.filter(c =>
   c.lastSenderId &&
   c.lastSenderId !== user.uid &&
   !c.readBy?.includes(user.uid) &&
   !c.archivedBy?.includes(user.uid)
 ).length;
-setAppBadge(count);
-}, [convos, user]);
+const pendingOffers = wants.reduce((acc, w) => {
+  if (w.userId !== user.uid) return acc;
+  return acc + (w.offers || []).filter(o =>
+    o && o.fromId !== user.uid && (!o.status || o.status === "pending")
+  ).length;
+}, 0);
+setAppBadge(unreadConvos + pendingOffers);
+}, [convos, wants, user]);
 
 // Remove delivered notification banners when app comes to foreground.
 // The badge itself is kept in sync by the effect above based on convo state,
