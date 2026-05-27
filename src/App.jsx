@@ -17,6 +17,38 @@ getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
 import { getMessaging, getToken } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Badge } from "@capawesome/capacitor-badge";
+
+async function setAppBadge(count) {
+  const n = Math.max(0, Number(count) || 0);
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (n === 0) await Badge.clear();
+      else await Badge.set({ count: n });
+    } catch (e) {
+      console.warn("Badge set failed:", e);
+    }
+  } else if (typeof navigator !== "undefined") {
+    try {
+      if (n === 0 && navigator.clearAppBadge) await navigator.clearAppBadge();
+      else if (navigator.setAppBadge) await navigator.setAppBadge(n);
+    } catch {}
+  }
+}
+
+async function clearDeliveredForConvo(convoId) {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { notifications } = await FirebaseMessaging.getDeliveredNotifications();
+    const match = (notifications || []).filter(n => n?.data?.convoId === convoId);
+    if (match.length > 0) {
+      await FirebaseMessaging.removeDeliveredNotifications({ notifications: match });
+    }
+  } catch (e) {
+    console.warn("removeDeliveredNotifications failed:", e);
+  }
+}
 
 const firebaseConfig = {
 apiKey: "AIzaSyCztet4RJW50L6N1uKWq0ClHnj_ud4TxFo",
@@ -1027,6 +1059,54 @@ registerNativePush(user.uid, convoId => setPendingConvoId(convoId)).then(c => {
 });
 return () => { cancelled = true; cleanup(); };
 }, [user]);
+
+// Sync app icon badge with unread conversation count
+useEffect(() => {
+if (!user) { setAppBadge(0); return; }
+const count = convos.filter(c =>
+  c.lastSenderId &&
+  c.lastSenderId !== user.uid &&
+  !c.readBy?.includes(user.uid) &&
+  !c.archivedBy?.includes(user.uid)
+).length;
+setAppBadge(count);
+}, [convos, user]);
+
+// Remove delivered notification banners when app comes to foreground.
+// The badge itself is kept in sync by the effect above based on convo state,
+// so we never force it to zero here — that would hide real unread counts.
+useEffect(() => {
+if (!user) return;
+const onForeground = () => {
+  if (Capacitor.isNativePlatform()) {
+    FirebaseMessaging.removeAllDeliveredNotifications().catch(()=>{});
+  }
+};
+const onVisible = () => {
+  if (typeof document !== "undefined" && document.visibilityState === "visible") {
+    onForeground();
+  }
+};
+document.addEventListener("visibilitychange", onVisible);
+
+let nativeHandle = null;
+if (Capacitor.isNativePlatform()) {
+  CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+    if (isActive) onForeground();
+  }).then(h => { nativeHandle = h; });
+}
+
+return () => {
+  document.removeEventListener("visibilitychange", onVisible);
+  if (nativeHandle) nativeHandle.remove();
+};
+}, [user]);
+
+// When a conversation is opened, clear its delivered notifications
+useEffect(() => {
+if (!chat?.convoId) return;
+clearDeliveredForConvo(chat.convoId);
+}, [chat?.convoId]);
 
 // Listen for service worker messages (notification tap → open conversation)
 useEffect(() => {

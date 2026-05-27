@@ -17,10 +17,12 @@
   "dependencies": {
     "@capacitor-firebase/messaging": "^7.5.0",
     "@capacitor/android": "^7.6.5",
+    "@capacitor/app": "^7.1.2",
     "@capacitor/camera": "^7.0.5",
     "@capacitor/cli": "^7.6.5",
     "@capacitor/core": "^7.6.5",
     "@capacitor/ios": "^7.6.5",
+    "@capawesome/capacitor-badge": "^7.0.1",
     "@codetrix-studio/capacitor-google-auth": "^3.3.6",
     "firebase": "^10.14.1",
     "react": "^18.2.0",
