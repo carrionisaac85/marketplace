@@ -683,6 +683,9 @@ const [reportDone, setReportDone] = useState(false);
 const [adminReports, setAdminReports] = useState([]);
 const [adminReportsLoaded, setAdminReportsLoaded] = useState(false);
 const [profileTab, setProfileTab] = useState("overview");
+const [notifPrefs, setNotifPrefs] = useState({messages:true, offers:true, offerStatus:true});
+const notifPrefsRef = useRef(notifPrefs);
+useEffect(() => { notifPrefsRef.current = notifPrefs; }, [notifPrefs]);
 const [offerFilter, setOfferFilter] = useState("all"); // owner offer pipeline filter: all|pending|accepted|declined
 const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
@@ -792,6 +795,12 @@ return onSnapshot(doc(db,"users",user.uid), snap => {
     setMyReviewedKeys(data.reviewedKeys||[]);
     setSavedWants(data.savedWants||[]);
     setMyReportedWants(data.reportedWants||[]);
+    const np = data.notifPrefs || {};
+    setNotifPrefs({
+      messages: np.messages !== false,
+      offers: np.offers !== false,
+      offerStatus: np.offerStatus !== false,
+    });
     if (!onboardingChecked) {
       setOnboardingChecked(true);
       if (!data.onboardingDone && justSignedUp.current) { setOnboardingStep(0); setOnboardingOpen(true); }
@@ -812,7 +821,7 @@ setUser(u => {
     fresh.filter(w => w.userId === u.uid).forEach(w => {
       const prev = prevOfferCounts.current[w.id] ?? (w.offers||[]).length;
       const curr = (w.offers||[]).length;
-      if (curr > prev && Notification.permission === "granted") {
+      if (curr > prev && Notification.permission === "granted" && notifPrefsRef.current.offers !== false) {
         const latest = w.offers[w.offers.length - 1];
         new Notification("New offer on your want!", {
           body: `${latest?.from || "Someone"} offered $${latest?.price || "?"} for "${w.title}"`,
@@ -926,7 +935,7 @@ const subscribe = () => {
         const prevTs = prevConvoUpdates.current[c.id];
         const currTs = c.updatedAt?.toMillis?.() ?? 0;
         if (c.lastSenderId && c.lastSenderId !== user.uid && currTs > (prevTs ?? 0)) {
-          if ("Notification" in window && Notification.permission === "granted") {
+          if ("Notification" in window && Notification.permission === "granted" && notifPrefsRef.current.messages !== false) {
             new Notification(`New message from ${c.lastSenderName || "someone"}`, {
               body: c.lastMessage || "You have a new message", icon: "/favicon.ico",
             });
@@ -991,7 +1000,7 @@ const subscribe = () => {
     const newMsgs = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.toMillis?.()??0)-(b.createdAt?.toMillis?.()??0));
     if (newMsgs.length > prevMsgCount.current && prevMsgCount.current > 0) {
       const last = newMsgs[newMsgs.length-1];
-      if (last.senderId !== user?.uid && "Notification" in window && Notification.permission === "granted") {
+      if (last.senderId !== user?.uid && "Notification" in window && Notification.permission === "granted" && notifPrefsRef.current.messages !== false) {
         new Notification(`New message from ${last.senderName}`, { body: last.text, icon: "/favicon.ico" });
       }
     }
@@ -2323,7 +2332,7 @@ return (
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         const mySavedWants = wants.filter(w=>savedWants.includes(w.id));
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
-        const tabs = [{id:"overview",label:"Overview"},{id:"wants",label:`Wants (${myWants2.length})`},{id:"offers",label:`Offers (${myOffersGiven.length})`},{id:"saved",label:`Saved (${mySavedWants.length})`},{id:"reviews",label:`Reviews (${myReviews.length})`}];
+        const tabs = [{id:"overview",label:"Overview"},{id:"wants",label:`Wants (${myWants2.length})`},{id:"offers",label:`Offers (${myOffersGiven.length})`},{id:"saved",label:`Saved (${mySavedWants.length})`},{id:"reviews",label:`Reviews (${myReviews.length})`},{id:"settings",label:"Settings"}];
         return(
           <>
             <div className="myprof-header">
@@ -2415,6 +2424,35 @@ return (
                     <div className="prof-want-sub">${(w.budget||0).toLocaleString()} · {w.user} · {w.category}</div>
                     <button className="save-unsave" onClick={e=>toggleSave(w.id,e)}>Remove</button>
                   </div>
+                ))}
+              </div>
+            )}
+            {profileTab==="settings"&&(
+              <div className="myprof-body">
+                <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:16,marginBottom:6}}>Notifications</div>
+                <div style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Choose which push alerts you want to receive. Muting a category stops both web and mobile notifications for it.</div>
+                {[
+                  {key:"messages",label:"New messages",sub:"When someone sends you a chat message"},
+                  {key:"offers",label:"New offers",sub:"When someone makes an offer on your want"},
+                  {key:"offerStatus",label:"Offer accepted / declined",sub:"When a seller responds to an offer you made"},
+                ].map(opt=>(
+                  <label key={opt.key} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,marginBottom:10,cursor:"pointer"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:14}}>{opt.label}</div>
+                      <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>{opt.sub}</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifPrefs[opt.key]}
+                      onChange={async e=>{
+                        const next = {...notifPrefs, [opt.key]: e.target.checked};
+                        setNotifPrefs(next);
+                        try { await setDoc(doc(db,"users",user.uid), {notifPrefs: next}, {merge:true}); }
+                        catch(err){ console.error("Failed to save notif prefs:", err); }
+                      }}
+                      style={{width:20,height:20,accentColor:"var(--accent)",cursor:"pointer"}}
+                    />
+                  </label>
                 ))}
               </div>
             )}

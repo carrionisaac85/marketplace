@@ -36,6 +36,18 @@ async function computeUnreadBadge(uid, forceUnreadConvoId = null) {
   }
 }
 
+async function isMuted(recipientUid, category) {
+  try {
+    const userSnap = await db.doc(`users/${recipientUid}`).get();
+    if (!userSnap.exists) return false;
+    const prefs = userSnap.data().notifPrefs || {};
+    return prefs[category] === false;
+  } catch (err) {
+    console.warn("isMuted lookup failed:", err);
+    return false;
+  }
+}
+
 async function sendPush(recipientUid, notification, data = {}, badge = null) {
   const tokenSnap = await db.doc(`fcmTokens/${recipientUid}`).get();
   if (!tokenSnap.exists) return;
@@ -90,6 +102,8 @@ exports.notifyOnNewMessage = functions.firestore
     const recipientUid = (convo.participants || []).find(uid => uid !== msg.senderId);
     if (!recipientUid) return null;
 
+    if (await isMuted(recipientUid, "messages")) return null;
+
     const senderName = msg.senderName || "Someone";
     const body = msg.text
       ? msg.text.length > 80 ? msg.text.slice(0, 77) + "…" : msg.text
@@ -123,6 +137,8 @@ exports.notifyOnNewOffer = functions.firestore
     const ownerUid = after.userId;
     if (!ownerUid || !newOffer) return null;
     if (newOffer.fromId === ownerUid) return null;
+
+    if (await isMuted(ownerUid, "offers")) return null;
 
     const wantTitle = after.title || "your want";
     const offerFrom = newOffer.fromName || "Someone";
@@ -162,6 +178,8 @@ exports.notifyOnOfferStatus = functions.firestore
 
       const { status, fromId, convoId } = curr;
       if (!fromId || !["accepted", "declined"].includes(status)) continue;
+
+      if (await isMuted(fromId, "offerStatus")) continue;
 
       const wantTitle = after.title || "your offer";
       const emoji = status === "accepted" ? "🎉" : "😔";
