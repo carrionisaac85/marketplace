@@ -622,15 +622,88 @@ textarea.fi{resize:vertical;min-height:80px}
 .legal-body h3{font-family:var(--fd);font-size:15px;font-weight:800;margin:20px 0 6px;color:var(--text)}
 .legal-body p{font-size:13.5px;color:var(--text2);margin:0 0 8px}
 .legal-updated{font-size:12px;color:var(--text2);font-style:italic;margin-bottom:16px!important}
+
+/* SINGLE COLUMN FEED */
+.feed-col{display:flex;flex-direction:column;gap:14px}
+.feed-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;cursor:pointer;transition:box-shadow .2s}
+.feed-card:active{box-shadow:0 3px 14px rgba(0,0,0,.1)}
+.feed-urow{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
+.feed-body{padding:0 16px 10px}
+.feed-title{font-family:var(--fd);font-weight:700;font-size:16px;color:var(--text);margin-bottom:5px;line-height:1.3}
+.feed-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.feed-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.feed-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
+.feed-img{width:100%;max-height:220px;object-fit:cover;display:block;border-radius:0}
+
+/* MY WANTS POST CARD */
+.mine-new-card{border:2px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:var(--surface)}
+.mine-new-card:active{border-color:var(--accent);background:#fff8f6}
+.mine-new-icon{font-size:36px;margin-bottom:10px}
+.mine-new-title{font-family:var(--fd);font-weight:700;font-size:16px;color:var(--text);margin-bottom:5px}
+.mine-new-sub{font-size:13px;color:var(--text2)}
+
+/* MY WANTS FEED CARDS */
+.mine-feed-col{display:flex;flex-direction:column;gap:12px}
+.mine-feed-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:box-shadow .15s;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.mine-feed-card:active{box-shadow:0 3px 14px rgba(0,0,0,.1)}
+.mine-feed-head{padding:14px 16px 6px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mine-feed-body{padding:0 16px 10px}
+.mine-feed-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
+
+/* MESSAGES LIST */
+.msg-tab-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.msg-tab-item:last-child{border-bottom:none}
+.msg-tab-item:active{background:var(--surface2)}
+.msg-tab-item.unread{background:#fff9f7}
+.msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.msg-tab-body{flex:1;min-width:0}
+.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
+.msg-tab-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.msg-tab-time{font-size:11px;color:var(--text2)}
+.msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+
+/* PROFILE PAGE */
+.prof-page{display:flex;flex-direction:column;gap:0;padding-bottom:8px}
+.prof-hero{display:flex;align-items:center;gap:14px;padding:20px 0 16px}
+.prof-hero-av{width:68px;height:68px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prof-hero-name{font-family:var(--fd);font-weight:800;font-size:20px;color:var(--text);margin-bottom:3px}
+.prof-hero-email{font-size:12px;color:var(--text2)}
+.prof-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.prof-mini-stat{text-align:center;padding:10px 4px;background:var(--surface)}
+.prof-mini-stat:not(:last-child){border-right:1px solid var(--border)}
+.prof-mini-num{font-family:var(--fd);font-weight:800;font-size:18px;color:var(--text)}
+.prof-mini-label{font-size:9px;color:var(--text2);font-weight:700;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.prof-section-hd{font-family:var(--fd);font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:20px}
+.prof-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.prof-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border)}
+.prof-row:last-child{border-bottom:none}
+.prof-row-icon{font-size:18px;width:26px;text-align:center;flex-shrink:0}
+.prof-row-body{flex:1;min-width:0}
+.prof-row-label{font-size:14px;font-weight:600;color:var(--text);font-family:var(--fb)}
+.prof-row-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.prof-toggle{position:relative;width:44px;height:26px;border-radius:13px;background:var(--border);cursor:pointer;transition:background .2s;flex-shrink:0;border:none;padding:0}
+.prof-toggle.on{background:var(--accent)}
+.prof-toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.prof-toggle.on::after{transform:translateX(18px)}
+.prof-loc-input{border:none;outline:none;font-family:var(--fb);font-size:14px;color:var(--text);background:transparent;width:100%;min-width:0}
+.prof-loc-input::placeholder{color:var(--text2)}
+.prof-action-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid var(--border);background:var(--surface);color:var(--text);margin-bottom:10px;display:block;transition:background .15s}
+.prof-action-btn:active{background:var(--surface2)}
+.prof-danger-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid #fca5a5;background:var(--surface);color:var(--red);margin-bottom:10px;display:block;transition:background .15s}
+.prof-danger-btn:active{background:#fff5f5}
 `;
+
 
 const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
 const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
 {id:"mine",icon:"📋",label:"My Wants"},
-{id:"post",icon:"➕",label:"Post Want"},
-{id:"offers",icon:"🤝",label:"Offers"},
+{id:"messages",icon:"💬",label:"Messages"},
+{id:"myprofile",icon:"👤",label:"Profile"},
 ];
 
 function NativePhotoButton({ onPick, disabled }) {
@@ -698,6 +771,9 @@ const [offerFilter, setOfferFilter] = useState("all"); // owner offer pipeline f
 const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
 const [onboardingChecked, setOnboardingChecked] = useState(false);
+const [showPostSheet, setShowPostSheet] = useState(false);
+const [privacyEnabled, setPrivacyEnabled] = useState(false);
+const [userLocation, setUserLocation] = useState("");
 const [onbLocation, setOnbLocation] = useState("");
 const [onbLocLoading, setOnbLocLoading] = useState(false);
 const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
@@ -815,6 +891,8 @@ return onSnapshot(doc(db,"users",user.uid), snap => {
       offers: np.offers !== false,
       offerStatus: np.offerStatus !== false,
     });
+    setPrivacyEnabled(data.privacyEnabled || false);
+    setUserLocation(data.location || "");
     if (!onboardingChecked) {
       setOnboardingChecked(true);
       if (!data.onboardingDone && justSignedUp.current) { setOnboardingStep(0); setOnboardingOpen(true); }
@@ -1404,7 +1482,6 @@ if (postPhotos.length > 0) {
 setPosting(false); setPosted(true);
 setForm({title:"",description:"",budget:"",category:"",location:""});
 setPostPhotos([]); setPostPhotoPreviews([]);
-setTimeout(()=>{setPosted(false);setView("mine");},1800);
 };
 
 const sendOffer = async wid => {
@@ -2204,12 +2281,11 @@ return (
       <div className="header-top">
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
         <div className="huser" style={{position:"relative"}}>
-          <span className="huser-name profile-link" onClick={()=>{setView("myprofile");setProfileTab("overview");loadMyReviews();}}>👤 <strong>{user.displayName||user.email}</strong></span>
+          <span className="huser-name" style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>👤 {user.displayName||user.email?.split("@")[0]}</span>
           <button className="how-link" onClick={()=>{setOnboardingStep(0);setOnboardingOpen(true);}} title="How it works">?</button>
           <button className="bell-btn" onClick={()=>setNotifOpen(o=>!o)} title="Notifications">
             🔔{unreadCount>0&&<span className="bell-badge">{unreadCount>9?"9+":unreadCount}</span>}
           </button>
-          <button className="signout" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
           {notifOpen&&(
             <div className="notif-panel">
               <div className="notif-panel-head">
@@ -2311,35 +2387,29 @@ return (
            filtered.length===0?(
             <div className="empty"><div className="eicon">📭</div><div className="etitle">No wants yet</div><div className="esub">Be the first to post what you're looking for</div></div>
            ):(
-            <div className="grid2">
+            <div className="feed-col">
               {filtered.map(w=>(
-                <div key={w.id} className="wcard" onClick={()=>setSheet(w)}>
-                  <div className="wcard-body">
-                    <div className="wcard-urow">
-                      <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
-                      <div style={{flex:1}}><div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div><div className="wtime">{ta(w.createdAt)}</div></div>
+                <div key={w.id} className="feed-card" onClick={()=>setSheet(w)}>
+                  <div className="feed-urow">
+                    <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div>
+                      <div className="wtime">{ta(w.createdAt)}{w.location?` · 📍 ${w.location}`:""}</div>
                     </div>
-                    <div className="wcard-tbrow">
-                      <div className="wtitle">{w.title}</div>
-                      <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
-                    </div>
-                    <div className="wdesc">{w.description}</div>
-                    <span className="tag">{w.category}</span>
+                    <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
+                  </div>
+                  <div className="feed-body">
+                    <div className="feed-title">{w.title}</div>
+                    <div className="feed-desc">{w.description}</div>
+                    <div className="feed-pills"><span className="tag">{w.category}</span></div>
                     {(w.photos||[]).length>0&&(
-                      <>
-                        <img src={w.photos[0]} className="wphoto-hero" alt="" onClick={e=>e.stopPropagation()} />
-                        {w.photos.length>1&&(
-                          <div className="want-photos" style={{marginTop:6}}>
-                            {w.photos.slice(1).map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
-                          </div>
-                        )}
-                      </>
+                      <img src={w.photos[0]} className="feed-img" style={{borderRadius:10,marginBottom:4}} alt="" onClick={e=>e.stopPropagation()} />
                     )}
                   </div>
-                  <div className="wfoot">
-                    <div className="ocnt">💬 {(w.offers||[]).length===0?<span>No offers</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)} title={savedWants.includes(w.id)?"Remove bookmark":"Save"}>{savedWants.includes(w.id)?"🔖":"🔖"}<span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:16}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
+                  <div className="feed-foot">
+                    <div className="ocnt">💬 {(w.offers||[]).length===0?<span style={{color:"var(--text2)"}}>No offers yet</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
                       {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact</button>}
                     </div>
                   </div>
@@ -2354,271 +2424,208 @@ return (
       {view==="myprofile"&&(()=>{
         const myWants2 = wants.filter(w=>w.userId===user.uid);
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
-        const mySavedWants = wants.filter(w=>savedWants.includes(w.id));
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
-        const tabs = [{id:"overview",label:"Overview"},{id:"wants",label:`Wants (${myWants2.length})`},{id:"offers",label:`Offers (${myOffersGiven.length})`},{id:"saved",label:`Saved (${mySavedWants.length})`},{id:"reviews",label:`Reviews (${myReviews.length})`},{id:"settings",label:"Settings"}];
+        const initLetter = (user.displayName||user.email||"?")[0].toUpperCase();
         return(
           <>
-            <div className="myprof-header">
-              <div className="myprof-av">{(user.displayName||user.email||"?")[0].toUpperCase()}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div className="myprof-name">{user.displayName||user.email}</div>
-                {myAvgRating!==null&&(
-                  <div className="prof-rating" style={{marginTop:4}}>
-                    {renderStars(myAvgRating)}
-                    <span className="prof-rating-text">{myAvgRating.toFixed(1)} ({myReviews.length} review{myReviews.length!==1?"s":""})</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="myprof-tabs">
-              {tabs.map(t=>(
-                <button key={t.id} className={`myprof-tab${profileTab===t.id?" active":""}`} onClick={()=>setProfileTab(t.id)}>{t.label}</button>
-              ))}
-            </div>
-            {profileTab==="overview"&&(
-              <div className="myprof-body">
-                <div className="prof-stats">
-                  <div className="prof-stat"><div className="prof-stat-num">{myWants2.length}</div><div className="prof-stat-label">Wants Posted</div></div>
-                  <div className="prof-stat"><div className="prof-stat-num">{myOffersGiven.length}</div><div className="prof-stat-label">Offers Made</div></div>
-                  <div className="prof-stat"><div className="prof-stat-num">{myOffersGiven.filter(o=>o.status==="accepted").length}</div><div className="prof-stat-label">Accepted</div></div>
-                </div>
-                <div className="prof-stats" style={{gridTemplateColumns:"repeat(2,1fr)",marginTop:0}}>
-                  <div className="prof-stat"><div className="prof-stat-num">{savedWants.length}</div><div className="prof-stat-label">Saved Wants</div></div>
-                  <div className="prof-stat"><div className="prof-stat-num">{myReviews.length}</div><div className="prof-stat-label">Reviews</div></div>
-                </div>
-                <div style={{marginTop:24,paddingTop:20,borderTop:"1px solid var(--border)"}}>
-                  <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:16,marginBottom:6}}>Danger zone</div>
-                  <div style={{fontSize:13,color:"var(--text2)",marginBottom:12}}>Permanently delete your account and all associated data. This cannot be undone.</div>
-                  <button className="del-account-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
-                </div>
-              </div>
-            )}
-            {profileTab==="wants"&&(
-              <div className="myprof-body">
-                {myWants2.length===0?<div className="empty"><div className="etitle">No wants posted yet</div></div>:
-                myWants2.map(w=>(
-                  <div key={w.id} className="prof-want" onClick={()=>setSheet(w)}>
-                    <div className="prof-want-title">{w.title}</div>
-                    <div className="prof-want-sub">${(w.budget||0).toLocaleString()} · {w.category} · {(w.offers||[]).length} offer{(w.offers||[]).length!==1?"s":""} · {ta(w.createdAt)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {profileTab==="offers"&&(
-              <div className="myprof-body">
-                {myOffersGiven.length===0?<div className="empty"><div className="etitle">No offers made yet</div></div>:
-                (() => {
-                  const groups = [];
-                  const seen = {};
-                  myOffersGiven.forEach(o => {
-                    if (!seen[o.wantId]) { seen[o.wantId] = []; groups.push({wantId:o.wantId,wantTitle:o.wantTitle,wantUser:o.wantUser,offers:[]}); }
-                    seen[o.wantId].push(o);
-                  });
-                  groups.forEach(g => g.offers = seen[g.wantId]);
-                  return groups.map(g=>(
-                    <div key={g.wantId} className="myprof-offer-group">
-                      <div className="myprof-offer-group-hd" onClick={()=>setSheet(wants.find(w=>w.id===g.wantId))}>
-                        📋 {g.wantTitle} <span style={{color:"var(--text2)",fontWeight:500}}>by {g.wantUser}</span>
-                        <span className="myprof-offer-group-count">{g.offers.length} offer{g.offers.length!==1?"s":""}</span>
-                      </div>
-                      {g.offers.map((o,i)=>(
-                        <div key={i} className={`myprof-offer no-title${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`}>
-                          <div className="myprof-offer-msg">{o.message}</div>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
-                            <span className="myprof-offer-price">${(o.price||0).toLocaleString()}</span>
-                            {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
-                            {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
-                            {!o.status&&<span style={{fontSize:11,color:"var(--text2)"}}>Pending</span>}
-                            {o.fromId&&<button className="reply-btn" style={{marginLeft:"auto"}} onClick={()=>{const w=wants.find(x=>x.id===g.wantId);if(w)openChat(w,o);}}>💬 Chat</button>}
-                          </div>
-                        </div>
-                      ))}
+            <div className="prof-page">
+              {/* Hero */}
+              <div className="prof-hero">
+                <div className="prof-hero-av">{initLetter}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="prof-hero-name">{user.displayName||user.email}</div>
+                  {user.displayName&&<div className="prof-hero-email">{user.email}</div>}
+                  {myAvgRating!==null&&(
+                    <div className="prof-rating" style={{marginTop:4}}>
+                      {renderStars(myAvgRating)}
+                      <span className="prof-rating-text">{myAvgRating.toFixed(1)} ({myReviews.length} review{myReviews.length!==1?"s":""})</span>
                     </div>
-                  ));
-                })()}
+                  )}
+                </div>
               </div>
-            )}
-            {profileTab==="saved"&&(
-              <div className="myprof-body">
-                {mySavedWants.length===0?<div className="empty"><div className="eicon">🔖</div><div className="etitle">No saved wants</div><div className="esub">Tap the bookmark on any want to save it here</div></div>:
-                mySavedWants.map(w=>(
-                  <div key={w.id} className="prof-want" style={{position:"relative"}} onClick={()=>setSheet(w)}>
-                    <div className="prof-want-title">{w.title}</div>
-                    <div className="prof-want-sub">${(w.budget||0).toLocaleString()} · {w.user} · {w.category}</div>
-                    <button className="save-unsave" onClick={e=>toggleSave(w.id,e)}>Remove</button>
+              {/* Mini stats */}
+              <div className="prof-mini-stats">
+                <div className="prof-mini-stat">
+                  <div className="prof-mini-num">{myWants2.length}</div>
+                  <div className="prof-mini-label">Wants</div>
+                </div>
+                <div className="prof-mini-stat">
+                  <div className="prof-mini-num">{myOffersGiven.length}</div>
+                  <div className="prof-mini-label">Offers</div>
+                </div>
+                <div className="prof-mini-stat">
+                  <div className="prof-mini-num">{savedWants.length}</div>
+                  <div className="prof-mini-label">Saved</div>
+                </div>
+              </div>
+              {/* Account */}
+              <div className="prof-section-hd">Account</div>
+              <div className="prof-card">
+                <div className="prof-row">
+                  <span className="prof-row-icon">📍</span>
+                  <div className="prof-row-body">
+                    <div className="prof-row-label">Location</div>
                   </div>
-                ))}
+                  <input
+                    className="prof-loc-input"
+                    style={{textAlign:"right",maxWidth:150,fontSize:13}}
+                    placeholder="Add your city…"
+                    value={userLocation}
+                    onChange={e=>setUserLocation(e.target.value)}
+                    onBlur={async()=>{
+                      try{await setDoc(doc(db,"users",user.uid),{location:userLocation},{merge:true});}
+                      catch(err){console.error("Save location failed:",err);}
+                    }}
+                  />
+                </div>
+                <div className="prof-row">
+                  <span className="prof-row-icon">🔒</span>
+                  <div className="prof-row-body">
+                    <div className="prof-row-label">Private profile</div>
+                    <div className="prof-row-sub">Hide your profile from other users</div>
+                  </div>
+                  <button className={`prof-toggle${privacyEnabled?" on":""}`} onClick={async()=>{
+                    const next=!privacyEnabled;
+                    setPrivacyEnabled(next);
+                    try{await setDoc(doc(db,"users",user.uid),{privacyEnabled:next},{merge:true});}
+                    catch(err){console.error("Save privacy failed:",err);}
+                  }}/>
+                </div>
               </div>
-            )}
-            {profileTab==="settings"&&(
-              <div className="myprof-body">
-                <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:16,marginBottom:6}}>Notifications</div>
-                <div style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Choose which push alerts you want to receive. Muting a category stops both web and mobile notifications for it.</div>
+              {/* Notifications */}
+              <div className="prof-section-hd">Notifications</div>
+              <div className="prof-card">
                 {[
-                  {key:"messages",label:"New messages",sub:"When someone sends you a chat message"},
-                  {key:"offers",label:"New offers",sub:"When someone makes an offer on your want"},
-                  {key:"offerStatus",label:"Offer accepted / declined",sub:"When a seller responds to an offer you made"},
+                  {key:"messages",icon:"💬",label:"New messages",sub:"When someone sends you a chat"},
+                  {key:"offers",icon:"🤝",label:"New offers",sub:"When someone offers on your want"},
+                  {key:"offerStatus",icon:"✅",label:"Offer status",sub:"When a seller accepts or declines"},
                 ].map(opt=>(
-                  <label key={opt.key} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,marginBottom:10,cursor:"pointer"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:14}}>{opt.label}</div>
-                      <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>{opt.sub}</div>
+                  <div key={opt.key} className="prof-row">
+                    <span className="prof-row-icon">{opt.icon}</span>
+                    <div className="prof-row-body">
+                      <div className="prof-row-label">{opt.label}</div>
+                      <div className="prof-row-sub">{opt.sub}</div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifPrefs[opt.key]}
-                      onChange={async e=>{
-                        const next = {...notifPrefs, [opt.key]: e.target.checked};
-                        setNotifPrefs(next);
-                        try { await setDoc(doc(db,"users",user.uid), {notifPrefs: next}, {merge:true}); }
-                        catch(err){ console.error("Failed to save notif prefs:", err); }
-                      }}
-                      style={{width:20,height:20,accentColor:"var(--accent)",cursor:"pointer"}}
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-            {profileTab==="reviews"&&(
-              <div className="myprof-body">
-                {!myReviewsLoaded&&<div className="loading">Loading reviews…</div>}
-                {myReviewsLoaded&&myReviews.length===0&&<div className="empty"><div className="etitle">No reviews yet</div><div className="esub">Reviews appear after accepted offers</div></div>}
-                {myReviews.map(r=>(
-                  <div key={r.id} className="rev-item">
-                    <div className="rev-top">
-                      <div className="rev-av">{(r.fromName||"?")[0].toUpperCase()}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div className="rev-name">{r.fromName}</div>
-                        <div className="rev-stars">{renderStars(r.stars)}</div>
-                      </div>
-                      <div className="rev-time">{r.createdAt?.toDate?.()?.toLocaleDateString?.("en-US",{month:"short",day:"numeric",year:"numeric"})||""}</div>
-                    </div>
-                    {r.comment&&<div className="rev-comment">"{r.comment}"</div>}
-                    <div className="rev-want">Re: {r.wantTitle}</div>
+                    <button className={`prof-toggle${notifPrefs[opt.key]?" on":""}`} onClick={async()=>{
+                      const next={...notifPrefs,[opt.key]:!notifPrefs[opt.key]};
+                      setNotifPrefs(next);
+                      try{await setDoc(doc(db,"users",user.uid),{notifPrefs:next},{merge:true});}
+                      catch(err){console.error("Save notif prefs failed:",err);}
+                    }}/>
                   </div>
                 ))}
               </div>
-            )}
+              {/* Reviews */}
+              {myReviews.length>0&&(
+                <>
+                  <div className="prof-section-hd">Reviews ({myReviews.length})</div>
+                  <div className="prof-card">
+                    {myReviews.slice(0,5).map(r=>(
+                      <div key={r.id} className="prof-row" style={{flexDirection:"column",alignItems:"flex-start",gap:6}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,width:"100%"}}>
+                          <div className="av sm">{(r.fromName||"?")[0].toUpperCase()}</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:600,fontSize:13,fontFamily:"var(--fb)"}}>{r.fromName}</div>
+                            <div style={{marginTop:2}}>{renderStars(r.stars)}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"var(--text2)"}}>{r.createdAt?.toDate?.()?.toLocaleDateString?.("en-US",{month:"short",day:"numeric"})||""}</div>
+                        </div>
+                        {r.comment&&<div style={{fontSize:12,color:"var(--text2)",fontStyle:"italic",paddingLeft:4}}>"{r.comment}"</div>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {/* Actions */}
+              <div className="prof-section-hd">Account Actions</div>
+              <button className="prof-action-btn" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
+              <button className="prof-danger-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
+            </div>
           </>
         );
       })()}
 
-      {/* POST */}
-      {view==="post"&&(
-        <div className="pform">
-          {posted?(
-            <div className="empty"><div className="eicon">📬</div><div className="etitle">Want Posted!</div><div className="esub">Sellers will start sending offers soon.</div></div>
-          ):(
-            <>
-              <div className="ftitle">Post a Want</div>
-              <div className="fsub">Tell sellers what you need. Set your budget and let offers come to you.</div>
-              <div className="fg"><label className="fl">What do you want?</label><input className="fi" placeholder='e.g. "Looking for a vintage road bike"' value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} /></div>
-              <div className="fg"><label className="fl">Describe it</label><textarea className="fi" placeholder="Brand, size, condition, color..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} /></div>
-              <div className="fr2">
-                <div className="fg"><label className="fl">Max Budget ($)</label><input type="number" className="fi" placeholder="0" value={form.budget} onChange={e=>setForm(p=>({...p,budget:e.target.value}))} /></div>
-                <div className="fg"><label className="fl">Category</label>
-                  <select className="fi" value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
-                    <option value="">Select...</option>
-                    {["Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"].map(c=><option key={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="fg">
-                <label className="fl">Location <span style={{color:"var(--text2)",fontWeight:400,fontSize:12}}>(city or neighborhood)</span></label>
-                <div className="loc-row">
-                  <div ref={locationInputRef} className="pac-container-wrap" />
-                  <button className="loc-btn" onClick={detectLocation} title="Auto-detect location">{locLoading?"⏳":"📍"}</button>
-                </div>
-              </div>
-              <div className="fg">
-                <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional)</span></label>
-                <div className="post-photos">
-                  {postPhotoPreviews.map((src,i)=>(
-                    <div key={i} className="post-photo-wrap">
-                      <img src={src} className="post-photo-thumb" alt={`photo ${i+1}`} />
-                      <button className="post-photo-rm" onClick={()=>removePostPhoto(i)}>✕</button>
-                    </div>
-                  ))}
-                  {postPhotos.length<3&&(
-                    <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} />
-                  )}
-                </div>
-              </div>
-              <button className="sbtn" onClick={postWant} disabled={posting||!form.title||!form.budget}>{posting?(postPhotos.length>0?"Posting...":"Posting..."):"Post My Want ->"}</button>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* MY POSTS */}
+      {/* MY WANTS */}
       {view==="mine"&&(
         <>
-          <div className="stitle">My Wants</div>
-          <div className="ssub">Manage your wants and review incoming offers.</div>
-          {notifPerm==="default"&&(
-            <div style={{display:"flex",alignItems:"center",gap:10,background:"#fff8f0",border:"1px solid #fed7aa",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-              <span style={{fontSize:20}}>🔔</span>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:13,fontFamily:"var(--fd)"}}>Get notified of new offers</div>
-                <div style={{fontSize:12,color:"var(--text2)"}}>Enable notifications so you never miss an offer on your posts.</div>
-              </div>
-              <button onClick={async()=>{try{const p=await Notification.requestPermission();setNotifPerm(p);}catch(e){}}} style={{padding:"6px 14px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--fd)",whiteSpace:"nowrap"}}>Enable</button>
-            </div>
-          )}
-          {notifPerm==="granted"&&(
-            <div style={{display:"flex",alignItems:"center",gap:8,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:"8px 14px",marginBottom:14,fontSize:12,color:"#16a34a",fontWeight:600}}>
-              <span>✅</span> Notifications enabled — you'll be alerted when offers arrive.
-            </div>
-          )}
+          <div style={{marginBottom:14}}>
+            <div className="stitle">My Wants</div>
+            <div className="ssub">Tap any want to see offers and messages.</div>
+          </div>
+          <div className="mine-new-card" style={{marginBottom:14}} onClick={()=>{setShowPostSheet(true);setPosted(false);}}>
+            <div className="mine-new-icon">➕</div>
+            <div className="mine-new-title">Post a Want</div>
+            <div className="mine-new-sub">Tell sellers what you're looking for. Let offers come to you.</div>
+          </div>
           {myWants.length===0?(
-            <div className="empty"><div className="eicon">📭</div><div className="etitle">No posts yet</div><div className="esub">Post your first want and let sellers come to you</div></div>
-          ):myWants.map(w=>(
-            <div key={w.id} className="mcard">
-              <div className="mtop">
-                <div className="mtitle">{w.title}{w.status==="sold"&&<span style={{marginLeft:8,padding:"2px 8px",fontSize:10,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999,verticalAlign:"middle"}}>SOLD</span>}</div>
-                <span className={`badge ${(w.offers||[]).length>0?"bo":"bn"}`}>{(w.offers||[]).length>0?`${w.offers.length} offer${w.offers.length>1?"s":""}`:"No offers"}</span>
-              </div>
-              <div className="mbudget">Up to ${(w.budget||0).toLocaleString()}</div>
-              <div className="mdesc">{w.description}</div>
-              {(w.photos||[]).length>0&&(
-                <div className="want-photos">
-                  {w.photos.map((url,i)=><img key={i} src={url} className="want-photo" alt="" />)}
-                </div>
-              )}
-              <div className="cacts">
-                <button className="eedit" onClick={()=>{setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location,photos:w.photos||[]});setEditPhotos([]);setEditPhotoPreviews([]);setEditId(w.id);}}>✏️ Edit</button>
-                <button className="edel" onClick={()=>delWant(w.id)}>🗑 Delete</button>
-              </div>
-              {(w.offers||[]).map((o,i)=>(
-                <div key={i} className={`moffer${o.status==="accepted"?" accepted":o.status==="declined"?" declined":""}`} style={o.status==="declined"?{opacity:.55}:o.status==="accepted"?{background:"#f0fdf4",border:"1px solid #6ee7b7"}:{}}>
-                  <div className="av sm profile-link" onClick={()=>openProfile(o.fromId,o.from)}>{(o.from||"?")[0].toUpperCase()}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                      <div className="mon">{o.from}</div>
-                      {o.status==="accepted"&&<span className="offer-status-accepted">✅ Accepted</span>}
-                      {o.status==="declined"&&<span className="offer-status-declined">❌ Declined</span>}
+            <div className="empty"><div className="eicon">📭</div><div className="etitle">No wants yet</div><div className="esub">Tap the card above to post your first want</div></div>
+          ):(
+            <div className="mine-feed-col">
+              {myWants.map(w=>(
+                <div key={w.id} className="mine-feed-card" onClick={()=>setSheet(w)}>
+                  <div className="mine-feed-head">
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:15,color:"var(--text)",marginBottom:4,lineHeight:1.3}}>{w.title}{w.status==="sold"&&<span style={{marginLeft:8,padding:"2px 8px",fontSize:10,fontWeight:700,color:"#065f46",background:"#d1fae5",border:"1px solid #6ee7b7",borderRadius:999,verticalAlign:"middle"}}>SOLD</span>}</div>
+                      <div style={{fontSize:12,color:"var(--text2)"}}>{w.category}{w.category?" · ":""} Up to ${(w.budget||0).toLocaleString()}{w.location?` · 📍 ${w.location}`:""}</div>
                     </div>
-                    <div className="mom">{o.message}</div>
-                    <div className="mop">${(o.price||0).toLocaleString()}</div>
+                    <span className={`badge ${(w.offers||[]).length>0?"bo":"bn"}`}>{(w.offers||[]).length>0?`${w.offers.length} offer${w.offers.length>1?"s":""}`:"No offers"}</span>
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                    {o.fromId&&<button className="reply-btn" onClick={()=>openChat(w,o)}>Reply</button>}
-                    {!o.status&&w.status!=="sold"&&<button className="offer-accept" onClick={()=>acceptOffer(w,i)}>✅</button>}
-                    {!o.status&&w.status!=="sold"&&<button className="offer-decline" onClick={()=>declineOffer(w,i)}>❌</button>}
-                    {o.status==="accepted"&&o.fromId&&o.fromId!==user.uid&&!myReviewedKeys.includes(w.id+"_"+i+"_"+o.fromId)&&(
-                      <button className="rate-btn" onClick={()=>{setReviewSheet({targetUid:o.fromId,targetName:o.from,wantId:w.id,wantTitle:w.title,offerKey:w.id+"_"+i+"_"+o.fromId});setReviewStars(0);setReviewComment("");}}>⭐ Rate</button>
+                  <div className="mine-feed-body">
+                    <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{w.description}</div>
+                    {(w.photos||[]).length>0&&(
+                      <img src={w.photos[0]} style={{width:"100%",maxHeight:180,objectFit:"cover",borderRadius:10,marginTop:8,display:"block"}} alt="" onClick={e=>e.stopPropagation()} />
                     )}
+                  </div>
+                  <div className="mine-feed-foot">
+                    <span style={{fontSize:12,color:"var(--text2)"}}>{ta(w.createdAt)}</span>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <button className="eedit" style={{fontSize:12,padding:"4px 10px"}} onClick={e=>{e.stopPropagation();setEf({title:w.title,description:w.description,budget:w.budget,category:w.category,location:w.location,photos:w.photos||[]});setEditPhotos([]);setEditPhotoPreviews([]);setEditId(w.id);}}>✏️ Edit</button>
+                      <button className="edel" style={{fontSize:12,padding:"4px 10px"}} onClick={e=>{e.stopPropagation();delWant(w.id);}}>🗑</button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          ))}
+          )}
         </>
       )}
 
-      {/* MESSAGES */}
-      {/* OFFERS SENT */}
+      {/* MESSAGES TAB */}
+      {view==="messages"&&(
+        <>
+          <div style={{marginBottom:14}}>
+            <div className="stitle">Messages</div>
+            <div className="ssub">Your conversations with buyers and sellers.</div>
+          </div>
+          {convos.filter(c=>!c.archivedBy?.includes(user.uid)).length===0?(
+            <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Contact a seller on any want to start a conversation</div></div>
+          ):(
+            <div className="msg-tab-list">
+              {convos.filter(c=>!c.archivedBy?.includes(user.uid)).map(c=>{
+                const otherName=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
+                const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
+                return(
+                  <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]})}>
+                    <div className="msg-tab-av">{(otherName[0]||"?").toUpperCase()}</div>
+                    <div className="msg-tab-body">
+                      <div className="msg-tab-name">{otherName}{isUnread&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"var(--accent)",background:"#fff0ec",borderRadius:4,padding:"1px 5px"}}>NEW</span>}</div>
+                      <div className="msg-tab-preview">{c.lastMessage||"No messages yet"}</div>
+                      <div className="msg-tab-want">Re: {c.wantTitle||"Unknown want"}</div>
+                    </div>
+                    <div className="msg-tab-right">
+                      <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
+                      {isUnread&&<div className="msg-unread-dot"/>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* OFFERS SENT (legacy — hidden, use Messages tab instead) */}
       {view==="offers"&&(()=>{
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         // Group by want
@@ -2816,7 +2823,7 @@ return (
           setView(n.id);
         }}>
           <span className="bicon">{n.icon}</span>
-          {n.id==="offers"&&hasUnread&&<span className="notif-badge" />}
+          {n.id==="messages"&&hasUnread&&<span className="notif-badge" />}
           <span>{n.label}</span>
         </div>
       ))}
@@ -3142,6 +3149,64 @@ return (
                   </>
                 )}
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* POST WANT SHEET */}
+    {showPostSheet&&(
+      <div className="moverlay" onClick={()=>setShowPostSheet(false)}>
+        <div className="modal" onClick={e=>e.stopPropagation()}>
+          <div className="mhead">
+            <div className="mttl">Post a Want</div>
+            <button className="mclose" onClick={()=>setShowPostSheet(false)}>✕</button>
+          </div>
+          <div className="ebody">
+            {posted?(
+              <div className="empty" style={{padding:"32px 0"}}>
+                <div className="eicon">📬</div>
+                <div className="etitle">Want Posted!</div>
+                <div className="esub">Sellers will start sending offers soon.</div>
+                <button className="sbtn" style={{marginTop:20}} onClick={()=>{setShowPostSheet(false);setPosted(false);setForm({title:"",description:"",budget:"",category:"",location:""});setPostPhotos([]);setPostPhotoPreviews([]);}}>Done</button>
+              </div>
+            ):(
+              <>
+                <div className="fg"><label className="fl">What do you want?</label><input className="fi" placeholder='e.g. "Looking for a vintage road bike"' value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} /></div>
+                <div className="fg"><label className="fl">Describe it</label><textarea className="fi" placeholder="Brand, size, condition, color..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} /></div>
+                <div className="fr2">
+                  <div className="fg"><label className="fl">Budget ($)</label><input type="number" className="fi" placeholder="0" value={form.budget} onChange={e=>setForm(p=>({...p,budget:e.target.value}))} /></div>
+                  <div className="fg"><label className="fl">Category</label>
+                    <select className="fi" value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
+                      <option value="">Select...</option>
+                      {["Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"].map(c=><option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="fg">
+                  <label className="fl">Location <span style={{color:"var(--text2)",fontWeight:400,fontSize:12}}>(city or neighborhood)</span></label>
+                  <div className="loc-row">
+                    <div ref={locationInputRef} className="pac-container-wrap" />
+                    <button className="loc-btn" onClick={detectLocation} title="Auto-detect">{locLoading?"⏳":"📍"}</button>
+                  </div>
+                </div>
+                <div className="fg">
+                  <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional)</span></label>
+                  <div className="post-photos">
+                    {postPhotoPreviews.map((src,i)=>(
+                      <div key={i} className="post-photo-wrap">
+                        <img src={src} className="post-photo-thumb" alt={`photo ${i+1}`} />
+                        <button className="post-photo-rm" onClick={()=>removePostPhoto(i)}>✕</button>
+                      </div>
+                    ))}
+                    {postPhotos.length<3&&(
+                      <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} />
+                    )}
+                  </div>
+                </div>
+                <button className="sbtn" onClick={postWant} disabled={posting||!form.title||!form.budget}>{posting?"Posting...":"Post My Want →"}</button>
+              </>
             )}
           </div>
         </div>
