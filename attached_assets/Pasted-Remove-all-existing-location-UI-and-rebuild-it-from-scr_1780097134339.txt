@@ -1,0 +1,33 @@
+Remove all existing location UI and rebuild it from scratch. This is a reverse marketplace app where buyers post requests and sellers find and respond to them. Location is core to how the app works.
+
+Here is exactly how location should work for each user type:
+
+---
+
+BUYER (Posting a Request):
+1. When a buyer creates a request, show a clean location input field with a search bar that uses Google Places Autocomplete to find their address
+2. Below the search bar, show a simple map with a pin dropped at their selected location
+3. Add a radius selector below the map with preset options: 5 miles, 10 miles, 25 miles, 50 miles — displayed as clickable buttons, not a dropdown
+4. Show a plain English label confirming their selection, e.g. 'Sellers within 10 miles of Miami, FL will see your request'
+5. Save their location and radius preference so it pre-fills next time they post
+
+---
+
+SELLER (Browsing Requests):
+1. On the seller's home/feed screen, show a small location bar at the top that displays their current area, e.g. 'Showing requests near Miami, FL'
+2. Add a simple Edit button next to it so they can change their location manually
+3. Below the location bar, add a radius filter with the same preset buttons: 5 miles, 10 miles, 25 miles, 50 miles
+4. Each request card in the feed must show the distance from the seller, e.g. '4.2 miles away'
+5. If no requests exist within their radius, show a friendly empty state message: 'No requests near you right now — try expanding your radius'
+6. Auto-detect the seller's location using the browser Geolocation API on first use, but always allow manual override
+7. Save their location and radius preference to local storage so it persists between sessions
+
+---
+
+General:
+- Use Google Maps API or Mapbox for the map and autocomplete (use whichever is already configured in the project)
+- Keep the UI clean and minimal — no raw coordinates visible to users anywhere
+- All location labels should use city and state format: 'Miami, FL' not '25.7617° N, 80.1918° W'
+- Make sure the location UI works on both desktop and mobile
+
+Show me the full updated code for both the buyer request form and the seller feed screen.

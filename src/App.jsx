@@ -470,6 +470,24 @@ textarea.fi{resize:vertical;min-height:80px}
 .loc-row{display:flex;gap:8px;align-items:flex-end}
 .loc-btn{padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:18px;flex-shrink:0;transition:border-color .15s}
 .loc-btn:hover{border-color:var(--accent)}
+.seller-loc-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+.seller-loc-icon{font-size:15px;flex-shrink:0}
+.seller-loc-text{flex:1;font-size:13px;font-weight:500;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seller-loc-edit-btn{font-size:12px;font-weight:700;padding:4px 12px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);color:var(--accent);cursor:pointer;font-family:var(--fb);white-space:nowrap;flex-shrink:0;transition:border-color .15s}
+.seller-loc-edit-btn:hover{border-color:var(--accent)}
+.seller-loc-panel{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.seller-loc-panel-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:0}
+.seller-loc-panel .pac-container-wrap{flex:1}
+.radius-chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.radius-chips::-webkit-scrollbar{display:none}
+.radius-chip{padding:6px 16px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;transition:all .15s;font-family:var(--fb);flex-shrink:0}
+.radius-chip:hover{border-color:var(--accent);color:var(--accent)}
+.radius-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.post-map-preview{width:100%;border-radius:10px;border:1px solid var(--border);display:block;margin:8px 0 4px;object-fit:cover;height:150px;background:var(--surface2)}
+.loc-confirm{font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:6px;line-height:1.6}
+.dist-badge{font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
+.feed-filters{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:12px}
+.feed-filters::-webkit-scrollbar{display:none}
 
 /* MY POSTS */
 .stitle{font-family:var(--fd);font-size:20px;font-weight:800;margin-bottom:6px}
@@ -713,7 +731,7 @@ textarea.fi{resize:vertical;min-height:80px}
 
 
 const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
-const DISTS = ["5 miles","10 miles","20 miles","50 miles","Any distance"];
+const RADIUS_OPTIONS = [5, 10, 25, 50];
 const NAV = [
 {id:"browse",icon:"🏠",label:"Home"},
 {id:"mine",icon:"📋",label:"My Wants"},
@@ -805,9 +823,13 @@ const [myReviewsLoaded, setMyReviewsLoaded] = useState(false);
 const [view, setView] = useState("browse");
 const [search, setSearch] = useState("");
 const [cat, setCat] = useState("All");
-const [dist, setDist] = useState("Any distance");
+const [sellerRadius, setSellerRadius] = useState(null);
+const [sellerLocText, setSellerLocText] = useState("");
+const [sellerLatLng, setSellerLatLng] = useState(null);
+const [sellerLocEditing, setSellerLocEditing] = useState(false);
+const [sellerLocDetecting, setSellerLocDetecting] = useState(false);
+const [formRadius, setFormRadius] = useState(10);
 const [budgetMin, setBudgetMin] = useState("Any budget");
-const [userLatLng, setUserLatLng] = useState(null);
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
 const [sheet, setSheet] = useState(null);
@@ -870,6 +892,8 @@ const msgSwipeIsH = useRef(false);
 const msgActiveDragEl = useRef(null);
 const msgOpenInnerEl = useRef(null);
 const msgsRef = useRef(null);
+const sellerLocInputRef = useRef(null);
+const sellerAcRef = useRef(null);
 
 // Keep ref in sync so native touch handlers can read current swipedMsgId without stale closures
 useEffect(() => { swipedMsgIdRef.current = swipedMsgId; }, [swipedMsgId]);
@@ -1032,6 +1056,90 @@ useEffect(() => {
 if (sheet) setSheet(prev => wants.find(w => w.id === prev?.id) || prev);
 }, [wants]);
 
+// Load seller location + radius from localStorage on mount; auto-detect if nothing saved
+useEffect(() => {
+try {
+  const saved = JSON.parse(localStorage.getItem("wb_seller_loc") || "null");
+  const savedRadius = localStorage.getItem("wb_seller_radius");
+  if (saved?.lat && saved?.lng && saved?.text) {
+    setSellerLocText(saved.text);
+    setSellerLatLng({lat: saved.lat, lng: saved.lng});
+  } else {
+    detectSellerLocation();
+  }
+  if (savedRadius) setSellerRadius(Number(savedRadius));
+} catch { detectSellerLocation(); }
+
+const savedBuyerRadius = localStorage.getItem("wb_buyer_radius");
+const savedBuyerLoc = JSON.parse(localStorage.getItem("wb_buyer_loc") || "null");
+if (savedBuyerRadius) setFormRadius(Number(savedBuyerRadius));
+if (savedBuyerLoc?.location) {
+  setForm(p => ({...p, location: savedBuyerLoc.location, _lat: savedBuyerLoc.lat ?? null, _lng: savedBuyerLoc.lng ?? null}));
+}
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+// Save seller location + radius to localStorage whenever they change
+useEffect(() => {
+if (sellerLocText && sellerLatLng) {
+  try { localStorage.setItem("wb_seller_loc", JSON.stringify({text: sellerLocText, lat: sellerLatLng.lat, lng: sellerLatLng.lng})); } catch {}
+}
+}, [sellerLocText, sellerLatLng]);
+
+useEffect(() => {
+try { localStorage.setItem("wb_seller_radius", sellerRadius === null ? "" : String(sellerRadius)); } catch {}
+}, [sellerRadius]);
+
+// Save buyer location + radius to localStorage
+useEffect(() => {
+if (form.location) {
+  try { localStorage.setItem("wb_buyer_loc", JSON.stringify({location: form.location, lat: form._lat ?? null, lng: form._lng ?? null})); } catch {}
+}
+}, [form.location, form._lat, form._lng]);
+
+useEffect(() => {
+try { localStorage.setItem("wb_buyer_radius", String(formRadius)); } catch {}
+}, [formRadius]);
+
+// Seller location autocomplete — init when edit panel is open
+useEffect(() => {
+if (!sellerLocEditing) { sellerAcRef.current = null; return; }
+const attach = () => {
+  if (!sellerLocInputRef.current || sellerAcRef.current) return;
+  if (!window.google?.maps?.places?.PlaceAutocompleteElement) return;
+  const container = sellerLocInputRef.current;
+  container.innerHTML = "";
+  const acEl = new window.google.maps.places.PlaceAutocompleteElement({ types: ["locality","sublocality","neighborhood"] });
+  acEl.style.cssText = "display:block;width:100%";
+  if (sellerLocText) acEl.value = sellerLocText;
+  container.appendChild(acEl);
+  acEl.addEventListener("gmp-placeselect", (e) => {
+    try {
+      const prediction = e.placePrediction;
+      const full = prediction?.text?.text || prediction?.toString() || "";
+      const parts = full.split(",").map(s => s.trim());
+      const countryTerms = ["USA","United States","US","Canada","Mexico"];
+      const filtered2 = countryTerms.includes(parts[parts.length-1]) ? parts.slice(0,-1) : parts;
+      const addr = filtered2.join(", ") || full;
+      setSellerLocText(addr);
+      acEl.value = addr;
+      geocodeLocation(addr).then(coords => {
+        if (coords) setSellerLatLng(coords);
+      });
+    } catch(err) { console.warn("Seller autocomplete select error", err); }
+  });
+  acEl.addEventListener("input", e => { if (!e.target?.value) { setSellerLocText(""); } });
+  sellerAcRef.current = acEl;
+};
+const tryAttach = () => {
+  if (window.google?.maps?.places?.PlaceAutocompleteElement) { attach(); }
+  else {
+    const s = document.querySelector('script[data-gmaps]');
+    if (s) s.addEventListener("load", () => setTimeout(attach, 100));
+  }
+};
+setTimeout(tryAttach, 50);
+}, [sellerLocEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+
 // Load Google Maps Places script once (new async pattern required by PlaceAutocompleteElement)
 useEffect(() => {
 const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -1043,9 +1151,9 @@ s.setAttribute("data-gmaps", "1");
 document.head.appendChild(s);
 }, []);
 
-// Init PlaceAutocompleteElement on the location container when Post view is active
+// Init PlaceAutocompleteElement on the location container when Post sheet is open
 useEffect(() => {
-if (view !== "post") {
+if (!showPostSheet) {
   autocompleteRef.current = null;
   return;
 }
@@ -1064,16 +1172,16 @@ const attach = () => {
   acEl.addEventListener("gmp-placeselect", (e) => {
     try {
       const prediction = e.placePrediction;
-      // Use prediction text directly — avoids billing-gated fetchFields call.
-      // text.text is e.g. "Miami, FL, USA" or "Coconut Grove, Miami, FL, USA"
       const full = prediction?.text?.text || prediction?.toString() || "";
       const parts = full.split(",").map(s => s.trim());
-      // Strip trailing country entry ("USA", "United States", etc.)
       const countryTerms = ["USA", "United States", "US", "Canada", "Mexico"];
       const filtered = countryTerms.includes(parts[parts.length - 1]) ? parts.slice(0, -1) : parts;
       const addr = filtered.join(", ") || full;
-      setForm(p => ({...p, location: addr}));
+      setForm(p => ({...p, location: addr, _lat: null, _lng: null}));
       if (autocompleteRef.current) autocompleteRef.current.value = addr;
+      geocodeLocation(addr).then(coords => {
+        if (coords) setForm(p => ({...p, _lat: coords.lat, _lng: coords.lng}));
+      });
     } catch(err) {
       console.warn("PlaceAutocomplete select error", err);
     }
@@ -1095,7 +1203,7 @@ const tryAttach = () => {
   }
 };
 tryAttach();
-}, [view]);
+}, [showPostSheet]); // eslint-disable-line react-hooks/exhaustive-deps
 
 // Conversations — fetch all and filter client-side so legacy docs without participants are visible
 useEffect(() => {
@@ -1444,11 +1552,12 @@ if (!navigator.geolocation) return;
 setLocLoading(true);
 navigator.geolocation.getCurrentPosition(async pos => {
 const {latitude: lat, longitude: lng} = pos.coords;
-setUserLatLng({lat, lng});
 try {
 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
 const data = await res.json();
-const loc = data.address?.suburb || data.address?.neighbourhood || data.address?.city || data.address?.town || "Nearby";
+const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.neighbourhood || "";
+const state = data.address?.state_code || data.address?.state || "";
+const loc = city && state ? `${city}, ${state}` : city || state || "Nearby";
 setForm(p=>({...p,location:loc,_lat:lat,_lng:lng}));
 if (autocompleteRef.current) autocompleteRef.current.value = loc;
 } catch {
@@ -1457,6 +1566,28 @@ if (autocompleteRef.current) autocompleteRef.current.value = loc;
 }
 setLocLoading(false);
 }, () => setLocLoading(false));
+};
+
+const detectSellerLocation = (onDone) => {
+if (!navigator.geolocation) return;
+setSellerLocDetecting(true);
+navigator.geolocation.getCurrentPosition(async pos => {
+  const {latitude: lat, longitude: lng} = pos.coords;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await res.json();
+    const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.neighbourhood || "";
+    const state = data.address?.state_code || data.address?.state || "";
+    const loc = city && state ? `${city}, ${state}` : city || state || "Your location";
+    setSellerLocText(loc);
+    setSellerLatLng({lat, lng});
+    if (onDone) onDone(loc, {lat, lng});
+  } catch {
+    setSellerLocText("Your location");
+    setSellerLatLng({lat, lng});
+  }
+  setSellerLocDetecting(false);
+}, () => setSellerLocDetecting(false));
 };
 
 const handlePhoto = e => {
@@ -1506,14 +1637,13 @@ setPostPhotos(p => p.filter((_,i)=>i!==idx));
 setPostPhotoPreviews(p => p.filter((_,i)=>i!==idx));
 };
 
-const distMiles = dist === "Any distance" ? null : parseInt(dist);
 const filtered = wants.filter(w=>{
-if (w.status === "sold") return false; // hide sold wants from public feed
+if (w.status === "sold") return false;
 const ms=w.title?.toLowerCase().includes(search.toLowerCase())||w.description?.toLowerCase().includes(search.toLowerCase());
 const catOk = cat==="All"||w.category===cat;
-const distOk = !distMiles || !userLatLng || !w.lat || !w.lng
+const distOk = !sellerRadius || !sellerLatLng || !w.lat || !w.lng
   ? true
-  : haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng) <= distMiles;
+  : haversine(sellerLatLng.lat, sellerLatLng.lng, w.lat, w.lng) <= sellerRadius;
 const BUDGET_RANGES = {"Any budget":[null,null],"Under $50":[0,50],"$50 – $200":[50,200],"$200 – $500":[200,500],"$500 – $1,000":[500,1000],"$1,000 – $5,000":[1000,5000],"$5,000+":[5000,null]};
 const [bMin,bMax] = BUDGET_RANGES[budgetMin] ?? [null,null];
 const budgetOk = (bMin===null||w.budget>=bMin) && (bMax===null||w.budget<=bMax);
@@ -2477,21 +2607,44 @@ return (
       {/* BROWSE */}
       {view==="browse"&&(
         <>
-          <div className="frow">
+          {/* Seller location bar */}
+          {sellerLocEditing?(
+            <div className="seller-loc-panel">
+              <div style={{fontSize:12,fontWeight:700,color:"var(--text2)",fontFamily:"var(--fd)",letterSpacing:".5px",textTransform:"uppercase",marginBottom:10}}>Your Location</div>
+              <div className="seller-loc-panel-row">
+                <div ref={sellerLocInputRef} className="pac-container-wrap" />
+                <button className="loc-btn" onClick={()=>detectSellerLocation(()=>setSellerLocEditing(false))} title="Auto-detect">{sellerLocDetecting?"⏳":"📍"}</button>
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:10}}>
+                <button className="sbtn" style={{margin:0,fontSize:13,padding:"10px 18px",flex:1}} onClick={()=>setSellerLocEditing(false)}>Done</button>
+              </div>
+            </div>
+          ):(
+            <div className="seller-loc-bar">
+              <span className="seller-loc-icon">📍</span>
+              <span className="seller-loc-text">
+                {sellerLocDetecting?"Detecting your location…":sellerLocText?`Showing requests near ${sellerLocText}`:"Set your location to filter nearby requests"}
+              </span>
+              <button className="seller-loc-edit-btn" onClick={()=>setSellerLocEditing(true)}>Edit</button>
+            </div>
+          )}
+
+          {/* Radius filter */}
+          <div className="radius-chips" style={{marginBottom:12}}>
+            {RADIUS_OPTIONS.map(r=>(
+              <button key={r} className={`radius-chip${sellerRadius===r?" active":""}`} onClick={()=>setSellerRadius(sellerRadius===r?null:r)}>
+                {r} miles
+              </button>
+            ))}
+            <button className={`radius-chip${sellerRadius===null?" active":""}`} onClick={()=>setSellerRadius(null)}>
+              Any distance
+            </button>
+          </div>
+
+          {/* Category + budget filters */}
+          <div className="feed-filters">
             <select className="fsel" value={cat} onChange={e=>setCat(e.target.value)}>
               {CATS.map(c=><option key={c}>{c}</option>)}
-            </select>
-            <span className="frow-sep"/>
-            <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>📍</span>
-            <select className="fsel" value={dist} onChange={e=>{
-              const v=e.target.value; setDist(v);
-              if (v!=="Any distance" && !userLatLng && navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos=>{
-                  setUserLatLng({lat:pos.coords.latitude,lng:pos.coords.longitude});
-                });
-              }
-            }}>
-              {DISTS.map(d=><option key={d}>{d}</option>)}
             </select>
             <span className="frow-sep"/>
             <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>💰</span>
@@ -2499,14 +2652,37 @@ return (
               {["Any budget","Under $50","$50 – $200","$200 – $500","$500 – $1,000","$1,000 – $5,000","$5,000+"].map(r=><option key={r}>{r}</option>)}
             </select>
             <span style={{marginLeft:"auto",fontSize:13,color:"var(--text2)",flexShrink:0}}><strong style={{color:"var(--text)"}}>{filtered.length}</strong> wants</span>
-            {distMiles && !userLatLng && <span style={{fontSize:11,color:"var(--accent)"}}>⚠️</span>}
           </div>
+
           {loading?<div className="loading">Loading wants...</div>:
            filtered.length===0?(
-            <div className="empty"><div className="eicon">📭</div><div className="etitle">No wants yet</div><div className="esub">Be the first to post what you're looking for</div></div>
+            <div className="empty">
+              <div className="eicon">📭</div>
+              {sellerRadius?(
+                <>
+                  <div className="etitle">No requests near you right now</div>
+                  <div className="esub">Try expanding your radius or changing your location</div>
+                  <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginTop:16}}>
+                    {RADIUS_OPTIONS.filter(r=>r>(sellerRadius||0)).slice(0,2).map(r=>(
+                      <button key={r} className="radius-chip" style={{padding:"8px 18px"}} onClick={()=>setSellerRadius(r)}>{r} miles</button>
+                    ))}
+                    <button className="radius-chip" style={{padding:"8px 18px"}} onClick={()=>setSellerRadius(null)}>Any distance</button>
+                  </div>
+                </>
+              ):(
+                <>
+                  <div className="etitle">No wants yet</div>
+                  <div className="esub">Be the first to post what you're looking for</div>
+                </>
+              )}
+            </div>
            ):(
             <div className="feed-col">
-              {filtered.map(w=>(
+              {filtered.map(w=>{
+                const distMi = sellerLatLng && w.lat && w.lng
+                  ? haversine(sellerLatLng.lat, sellerLatLng.lng, w.lat, w.lng)
+                  : null;
+                return (
                 <div key={w.id} className="feed-card" onClick={()=>setSheet(w)}>
                   <div className="feed-urow">
                     <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
@@ -2519,7 +2695,10 @@ return (
                   <div className="feed-body">
                     <div className="feed-title">{w.title}</div>
                     <div className="feed-desc">{w.description}</div>
-                    <div className="feed-pills"><span className="tag">{w.category}</span></div>
+                    <div className="feed-pills">
+                      <span className="tag">{w.category}</span>
+                      {distMi!==null&&<span className="dist-badge">📍 {distMi<0.1?"nearby":distMi.toFixed(1)+" mi away"}</span>}
+                    </div>
                     {(w.photos||[]).length>0&&(
                       <img src={w.photos[0]} className="feed-img" style={{borderRadius:10,marginBottom:4}} alt="" onClick={e=>e.stopPropagation()} />
                     )}
@@ -2532,7 +2711,8 @@ return (
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
            )}
         </>
@@ -3311,6 +3491,29 @@ return (
                     <div ref={locationInputRef} className="pac-container-wrap" />
                     <button className="loc-btn" onClick={detectLocation} title="Auto-detect">{locLoading?"⏳":"📍"}</button>
                   </div>
+                  {/* Map preview — only when we have coordinates */}
+                  {form._lat && form._lng && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                    <img
+                      className="post-map-preview"
+                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${form._lat},${form._lng}&zoom=13&size=600x300&scale=2&markers=color:0xE84B2A%7C${form._lat},${form._lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                      alt="Location map"
+                    />
+                  )}
+                </div>
+                <div className="fg">
+                  <label className="fl">Seller radius</label>
+                  <div className="radius-chips" style={{paddingBottom:4}}>
+                    {RADIUS_OPTIONS.map(r=>(
+                      <button key={r} className={`radius-chip${formRadius===r?" active":""}`} onClick={()=>setFormRadius(r)}>
+                        {r} miles
+                      </button>
+                    ))}
+                  </div>
+                  {form.location && (
+                    <div className="loc-confirm">
+                      Sellers within <strong>{formRadius} miles</strong> of <strong>{form.location}</strong> will see your request
+                    </div>
+                  )}
                 </div>
                 <div className="fg">
                   <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional)</span></label>
