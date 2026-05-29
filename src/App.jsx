@@ -656,6 +656,7 @@ textarea.fi{resize:vertical;min-height:80px}
 .msg-tab-item:last-child{border-bottom:none}
 .msg-tab-item:active{background:var(--surface2)}
 .msg-tab-item.unread{background:#fff9f7}
+.msg-tab-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
 .msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .msg-tab-body{flex:1;min-width:0}
 .msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
@@ -664,6 +665,8 @@ textarea.fi{resize:vertical;min-height:80px}
 .msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
 .msg-tab-time{font-size:11px;color:var(--text2)}
 .msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.msg-tab-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
+.msg-tab-del:active{opacity:.9}
 
 /* PROFILE PAGE */
 .prof-page{display:flex;flex-direction:column;gap:0;padding-bottom:8px}
@@ -839,6 +842,10 @@ const [showArchived, setShowArchived] = useState(false);
 const [chat, setChat] = useState(null);
 const [msgs, setMsgs] = useState([]);
 const [ci, setCi] = useState("");
+const [swipedConvoId, setSwipedConvoId] = useState(null);
+const swipeStartX = useRef(0);
+const swipeStartY = useRef(0);
+const swipeDidMove = useRef(false);
 const [msgSendErr, setMsgSendErr] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
@@ -2617,7 +2624,7 @@ return (
                 const otherName=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
                 const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
                 return(
-                  <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}`} onClick={()=>setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]})}>
+                  <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`} onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}} onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}} onTouchMove={(e)=>{const t=e.touches[0];swipeDidMove.current=true;}} onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}>
                     <div className="msg-tab-av">{(otherName[0]||"?").toUpperCase()}</div>
                     <div className="msg-tab-body">
                       <div className="msg-tab-name">{otherName}{isUnread&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"var(--accent)",background:"#fff0ec",borderRadius:4,padding:"1px 5px"}}>NEW</span>}</div>
@@ -2628,12 +2635,9 @@ return (
                       <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
                       {isUnread&&<div className="msg-unread-dot"/>}
                     </div>
-                    <button
-                      className="edel"
-                      style={{marginLeft:8,padding:"4px 10px",fontSize:12,flexShrink:0}}
-                      onClick={e=>{e.stopPropagation();deleteConvo(c.id);}}
-                      title="Delete conversation"
-                    >×</button>
+                    {swipedConvoId===c.id&&(
+                      <button className="msg-tab-del" onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
+                    )}
                   </div>
                 );
               })}
