@@ -2636,7 +2636,7 @@ return (
                       {isUnread&&<div className="msg-unread-dot"/>}
                     </div>
                     {swipedConvoId===c.id&&(
-                      <button className="msg-tab-del" onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
+                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
                     )}
                   </div>
                 );
