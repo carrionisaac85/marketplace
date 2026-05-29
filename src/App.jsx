@@ -3241,11 +3241,6 @@ return (
           <div className="mhead">
             <div><div className="mttl">💬 {chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <button className="mclose" style={{fontSize:18,background:"none",border:"none",cursor:"pointer",color:"var(--text2)",padding:"4px 6px"}} title="Share this chat" onClick={()=>{
-                const text=`Chatting with ${chat.otherName} about "${chat.wantTitle}" on WantBoard`;
-                if(navigator.share){navigator.share({title:"WantBoard",text}).catch(()=>{});}
-                else{navigator.clipboard?.writeText(text).then(()=>alert("Copied to clipboard!")).catch(()=>{});}
-              }}>⬆️</button>
               <button className="mclose" onClick={()=>setChat(null)}>✕</button>
             </div>
           </div>
