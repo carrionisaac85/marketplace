@@ -67,8 +67,8 @@ const db = getFirestore(app);
 const auth = (() => {
   if (Capacitor.isNativePlatform()) {
     // Native WKWebView: NO popupRedirectResolver — it opens a hidden iframe that hangs forever.
-    // inMemoryPersistence avoids any indexedDB/localStorage access that could also block.
-    return initializeAuth(app, { persistence: inMemoryPersistence });
+    // Use browserLocalPersistence so users stay signed in after app restart.
+    return initializeAuth(app, { persistence: browserLocalPersistence });
   }
   try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence], popupRedirectResolver: browserPopupRedirectResolver }); }
   catch { return getAuth(app); }
@@ -1625,6 +1625,18 @@ if (!chat) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 };
 
+const deleteConvo = async (convoId) => {
+if (!window.confirm("Delete this conversation?")) return;
+try {
+  const msgsSnap = await getDocs(collection(db,"conversations",convoId,"messages"));
+  await Promise.all(msgsSnap.docs.map(m => deleteDoc(doc(db,"conversations",convoId,"messages",m.id)).catch(()=>{})));
+  await deleteDoc(doc(db,"conversations",convoId));
+} catch (e) {
+  console.error("deleteConvo failed", e);
+  alert("Failed to delete conversation.");
+}
+};
+
 const banUser = async (uid) => {
 if (!isAdmin || !uid) return;
 await updateDoc(doc(db,"config","banned"),{uids:arrayUnion(uid)}).catch(async()=>{
@@ -2281,7 +2293,6 @@ return (
       <div className="header-top">
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
         <div className="huser" style={{position:"relative"}}>
-          <span className="huser-name" style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>👤 {user.displayName||user.email?.split("@")[0]}</span>
           <button className="how-link" onClick={()=>{setOnboardingStep(0);setOnboardingOpen(true);}} title="How it works">?</button>
           <button className="bell-btn" onClick={()=>setNotifOpen(o=>!o)} title="Notifications">
             🔔{unreadCount>0&&<span className="bell-badge">{unreadCount>9?"9+":unreadCount}</span>}
@@ -2617,6 +2628,12 @@ return (
                       <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
                       {isUnread&&<div className="msg-unread-dot"/>}
                     </div>
+                    <button
+                      className="edel"
+                      style={{marginLeft:8,padding:"4px 10px",fontSize:12,flexShrink:0}}
+                      onClick={e=>{e.stopPropagation();deleteConvo(c.id);}}
+                      title="Delete conversation"
+                    >×</button>
                   </div>
                 );
               })}
