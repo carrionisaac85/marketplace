@@ -184,8 +184,13 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .forgot-back{background:none;border:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;font-family:var(--fb);text-align:center}
 .forgot-back:hover{color:var(--text)}
 .forgot-success{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;color:var(--text)}
-.auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
+.auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s;box-sizing:border-box}
 .auth-input:focus{border-color:var(--accent)}
+.auth-pass-wrap{position:relative;display:flex;align-items:center}
+.auth-pass-wrap .auth-input{padding-right:42px;width:100%}
+.auth-pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;padding:0;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;line-height:1;-webkit-tap-highlight-color:transparent}
+.auth-pass-toggle:hover{color:var(--text)}
+.auth-pass-toggle:focus{outline:none}
 .auth-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;font-family:var(--fd);margin-top:4px}
 .auth-btn:hover{background:#c73d22}
 .auth-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -747,6 +752,7 @@ const [af, setAf] = useState({name:"",email:"",password:""});
 const [authErr, setAuthErr] = useState("");
 const [authBusy, setAuthBusy] = useState(false);
 const [forgotMode, setForgotMode] = useState(false);
+const [showPass, setShowPass] = useState(false);
 const [forgotEmail, setForgotEmail] = useState("");
 const [forgotSent, setForgotSent] = useState(false);
 const [forgotBusy, setForgotBusy] = useState(false);
@@ -2220,7 +2226,16 @@ if (!user) return (
   <>
     {authTab==="signup"&&<input className="auth-input" placeholder="Your name" value={af.name} onChange={e=>setAf(p=>({...p,name:e.target.value}))} />}
     <input className="auth-input" type="email" placeholder="Email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
-    <input className="auth-input" type="password" placeholder="Password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} />
+    <div className="auth-pass-wrap">
+      <input className="auth-input" type={showPass?"text":"password"} placeholder="Password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} autoComplete={showPass?"off":"current-password"} />
+      <button type="button" className="auth-pass-toggle" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowPass(v=>!v)} aria-label={showPass?"Hide password":"Show password"} tabIndex={-1}>
+        {showPass?(
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        ):(
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        )}
+      </button>
+    </div>
     {authTab==="login"&&<button className="forgot-link" onClick={()=>{setForgotMode(true);setForgotEmail(af.email);setForgotErr("");}}>Forgot password?</button>}
     {authTab==="signup"&&(
       <label className="terms-check-row">
