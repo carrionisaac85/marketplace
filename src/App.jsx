@@ -863,13 +863,81 @@ const [msgSendErr, setMsgSendErr] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
 const [swipedMsgId, setSwipedMsgId] = useState(null);
+const swipedMsgIdRef = useRef(null);
 const msgSwipeStartX = useRef(0);
 const msgSwipeStartY = useRef(0);
 const msgSwipeIsH = useRef(false);
 const msgActiveDragEl = useRef(null);
 const msgOpenInnerEl = useRef(null);
+const msgsRef = useRef(null);
 
+// Keep ref in sync so native touch handlers can read current swipedMsgId without stale closures
+useEffect(() => { swipedMsgIdRef.current = swipedMsgId; }, [swipedMsgId]);
 
+// Native non-passive touch listeners on the msgs container — React's synthetic onTouchMove is
+// passive and can't call preventDefault, so iOS/WKWebView stops delivering live move frames.
+// Attaching directly with {passive:false} fixes that and makes the drag smooth in real time.
+useEffect(() => {
+  const container = msgsRef.current;
+  if (!container) return;
+  const OPEN_OFFSET = -76, THRESHOLD = 60;
+  let startX = 0, startY = 0, isH = false, activeInner = null;
+
+  const onStart = (clientX, clientY, target) => {
+    const row = target.closest('[data-msgid]');
+    if (!row) return;
+    startX = clientX; startY = clientY; isH = false;
+    activeInner = row.querySelector('.msg-row-inner');
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!activeInner) return false;
+    const dx = clientX - startX, dy = clientY - startY;
+    if (!isH) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return false;
+      if (Math.abs(dy) > Math.abs(dx)) { activeInner = null; return false; }
+      isH = true;
+    }
+    const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
+    activeInner.style.transition = 'none';
+    activeInner.style.transform = `translateX(${clamped}px)`;
+    return true;
+  };
+
+  const onEnd = (clientX) => {
+    if (!activeInner || !isH) { activeInner = null; return; }
+    const dx = startX - clientX;
+    const inner = activeInner; activeInner = null;
+    const row = inner.closest('[data-msgid]');
+    const msgId = row?.dataset.msgid;
+    inner.style.transition = 'transform 0.2s ease';
+    if (dx >= THRESHOLD) {
+      if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
+        msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
+        msgOpenInnerEl.current.style.transform = 'translateX(0)';
+      }
+      inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
+      msgOpenInnerEl.current = inner;
+      if (msgId) setSwipedMsgId(msgId);
+    } else {
+      inner.style.transform = 'translateX(0)';
+      if (msgId && swipedMsgIdRef.current === msgId) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
+    }
+  };
+
+  const onTS = e => { const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target); };
+  const onTM = e => { const t = e.touches[0]; if (onMove(t.clientX, t.clientY)) e.preventDefault(); };
+  const onTE = e => { const t = e.changedTouches[0]; onEnd(t.clientX); };
+
+  container.addEventListener('touchstart', onTS, {passive: true});
+  container.addEventListener('touchmove', onTM, {passive: false});
+  container.addEventListener('touchend', onTE, {passive: true});
+  return () => {
+    container.removeEventListener('touchstart', onTS);
+    container.removeEventListener('touchmove', onTM);
+    container.removeEventListener('touchend', onTE);
+  };
+}, [chat?.convoId]);
 
 // Auth listener — auth is already platform-aware (getAuth() on native, initializeAuth on web)
 useEffect(() => {
@@ -3285,7 +3353,7 @@ return (
               </div>
             </div>
           )}
-          <div className="msgs">
+          <div className="msgs" ref={msgsRef}>
             {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"24px 0"}}>No messages yet. Say hello!</div>}
             {msgs.map(m=>{
               const isMine = m.senderId === user.uid;
@@ -3294,91 +3362,46 @@ return (
 
               const closeOpen = () => {
                 if (msgOpenInnerEl.current) {
-                  msgOpenInnerEl.current.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
+                  msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
                   msgOpenInnerEl.current.style.transform = 'translateX(0)';
                   msgOpenInnerEl.current = null;
                 }
                 setSwipedMsgId(null);
               };
 
-              const onTouchStart = (e) => {
-                const t = e.touches[0];
-                msgSwipeStartX.current = t.clientX;
-                msgSwipeStartY.current = t.clientY;
-                msgSwipeIsH.current = false;
-                msgActiveDragEl.current = e.currentTarget.querySelector('.msg-row-inner');
-              };
-
-              const onTouchMove = (e) => {
-                const inner = msgActiveDragEl.current;
-                if (!inner) return;
-                const t = e.touches[0];
-                const dx = t.clientX - msgSwipeStartX.current;
-                const dy = t.clientY - msgSwipeStartY.current;
-                if (!msgSwipeIsH.current) {
-                  if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-                  if (Math.abs(dy) > Math.abs(dx)) { msgActiveDragEl.current = null; return; }
-                  msgSwipeIsH.current = true;
-                }
-                const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
-                inner.style.transition = 'none';
-                inner.style.transform = `translateX(${clamped}px)`;
-                e.preventDefault();
-              };
-
-              const onTouchEnd = (e) => {
-                const inner = msgActiveDragEl.current;
-                msgActiveDragEl.current = null;
-                if (!inner || !msgSwipeIsH.current) return;
-                const t = e.changedTouches[0];
-                const dx = msgSwipeStartX.current - t.clientX;
-                inner.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
-                if (dx >= THRESHOLD) {
-                  if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
-                    msgOpenInnerEl.current.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
-                    msgOpenInnerEl.current.style.transform = 'translateX(0)';
-                  }
-                  inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
-                  msgOpenInnerEl.current = inner;
-                  setSwipedMsgId(m.id);
-                } else {
-                  inner.style.transform = 'translateX(0)';
-                  if (swipedMsgId === m.id) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
-                }
-              };
-
-              const onMouseDown = (e) => {
+              /* Mouse handlers (desktop) — kept on JSX; mouse events don't have the passive problem */
+              const onMouseDown = isMine ? (e) => {
                 msgSwipeStartX.current = e.clientX;
                 msgSwipeStartY.current = e.clientY;
                 msgSwipeIsH.current = false;
                 msgActiveDragEl.current = e.currentTarget.querySelector('.msg-row-inner');
-              };
+              } : undefined;
 
-              const onMouseMove = (e) => {
+              const onMouseMove = isMine ? (e) => {
                 if (e.buttons !== 1) return;
                 const inner = msgActiveDragEl.current;
                 if (!inner) return;
                 const dx = e.clientX - msgSwipeStartX.current;
                 const dy = e.clientY - msgSwipeStartY.current;
                 if (!msgSwipeIsH.current) {
-                  if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+                  if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
                   if (Math.abs(dy) > Math.abs(dx)) { msgActiveDragEl.current = null; return; }
                   msgSwipeIsH.current = true;
                 }
                 const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
                 inner.style.transition = 'none';
                 inner.style.transform = `translateX(${clamped}px)`;
-              };
+              } : undefined;
 
-              const onMouseUp = (e) => {
+              const onMouseUp = isMine ? (e) => {
                 const inner = msgActiveDragEl.current;
                 msgActiveDragEl.current = null;
                 if (!inner || !msgSwipeIsH.current) return;
                 const dx = msgSwipeStartX.current - e.clientX;
-                inner.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
+                inner.style.transition = 'transform 0.2s ease';
                 if (dx >= THRESHOLD) {
                   if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
-                    msgOpenInnerEl.current.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
+                    msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
                     msgOpenInnerEl.current.style.transform = 'translateX(0)';
                   }
                   inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
@@ -3388,16 +3411,13 @@ return (
                   inner.style.transform = 'translateX(0)';
                   if (swipedMsgId === m.id) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
                 }
-              };
+              } : undefined;
 
               return (
-              <div key={m.id} className={`msg-row ${isMine?"mine":"theirs"}`}
-                onTouchStart={isMine?onTouchStart:undefined}
-                onTouchMove={isMine?onTouchMove:undefined}
-                onTouchEnd={isMine?onTouchEnd:undefined}
-                onMouseDown={isMine?onMouseDown:undefined}
-                onMouseMove={isMine?onMouseMove:undefined}
-                onMouseUp={isMine?onMouseUp:undefined}
+              <div key={m.id} data-msgid={isMine?m.id:undefined} className={`msg-row ${isMine?"mine":"theirs"}`}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
                 onClick={(e)=>{if(swipedMsgId===m.id){e.stopPropagation();closeOpen();}}}
               >
                 {isMine && <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>}
