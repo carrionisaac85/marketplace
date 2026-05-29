@@ -566,6 +566,17 @@ textarea.fi{resize:vertical;min-height:80px}
 .bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
 .bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
 .bubble-wrap .bubble{max-width:100%}
+.msg-row{display:flex;align-items:center;max-width:80%;transition:transform .25s cubic-bezier(.25,.8,.25,1)}
+.msg-row.mine{align-self:flex-end;justify-content:flex-end}
+.msg-row.theirs{align-self:flex-start;justify-content:flex-start}
+.msg-row.swiped .msg-row-content{transform:translateX(-80px)}
+.msg-row-content{transition:transform .25s cubic-bezier(.25,.8,.25,1);display:flex;flex-direction:column}
+.msg-row-content .bubble{max-width:100%}
+.msg-row-actions{display:flex;align-items:center;gap:0;margin-left:8px;overflow:hidden;width:0;transition:width .25s cubic-bezier(.25,.8,.25,1)}
+.msg-row.swiped .msg-row-actions{width:72px}
+.msg-row-del{padding:8px 10px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);white-space:nowrap;opacity:0;transform:scale(.85);transition:opacity .2s,transform .2s}
+.msg-row.swiped .msg-row-del{opacity:1;transform:scale(1)}
+.msg-row-del:active{opacity:.85}
 .del-msg{display:none;background:none;border:none;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;padding:2px 4px;margin-top:2px;border-radius:4px}
 .del-msg:hover{color:#fff;background:rgba(0,0,0,0.15)}
 .bubble-wrap.mine:hover .del-msg{display:block}
@@ -849,6 +860,11 @@ const swipeDidMove = useRef(false);
 const [msgSendErr, setMsgSendErr] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
+const [swipedMsgId, setSwipedMsgId] = useState(null);
+const msgSwipeStartX = useRef(0);
+const msgSwipeStartY = useRef(0);
+const msgSwipeDidMove = useRef(false);
+const msgSwipeHandled = useRef(false);
 
 
 
@@ -1630,6 +1646,7 @@ try {
 const deleteMsg = async (msgId) => {
 if (!chat) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
+setSwipedMsgId(null);
 };
 
 const deleteConvo = async (convoId) => {
@@ -3255,19 +3272,35 @@ return (
           )}
           <div className="msgs">
             {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"24px 0"}}>No messages yet. Say hello!</div>}
-            {msgs.map(m=>(
-              <div key={m.id} className={`bubble-wrap ${m.senderId===user.uid?"mine":"theirs"}`}>
-                <div className={`bubble ${m.senderId===user.uid?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
-                  {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
-                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:200,objectFit:"contain"}} alt="" />}
-                  <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
-                  <div className="btime">{ta(m.createdAt)}</div>
+            {msgs.map(m=>{
+              const isMine = m.senderId === user.uid;
+              const isSwiped = swipedMsgId === m.id;
+              return (
+              <div key={m.id} className={`msg-row ${isMine?"mine":"theirs"}${isSwiped?" swiped":""}`}
+                onClick={(e)=>{if(isSwiped){e.stopPropagation();setSwipedMsgId(null);return;}}}
+                onTouchStart={(e)=>{const t=e.touches[0];msgSwipeDidMove.current=false;msgSwipeHandled.current=false;msgSwipeStartX.current=t.clientX;msgSwipeStartY.current=t.clientY;}}
+                onTouchMove={(e)=>{msgSwipeDidMove.current=true;}}
+                onTouchEnd={(e)=>{if(msgSwipeHandled.current)return;const t=e.changedTouches[0];const dx=msgSwipeStartX.current-t.clientX;const dy=msgSwipeStartY.current-t.clientY;if(Math.abs(dx)>Math.abs(dy)&&dx>60&&!msgSwipeHandled.current){msgSwipeHandled.current=true;setSwipedMsgId(isSwiped?null:m.id);}}}
+                onMouseDown={(e)=>{msgSwipeDidMove.current=false;msgSwipeHandled.current=false;msgSwipeStartX.current=e.clientX;msgSwipeStartY.current=e.clientY;}}
+                onMouseMove={(e)=>{if(e.buttons!==1)return;msgSwipeDidMove.current=true;}}
+                onMouseUp={(e)=>{if(msgSwipeHandled.current)return;const dx=msgSwipeStartX.current-e.clientX;const dy=msgSwipeStartY.current-e.clientY;if(Math.abs(dx)>Math.abs(dy)&&dx>60&&!msgSwipeHandled.current){msgSwipeHandled.current=true;setSwipedMsgId(isSwiped?null:m.id);}}}
+              >
+                <div className="msg-row-content">
+                  <div className={`bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
+                    {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
+                    {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:200,objectFit:"contain"}} alt="" />}
+                    <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
+                    <div className="btime">{ta(m.createdAt)}</div>
+                  </div>
                 </div>
-                {m.senderId===user.uid&&(
-                  <button className="del-msg" onClick={()=>deleteMsg(m.id)}>Delete</button>
+                {isSwiped && (
+                  <div className="msg-row-actions">
+                    <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>
+                  </div>
                 )}
               </div>
-            ))}
+              );
+            })}
             <div ref={btm} />
           </div>
           {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca"}}>{msgSendErr}</div>}
