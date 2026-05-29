@@ -1641,9 +1641,12 @@ try {
 };
 
 const deleteMsg = async (msgId) => {
-if (!chat) return;
+if (!chat || !user) return;
+const target = msgs.find(m => m.id === msgId);
+if (!target || target.senderId !== user.uid) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
 setSwipedMsgId(null);
+msgOpenInnerEl.current = null;
 };
 
 const deleteConvo = async (convoId) => {
@@ -3305,7 +3308,6 @@ return (
                 const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
                 inner.style.transition = 'none';
                 inner.style.transform = `translateX(${clamped}px)`;
-                console.log('[WantBoard] swipe distance:', Math.round(-clamped));
                 e.preventDefault();
               };
 
@@ -3315,7 +3317,6 @@ return (
                 if (!inner || !msgSwipeIsH.current) return;
                 const t = e.changedTouches[0];
                 const dx = msgSwipeStartX.current - t.clientX;
-                console.log('[WantBoard] swipe end total:', Math.round(dx));
                 inner.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
                 if (dx >= THRESHOLD) {
                   if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
@@ -3352,7 +3353,6 @@ return (
                 const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
                 inner.style.transition = 'none';
                 inner.style.transform = `translateX(${clamped}px)`;
-                console.log('[WantBoard] mouse swipe distance:', Math.round(-clamped));
               };
 
               const onMouseUp = (e) => {
@@ -3360,7 +3360,6 @@ return (
                 msgActiveDragEl.current = null;
                 if (!inner || !msgSwipeIsH.current) return;
                 const dx = msgSwipeStartX.current - e.clientX;
-                console.log('[WantBoard] mouse swipe end total:', Math.round(dx));
                 inner.style.transition = 'transform .25s cubic-bezier(.25,.8,.25,1)';
                 if (dx >= THRESHOLD) {
                   if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
@@ -3378,15 +3377,15 @@ return (
 
               return (
               <div key={m.id} className={`msg-row ${isMine?"mine":"theirs"}`}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-                onMouseDown={onMouseDown}
-                onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp}
+                onTouchStart={isMine?onTouchStart:undefined}
+                onTouchMove={isMine?onTouchMove:undefined}
+                onTouchEnd={isMine?onTouchEnd:undefined}
+                onMouseDown={isMine?onMouseDown:undefined}
+                onMouseMove={isMine?onMouseMove:undefined}
+                onMouseUp={isMine?onMouseUp:undefined}
                 onClick={(e)=>{if(swipedMsgId===m.id){e.stopPropagation();closeOpen();}}}
               >
-                <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>
+                {isMine && <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>}
                 <div className="msg-row-inner">
                   <div className={`bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
                     {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
