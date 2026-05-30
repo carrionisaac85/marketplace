@@ -1093,18 +1093,35 @@ useEffect(() => {
 if (!profLocEditing) { setProfLocInput(""); setProfLocSugs([]); }
 }, [profLocEditing]);
 
-// Debounced Places AutocompleteService for profile location — works in iOS WKWebView
+// Debounced city search via Nominatim — no API key, CORS-safe, works in iOS WKWebView
 useEffect(() => {
-if (!profLocEditing || !profLocInput.trim()) { setProfLocSugs([]); return; }
-const timer = setTimeout(() => {
-  if (!window.google?.maps?.places) return;
-  const svc = new window.google.maps.places.AutocompleteService();
-  svc.getPlacePredictions({input: profLocInput, types: ["(cities)"]}, (preds, status) => {
-    if (status === "OK" && preds) setProfLocSugs(preds.slice(0, 5));
-    else setProfLocSugs([]);
-  });
-}, 300);
-return () => clearTimeout(timer);
+if (!profLocEditing || profLocInput.trim().length < 2) { setProfLocSugs([]); return; }
+const controller = new AbortController();
+const timer = setTimeout(async () => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(profLocInput.trim())}&format=json&limit=7&addressdetails=1`,
+      { signal: controller.signal, headers: { "Accept-Language": "en" } }
+    );
+    const data = await res.json();
+    const seen = new Set();
+    const sugs = data
+      .filter(r => r.address)
+      .map(r => {
+        const city = r.address.city || r.address.town || r.address.village || r.address.county || r.name || "";
+        const state = r.address.state_code || r.address.state || "";
+        const country = (r.address.country_code || "").toUpperCase();
+        const desc = city && state
+          ? `${city}, ${state}`
+          : city && country ? `${city}, ${country}` : r.display_name;
+        return { description: desc, lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+      })
+      .filter(r => { if (!r.description || seen.has(r.description)) return false; seen.add(r.description); return true; })
+      .slice(0, 5);
+    setProfLocSugs(sugs);
+  } catch(e) { if (e.name !== "AbortError") setProfLocSugs([]); }
+}, 400);
+return () => { clearTimeout(timer); controller.abort(); };
 }, [profLocInput, profLocEditing]);
 
 // Load Google Maps Places script once (new async pattern required by PlaceAutocompleteElement)
@@ -1448,14 +1465,15 @@ return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
 const geocodeLocation = async (locationText) => {
-const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-if (!key || !locationText || locationText === "Nearby") return null;
+if (!locationText || locationText === "Nearby") return null;
 try {
-const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationText)}&key=${key}`);
+const res = await fetch(
+  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationText)}&format=json&limit=1&addressdetails=1`,
+  { headers: { "Accept-Language": "en" } }
+);
 const data = await res.json();
-if (data.results?.[0]?.geometry?.location) {
-  const {lat, lng} = data.results[0].geometry.location;
-  return {lat, lng};
+if (data?.[0]?.lat && data?.[0]?.lon) {
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
 }
 } catch {}
 return null;
@@ -2694,16 +2712,12 @@ return (
                           <div className="prof-loc-sug-list">
                             {profLocSugs.map((s,i)=>(
                               <div key={i} className="prof-loc-sug-item" onMouseDown={async(e)=>{
-                                e.preventDefault(); // keep input focused so blur doesn't hide list first
-                                const full = s.description||"";
-                                const parts = full.split(",").map(p=>p.trim());
-                                const countryTerms=["USA","United States","US","Canada","Mexico"];
-                                const trimmed = countryTerms.includes(parts[parts.length-1]) ? parts.slice(0,-1) : parts;
-                                const addr = trimmed.join(", ")||full;
+                                e.preventDefault();
+                                const addr = s.description||"";
                                 setUserLocation(addr);
                                 setProfLocEditing(false);
-                                const coords = await geocodeLocation(addr);
-                                if (coords) setUserLatLng(coords);
+                                // Nominatim already gave us coords — no extra geocode needed
+                                if (s.lat && s.lng) setUserLatLng({lat: s.lat, lng: s.lng});
                                 try{await setDoc(doc(db,"users",user.uid),{location:addr},{merge:true});}catch{}
                               }}>
                                 {s.description}

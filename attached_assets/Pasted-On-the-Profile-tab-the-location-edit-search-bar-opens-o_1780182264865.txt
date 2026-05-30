@@ -1,0 +1,46 @@
+On the Profile tab, the location edit search bar opens on iOS but when the user types a location nothing happens — no suggestions appear and nothing is saved. Please debug and fix this completely.
+
+Here is what needs to be investigated and fixed:
+
+---
+
+DEBUG FIRST:
+1. Console.log every keystroke in the location input to confirm the onChangeText event is firing
+2. Console.log the raw API response from Google Places Autocomplete to see if results are coming back or if there is an error
+3. If the API is returning an error, log the full error message so we can see exactly what is failing
+
+---
+
+COMMON FIXES TO APPLY:
+
+1. API KEY - Make sure the Google Places API key is correctly configured for iOS in app.json or app.config.js. The key must have 'Places API' enabled in the Google Cloud Console. Add this to app.json if not already there:
+   'ios': { 'config': { 'googleMapsApiKey': 'YOUR_API_KEY' } }
+
+2. LIBRARY SETUP - If using react-native-google-places-autocomplete, make sure it is initialized correctly:
+   - Pass the API key directly into the GooglePlacesAutocomplete component as the query prop
+   - Set fetchDetails={true}
+   - Set minLength={2} so it starts searching after 2 characters
+   - Set debounce={300}
+
+3. FALLBACK OPTION - If Google Places is not working on iOS, replace it entirely with a manual fetch approach:
+   - Use the fetch() function to call the Google Places API directly:
+     https://maps.googleapis.com/maps/api/place/autocomplete/json?input=USERINPUT&key=APIKEY
+   - Display the results in a simple FlatList below the TextInput
+   - When the user taps a result, save it in city, state format and close the edit mode
+
+4. Make sure the FlatList or results list has a high zIndex and is not hidden behind other elements on iOS
+
+5. Make sure the TextInput is not inside a ScrollView that is intercepting touch events
+
+---
+
+EXPECTED BEHAVIOR AFTER FIX:
+- User taps Edit on Profile location
+- TextInput appears and keyboard opens
+- User types at least 2 characters
+- A list of location suggestions appears below the input within 1-2 seconds
+- User taps a suggestion
+- Location saves in 'Miami, FL' format and the edit mode closes
+- New location reflects everywhere in the app immediately
+
+Show me the full updated code and confirm the API key is properly configured.
