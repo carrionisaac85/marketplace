@@ -479,7 +479,14 @@ textarea.fi{resize:vertical;min-height:80px}
 .loc-prompt-input::placeholder{color:var(--text2)}
 .loc-prompt-btn{padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fd);flex-shrink:0}
 .dist-badge{font-size:11px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
-.prof-loc-edit-wrap{display:flex;align-items:center;gap:8px;margin-top:6px}
+.prof-loc-edit-wrap{display:flex;flex-direction:column;gap:6px;margin-top:6px;position:relative}
+.prof-loc-edit-row{display:flex;align-items:center;gap:8px}
+.prof-loc-text-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface);outline:none;min-width:0;transition:border-color .15s}
+.prof-loc-text-input:focus{border-color:var(--accent)}
+.prof-loc-sug-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.prof-loc-sug-item{padding:12px 14px;font-size:14px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)}
+.prof-loc-sug-item:last-child{border-bottom:none}
+.prof-loc-sug-item:active{background:var(--surface2)}
 
 /* MY POSTS */
 .stitle{font-family:var(--fd);font-size:20px;font-weight:800;margin-bottom:6px}
@@ -821,6 +828,8 @@ const [locDetecting, setLocDetecting] = useState(false);
 const [locDenied, setLocDenied] = useState(false);
 const [locPromptVal, setLocPromptVal] = useState("");
 const [profLocEditing, setProfLocEditing] = useState(false);
+const [profLocInput, setProfLocInput] = useState("");
+const [profLocSugs, setProfLocSugs] = useState([]);
 const [budgetMin, setBudgetMin] = useState("Any budget");
 const [wants, setWants] = useState([]);
 const [loading, setLoading] = useState(true);
@@ -1079,47 +1088,24 @@ useEffect(() => {
 try { localStorage.setItem("wb_dist_filter", distFilter); } catch {}
 }, [distFilter]);
 
-// Profile location autocomplete — init when edit mode is open
+// Reset profile location edit state when closed
 useEffect(() => {
-if (!profLocEditing) { profAcRef.current = null; return; }
-const attach = () => {
-  if (!profLocInputRef.current || profAcRef.current) return;
-  if (!window.google?.maps?.places?.PlaceAutocompleteElement) return;
-  const container = profLocInputRef.current;
-  container.innerHTML = "";
-  const acEl = new window.google.maps.places.PlaceAutocompleteElement({ types: ["locality","sublocality","neighborhood","postal_code"] });
-  acEl.style.cssText = "display:block;width:100%";
-  if (userLocation) acEl.value = userLocation;
-  container.appendChild(acEl);
-  acEl.addEventListener("gmp-placeselect", async (e) => {
-    try {
-      const prediction = e.placePrediction;
-      const full = prediction?.text?.text || prediction?.toString() || "";
-      const parts = full.split(",").map(s => s.trim());
-      const countryTerms = ["USA","United States","US","Canada","Mexico"];
-      const filtered2 = countryTerms.includes(parts[parts.length-1]) ? parts.slice(0,-1) : parts;
-      const addr = filtered2.join(", ") || full;
-      setUserLocation(addr);
-      acEl.value = addr;
-      // Also geocode for accurate distance calculations
-      const coords = await geocodeLocation(addr);
-      if (coords) setUserLatLng(coords);
-      // Save to Firestore profile too
-      try { await setDoc(doc(db,"users",user.uid),{location:addr},{merge:true}); } catch {}
-      setProfLocEditing(false);
-    } catch(err) { console.warn("Profile autocomplete select error", err); }
+if (!profLocEditing) { setProfLocInput(""); setProfLocSugs([]); }
+}, [profLocEditing]);
+
+// Debounced Places AutocompleteService for profile location — works in iOS WKWebView
+useEffect(() => {
+if (!profLocEditing || !profLocInput.trim()) { setProfLocSugs([]); return; }
+const timer = setTimeout(() => {
+  if (!window.google?.maps?.places) return;
+  const svc = new window.google.maps.places.AutocompleteService();
+  svc.getPlacePredictions({input: profLocInput, types: ["(cities)"]}, (preds, status) => {
+    if (status === "OK" && preds) setProfLocSugs(preds.slice(0, 5));
+    else setProfLocSugs([]);
   });
-  profAcRef.current = acEl;
-};
-const tryAttach = () => {
-  if (window.google?.maps?.places?.PlaceAutocompleteElement) { attach(); }
-  else {
-    const s = document.querySelector('script[data-gmaps]');
-    if (s) s.addEventListener("load", () => setTimeout(attach, 100));
-  }
-};
-setTimeout(tryAttach, 50);
-}, [profLocEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+}, 300);
+return () => clearTimeout(timer);
+}, [profLocInput, profLocEditing]);
 
 // Load Google Maps Places script once (new async pattern required by PlaceAutocompleteElement)
 useEffect(() => {
@@ -1132,59 +1118,6 @@ s.setAttribute("data-gmaps", "1");
 document.head.appendChild(s);
 }, []);
 
-// Init PlaceAutocompleteElement on the location container when Post sheet is open
-useEffect(() => {
-if (!showPostSheet) {
-  autocompleteRef.current = null;
-  return;
-}
-const attach = () => {
-  if (!locationInputRef.current || autocompleteRef.current) return;
-  if (!window.google?.maps?.places?.PlaceAutocompleteElement) return;
-  const container = locationInputRef.current;
-  // Clear any previous element
-  container.innerHTML = "";
-  const acEl = new window.google.maps.places.PlaceAutocompleteElement({
-    types: ["locality", "sublocality", "neighborhood"],
-  });
-  acEl.style.cssText = "display:block;width:100%";
-  container.appendChild(acEl);
-  // Place selected from dropdown — store city/neighborhood only, never a street address
-  acEl.addEventListener("gmp-placeselect", (e) => {
-    try {
-      const prediction = e.placePrediction;
-      const full = prediction?.text?.text || prediction?.toString() || "";
-      const parts = full.split(",").map(s => s.trim());
-      const countryTerms = ["USA", "United States", "US", "Canada", "Mexico"];
-      const filtered = countryTerms.includes(parts[parts.length - 1]) ? parts.slice(0, -1) : parts;
-      const addr = filtered.join(", ") || full;
-      setForm(p => ({...p, location: addr, _lat: null, _lng: null}));
-      if (autocompleteRef.current) autocompleteRef.current.value = addr;
-      geocodeLocation(addr).then(coords => {
-        if (coords) setForm(p => ({...p, _lat: coords.lat, _lng: coords.lng}));
-      });
-    } catch(err) {
-      console.warn("PlaceAutocomplete select error", err);
-    }
-  });
-  // Manual typing — keep form state in sync
-  acEl.addEventListener("input", (e) => {
-    setForm(p => ({...p, location: e.target?.value || ""}));
-  });
-  autocompleteRef.current = acEl;
-};
-const tryAttach = () => {
-  if (window.google?.maps?.places?.PlaceAutocompleteElement) {
-    attach();
-  } else {
-    const s = document.querySelector('script[data-gmaps]');
-    if (s) {
-      s.addEventListener("load", () => setTimeout(attach, 100));
-    }
-  }
-};
-tryAttach();
-}, [showPostSheet]); // eslint-disable-line react-hooks/exhaustive-deps
 
 // Conversations — fetch all and filter client-side so legacy docs without participants are visible
 useEffect(() => {
@@ -1673,16 +1606,12 @@ alert(`✅ ${count} test posts added!`);
 const postWant = async () => {
 if (!form.title||!form.budget||!user) return;
 setPosting(true);
-let lat = form._lat ?? null;
-let lng = form._lng ?? null;
-if ((!lat || !lng) && form.location && form.location !== "Nearby") {
-const coords = await geocodeLocation(form.location);
-if (coords) { lat = coords.lat; lng = coords.lng; }
-}
+const lat = userLatLng?.lat ?? null;
+const lng = userLatLng?.lng ?? null;
 const docRef = await addDoc(collection(db,"wants"),{
 title:form.title, description:form.description,
 budget:parseInt(form.budget)||0, category:form.category||"Other",
-location:form.location||"Nearby", user:user.displayName||user.email,
+location:userLocation||"", user:user.displayName||user.email,
 userId:user.uid, offers:[], createdAt:serverTimestamp(),
 ...(lat && lng ? {lat, lng} : {}),
 });
@@ -2750,8 +2679,38 @@ return (
                     <div className="prof-row-label">My Location</div>
                     {profLocEditing?(
                       <div className="prof-loc-edit-wrap">
-                        <div ref={profLocInputRef} className="pac-container-wrap" style={{flex:1}} />
-                        <button className="eedit" onClick={()=>setProfLocEditing(false)}>Done</button>
+                        <div className="prof-loc-edit-row">
+                          <input
+                            autoFocus
+                            className="prof-loc-text-input"
+                            placeholder="Search city or zip…"
+                            value={profLocInput}
+                            onChange={e=>setProfLocInput(e.target.value)}
+                            onKeyDown={e=>e.key==="Escape"&&(setProfLocEditing(false))}
+                          />
+                          <button className="eedit" onClick={()=>setProfLocEditing(false)}>Cancel</button>
+                        </div>
+                        {profLocSugs.length>0&&(
+                          <div className="prof-loc-sug-list">
+                            {profLocSugs.map((s,i)=>(
+                              <div key={i} className="prof-loc-sug-item" onMouseDown={async(e)=>{
+                                e.preventDefault(); // keep input focused so blur doesn't hide list first
+                                const full = s.description||"";
+                                const parts = full.split(",").map(p=>p.trim());
+                                const countryTerms=["USA","United States","US","Canada","Mexico"];
+                                const trimmed = countryTerms.includes(parts[parts.length-1]) ? parts.slice(0,-1) : parts;
+                                const addr = trimmed.join(", ")||full;
+                                setUserLocation(addr);
+                                setProfLocEditing(false);
+                                const coords = await geocodeLocation(addr);
+                                if (coords) setUserLatLng(coords);
+                                try{await setDoc(doc(db,"users",user.uid),{location:addr},{merge:true});}catch{}
+                              }}>
+                                {s.description}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ):(
                       <div className="prof-row-sub">{userLocation||"Not set — tap Edit to add your city"}</div>
@@ -3468,13 +3427,6 @@ return (
                       <option value="">Select...</option>
                       {["Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"].map(c=><option key={c}>{c}</option>)}
                     </select>
-                  </div>
-                </div>
-                <div className="fg">
-                  <label className="fl">Location <span style={{color:"var(--text2)",fontWeight:400,fontSize:12}}>(city or neighborhood)</span></label>
-                  <div className="loc-row">
-                    <div ref={locationInputRef} className="pac-container-wrap" />
-                    <button className="loc-btn" onClick={detectLocation} title="Auto-detect">{locLoading?"⏳":"📍"}</button>
                   </div>
                 </div>
                 <div className="fg">
