@@ -46,6 +46,8 @@
                 <key>NSAllowsArbitraryLoads</key>
                 <true/>
         </dict>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Used to show nearby wants and filter results by distance.</string>
         <key>NSCameraUsageDescription</key>
         <string>Used to capture and upload photos for your wants.</string>
         <key>NSPhotoLibraryUsageDescription</key>

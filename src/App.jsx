@@ -1568,7 +1568,7 @@ navigator.geolocation.getCurrentPosition(async pos => {
 }, () => {
   setLocDetecting(false);
   setLocDenied(true);
-});
+}, { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false });
 };
 
 const submitLocPrompt = async () => {

@@ -3,15 +3,12 @@ name: SSH push workflow
 description: How to push to GitHub from this Replit environment
 ---
 
-## Current pub key
-`ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGiKgLKUFSgdDms8RPZbwTMtdu5/685GNjPX4Un8b0Fg runner@repl`
-
 ## Key persistence
-The key at `~/.ssh/id_ed25519` persists across sessions as long as the container is not fully reset. If missing, regenerate with:
+The SSH key is wiped on EVERY container restart. Always regenerate and re-add to GitHub deploy keys at the start of any push task. Generate with:
 ```
-mkdir -p ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q -f overwrite_existing
+mkdir -p ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q && cat ~/.ssh/id_ed25519.pub
 ```
-Or: `ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -y` (skip if file exists with `-n` flag).
+Then add at https://github.com/carrionisaac85/marketplace/settings/keys with "Allow write access".
 
 ## GitHub repo
 `git@github.com:carrionisaac85/marketplace.git` (remote: `origin`)
