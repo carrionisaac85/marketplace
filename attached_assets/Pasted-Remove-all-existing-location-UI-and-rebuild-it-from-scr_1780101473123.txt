@@ -1,0 +1,44 @@
+Remove all existing location UI and rebuild it from scratch using the following approach. This is a reverse marketplace app where buyers post requests and sellers find and respond to them.
+
+---
+
+LOCATION DETECTION (All Users):
+1. On first app load, silently request browser Geolocation permission
+2. If granted, auto-detect the user's location and display a subtle banner at the top of the feed: 'Showing results near Miami, FL' (always city, state format — never raw coordinates)
+3. Save the detected location to local storage so it persists between sessions
+4. If the user denies GPS permission, prompt them with a simple text input: 'Enter your city or zip code to get started'
+5. Never show a map, radius buttons, or any complex location UI on the main feed
+
+---
+
+CHANGE LOCATION (Profile Page Only):
+1. On the user's Profile page, add a 'My Location' section
+2. Show their current saved location: e.g. 'Miami, FL'
+3. Add an Edit button that opens a simple input field where they can search for a new city or zip code using Google Places Autocomplete
+4. Once they select a new location, save it and update it everywhere in the app
+5. This is the ONLY place in the app where a user can manually change their location
+
+---
+
+DISTANCE FILTER (Feed/Browse Screen):
+1. Remove the radius slider/buttons entirely
+2. Instead, add a simple Distance dropdown filter at the top of the request feed with these options:
+   - Any Distance
+   - Within 5 miles
+   - Within 10 miles
+   - Within 25 miles
+   - Within 50 miles
+3. The dropdown should be clean and minimal, consistent with the rest of the app's filter UI
+4. Default to 'Any Distance' on first load
+5. Save the user's last selected distance filter to local storage
+6. Each request card in the feed should still show the distance from the user, e.g. '4.2 miles away'
+
+---
+
+General:
+- No raw coordinates visible to users anywhere in the app
+- All location labels in city, state format: 'Miami, FL'
+- Must work on both desktop and mobile
+- Use whichever maps/location API is already configured in the project
+
+Show me the full updated code for the feed screen, location detection logic, and profile page location section.
