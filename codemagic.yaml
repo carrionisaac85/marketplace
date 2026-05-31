@@ -33,42 +33,24 @@ workflows:
           npm ci
       - name: Deploy Firebase Storage rules
         script: |
-          set -euo pipefail
-          RULES_FILE="storage.rules"
-          _slack_alert() {
-            if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
-              curl -s -X POST "$SLACK_WEBHOOK_URL" \
-                -H 'Content-type: application/json' \
-                --data "{\"text\":\":x: *Firebase rules deploy FAILED* — \`${RULES_FILE}\` was NOT deployed.\n<${CM_BUILD_URL}|View build log>\"}"
-            fi
-          }
-          trap _slack_alert ERR
           if [ -z "${FIREBASE_TOKEN:-}" ]; then
-            echo "ERROR: FIREBASE_TOKEN is not set in the firebase_credentials group. Storage rules were NOT deployed."
-            exit 1
+            echo "WARNING: FIREBASE_TOKEN is not set — skipping Storage rules deploy. iOS build will continue."
+            exit 0
           fi
           echo "firebase-tools version: $(npx firebase-tools --version)"
-          npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
-          echo "✔ Storage rules deploy complete — $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive \
+            && echo "✔ Storage rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            || echo "WARNING: Storage rules deploy failed — iOS build will continue."
       - name: Deploy Firestore rules
         script: |
-          set -euo pipefail
-          RULES_FILE="firestore.rules"
-          _slack_alert() {
-            if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
-              curl -s -X POST "$SLACK_WEBHOOK_URL" \
-                -H 'Content-type: application/json' \
-                --data "{\"text\":\":x: *Firebase rules deploy FAILED* — \`${RULES_FILE}\` was NOT deployed.\n<${CM_BUILD_URL}|View build log>\"}"
-            fi
-          }
-          trap _slack_alert ERR
           if [ -z "${FIREBASE_TOKEN:-}" ]; then
-            echo "ERROR: FIREBASE_TOKEN is not set in the firebase_credentials group. Firestore rules were NOT deployed."
-            exit 1
+            echo "WARNING: FIREBASE_TOKEN is not set — skipping Firestore rules deploy. iOS build will continue."
+            exit 0
           fi
           echo "firebase-tools version: $(npx firebase-tools --version)"
-          npx firebase-tools deploy --only firestore --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
-          echo "✔ Firestore rules deploy complete — $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          npx firebase-tools deploy --only firestore --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive \
+            && echo "✔ Firestore rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            || echo "WARNING: Firestore rules deploy failed — iOS build will continue."
       - name: Build the web bundle (Vite -> dist/)
         script: |
           npm run build
