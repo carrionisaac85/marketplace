@@ -45,6 +45,10 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["firebase", "@firebase/app", "@firebase/firestore", "@firebase/auth", "@firebase/storage"],
   },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+  },
   server: {
     host: "0.0.0.0",
     port: 5000,
