@@ -167,7 +167,8 @@ const css = `
 }
 html,body{overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;height:100%}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;position:relative;width:100%}
-.app{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column;padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom,0px)))}
+.app{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column;position:relative;overflow:hidden}
+main{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom,0px)))}
 
 /* AUTH */
 .auth-wrap{min-height:100vh;min-height:-webkit-fill-available;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
@@ -228,7 +229,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .ptr.active .ptr-icon{animation:ptr-spin .7s linear infinite}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) max(20px,calc(10px + env(safe-area-inset-bottom,0px))) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) max(20px,calc(10px + env(safe-area-inset-bottom,0px))) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06);min-height:60px}
 .bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 12px;color:var(--text2);font-family:var(--fd);font-size:11px;font-weight:600;transition:color .15s;position:relative}
 .bitem:hover,.bitem.active{color:var(--accent)}
 .bicon{font-size:22px;line-height:1}
@@ -281,7 +282,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);-webkit-font-s
 .sh-photo{width:130px;height:130px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
 
 /* MAIN */
-.main{max-width:1100px;margin:0 auto;padding:20px 16px;flex:1;width:100%}
+.main{max-width:1100px;margin:0 auto;padding:20px 16px;flex:1;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:max(100px,calc(80px + env(safe-area-inset-bottom,0px)))}
 
 /* CATEGORIES */
 .cats{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
@@ -1439,7 +1440,16 @@ await signInWithCredential(auth, credential);
 const provider = new GoogleAuthProvider();
 provider.addScope("email");
 provider.addScope("profile");
+try {
+await signInWithPopup(auth, provider);
+} catch (popupErr) {
+// If popup blocked or failed, fallback to redirect
+if (popupErr?.code === "auth/popup-blocked" || popupErr?.code === "auth/cancelled-popup-request") {
 await signInWithRedirect(auth, provider);
+return;
+}
+throw popupErr;
+}
 }
 } catch(e) {
 setAuthErr("Google sign-in failed. Please try again.");
