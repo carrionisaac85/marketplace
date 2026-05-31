@@ -16,7 +16,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.wantboard.app
-      node: 18.20.0
+      node: 20.9.0
       xcode: latest
       cocoapods: default
     cache:
