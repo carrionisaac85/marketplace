@@ -229,7 +229,7 @@ main{-webkit-overflow-scrolling:touch;}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) max(20px,calc(10px + env(safe-area-inset-bottom,0px))) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06);min-height:60px}
-.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 12px;color:var(--text2);font-family:var(--fd);font-size:11px;font-weight:600;transition:color .15s;position:relative}
+.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:4px 6px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;overflow:hidden}
 .bitem:hover,.bitem.active{color:var(--accent)}
 .bicon{font-size:22px;line-height:1}
 .notif-badge{position:absolute;top:0;right:6px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
@@ -1440,18 +1440,31 @@ const provider = new GoogleAuthProvider();
 provider.addScope("email");
 provider.addScope("profile");
 try {
-await signInWithPopup(auth, provider);
+await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 } catch (popupErr) {
-// If popup blocked or failed, fallback to redirect
-if (popupErr?.code === "auth/popup-blocked" || popupErr?.code === "auth/cancelled-popup-request") {
-await signInWithRedirect(auth, provider);
+// popup-closed-by-user = user dismissed it intentionally, not an error
+if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
+setAuthBusy(false);
+return;
+}
+// popup blocked → fall back to redirect flow
+if (popupErr?.code === "auth/popup-blocked") {
+await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
 return;
 }
 throw popupErr;
 }
 }
 } catch(e) {
-setAuthErr("Google sign-in failed. Please try again.");
+const code = e?.code || "";
+const msg = code === "auth/unauthorized-domain"
+  ? "This domain isn't authorized for Google sign-in. Use the published app at want-board.com."
+  : code === "auth/network-request-failed"
+  ? "Network error — check your connection and try again."
+  : code === "auth/user-disabled"
+  ? "This account has been disabled."
+  : "Google sign-in failed. Please try again.";
+setAuthErr(msg);
 setAuthBusy(false);
 }
 };
@@ -1554,12 +1567,15 @@ r.readAsDataURL(f);
 const handlePostPhoto = async (e) => {
 if (postPhotoPicking) return;
 setPostPhotoPicking(true);
+// Extract files from synthetic event immediately, before any awaits
+const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
+if (e?.target) e.target.value = "";
 try {
   const { Capacitor } = await import("@capacitor/core");
   if (Capacitor.isNativePlatform()) {
     const { Camera, CameraResultType } = await import("@capacitor/camera");
     const remaining = 3 - postPhotos.length;
-    if (remaining <= 0) { setPostPhotoPicking(false); return; }
+    if (remaining <= 0) return;
     const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
     const selected = (result.photos || []).slice(0, remaining);
     const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
@@ -1569,20 +1585,21 @@ try {
     })));
     setPostPhotos(p => [...p, ...files]);
     setPostPhotoPreviews(p => [...p, ...previews]);
-    setPostPhotoPicking(false);
     return;
   }
-} catch(err) { console.warn("Native camera unavailable, using file input", err); }
-if (!e?.target?.files?.length) { setPostPhotoPicking(false); return; }
-const files = Array.from(e.target.files);
-const toAdd = files.slice(0, 3 - postPhotos.length);
-if (e.target) e.target.value = "";
-const previews = await Promise.all(toAdd.map(f => new Promise(res => {
-  const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
-})));
-setPostPhotos(p => [...p, ...toAdd]);
-setPostPhotoPreviews(p => [...p, ...previews]);
-setPostPhotoPicking(false);
+  // Web path: use files captured before any awaits
+  if (!webFiles?.length) return;
+  const toAdd = webFiles.slice(0, 3 - postPhotos.length);
+  const previews = await Promise.all(toAdd.map(f => new Promise(res => {
+    const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
+  })));
+  setPostPhotos(p => [...p, ...toAdd]);
+  setPostPhotoPreviews(p => [...p, ...previews]);
+} catch(err) {
+  console.warn("Photo pick failed:", err);
+} finally {
+  setPostPhotoPicking(false);
+}
 };
 
 const removePostPhoto = idx => {
@@ -2272,12 +2289,14 @@ try {
 const handleEditPhoto = async (e) => {
 if (editPhotoPicking) return;
 setEditPhotoPicking(true);
+const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
+if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
     const { Camera, CameraResultType } = await import("@capacitor/camera");
     const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
-    if (remaining <= 0) { setEditPhotoPicking(false); return; }
+    if (remaining <= 0) return;
     const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
     const selected = (result.photos||[]).slice(0, remaining);
     const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
@@ -2285,18 +2304,19 @@ try {
     const previews = await Promise.all(files.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
     setEditPhotos(p=>[...p,...files]);
     setEditPhotoPreviews(p=>[...p,...previews]);
-    setEditPhotoPicking(false); return;
+    return;
   }
-} catch(err) { console.warn("Native camera error", err); }
-if (!e?.target?.files?.length) { setEditPhotoPicking(false); return; }
-const files = Array.from(e.target.files);
-const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
-const toAdd = files.slice(0, remaining);
-if (e.target) e.target.value = "";
-const previews = await Promise.all(toAdd.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
-setEditPhotos(p=>[...p,...toAdd]);
-setEditPhotoPreviews(p=>[...p,...previews]);
-setEditPhotoPicking(false);
+  if (!webFiles?.length) return;
+  const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
+  const toAdd = webFiles.slice(0, remaining);
+  const previews = await Promise.all(toAdd.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
+  setEditPhotos(p=>[...p,...toAdd]);
+  setEditPhotoPreviews(p=>[...p,...previews]);
+} catch(err) {
+  console.warn("Edit photo pick failed:", err);
+} finally {
+  setEditPhotoPicking(false);
+}
 };
 
 const saveEdit = async () => {
