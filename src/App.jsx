@@ -580,18 +580,18 @@ textarea.fi{resize:vertical;min-height:80px}
 .mttl{font-family:var(--fd);font-size:16px;font-weight:700}
 .msub{font-size:12px;color:var(--text2);margin-top:2px}
 .mclose{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
-.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px}
-.bubble{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
+.msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px}
+.bubble{max-width:100%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5;word-break:break-word;overflow-wrap:break-word;min-width:0}
 .bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
-.bubble-wrap{display:flex;flex-direction:column;max-width:80%}
+.bubble-wrap{display:flex;flex-direction:column;max-width:75%;min-width:0}
 .bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
 .bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
 .bubble-wrap .bubble{max-width:100%}
-.msg-row{display:flex;align-items:center;max-width:80%;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.msg-row{display:flex;align-items:center;max-width:75%;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;min-width:0}
 .msg-row.mine{align-self:flex-end;justify-content:flex-end}
 .msg-row.theirs{align-self:flex-start;justify-content:flex-start}
-.msg-row-inner{display:flex;flex-direction:column;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform}
+.msg-row-inner{display:flex;flex-direction:column;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform;min-width:0;width:100%}
 .msg-row-inner .bubble{max-width:100%}
 .msg-row-del{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;border-radius:0 8px 8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
 .msg-row-del:active{opacity:.85}
@@ -1622,6 +1622,12 @@ try {
   if (Capacitor.isNativePlatform()) {
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
     if (postPhotos.length >= 3) return;
+    // Explicitly request camera permission before opening camera
+    const permResult = await Camera.requestPermissions({ permissions: ["camera"] });
+    if (permResult.camera === "denied") {
+      alert("Camera access is denied. Please go to Settings → WantBoard and enable Camera.");
+      return;
+    }
     const photo = await Camera.getPhoto({
       source: CameraSource.Camera,
       quality: 85,
@@ -1647,7 +1653,12 @@ try {
   setPostPhotos(p => [...p, file]);
   setPostPhotoPreviews(p => [...p, preview]);
 } catch(err) {
-  console.warn("Camera capture failed:", err);
+  const msg = err?.message || "";
+  const userCancelled = /cancel|dismiss|user/i.test(msg);
+  if (!userCancelled) {
+    console.error("Camera capture failed:", err);
+    alert("Could not open camera. Please check that WantBoard has camera permission in Settings.");
+  }
 } finally {
   setPostPhotoPicking(false);
 }
@@ -2376,10 +2387,16 @@ setEditPhotoPicking(true);
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
-  const isNative = !!(window.Capacitor?.isNativePlatform?.());
-  if (isNative) {
+  const { Capacitor } = await import("@capacitor/core");
+  if (Capacitor.isNativePlatform()) {
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
     if ((ef.photos||[]).length + editPhotos.length >= 3) return;
+    // Explicitly request camera permission before opening camera
+    const permResult = await Camera.requestPermissions({ permissions: ["camera"] });
+    if (permResult.camera === "denied") {
+      alert("Camera access is denied. Please go to Settings → WantBoard and enable Camera.");
+      return;
+    }
     const photo = await Camera.getPhoto({
       source: CameraSource.Camera,
       quality: 85,
@@ -2400,7 +2417,12 @@ try {
   setEditPhotos(p=>[...p, file]);
   setEditPhotoPreviews(p=>[...p, preview]);
 } catch(err) {
-  console.warn("Edit camera capture failed:", err);
+  const msg = err?.message || "";
+  const userCancelled = /cancel|dismiss|user/i.test(msg);
+  if (!userCancelled) {
+    console.error("Edit camera capture failed:", err);
+    alert("Could not open camera. Please check that WantBoard has camera permission in Settings.");
+  }
 } finally {
   setEditPhotoPicking(false);
 }
