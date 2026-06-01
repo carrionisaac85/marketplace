@@ -34,23 +34,21 @@ workflows:
       - name: Deploy Firebase Storage rules
         script: |
           if [ -z "${FIREBASE_TOKEN:-}" ]; then
-            echo "WARNING: FIREBASE_TOKEN is not set — skipping Storage rules deploy. iOS build will continue."
-            exit 0
+            echo "ERROR: FIREBASE_TOKEN is not set — cannot deploy Storage rules. Add it to the firebase_credentials group in Codemagic."
+            exit 1
           fi
           echo "firebase-tools version: $(npx firebase-tools --version)"
-          npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive \
-            && echo "✔ Storage rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
-            || echo "WARNING: Storage rules deploy failed — iOS build will continue."
+          npx firebase-tools deploy --only storage --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
+          echo "✔ Storage rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
       - name: Deploy Firestore rules
         script: |
           if [ -z "${FIREBASE_TOKEN:-}" ]; then
-            echo "WARNING: FIREBASE_TOKEN is not set — skipping Firestore rules deploy. iOS build will continue."
-            exit 0
+            echo "ERROR: FIREBASE_TOKEN is not set — cannot deploy Firestore rules. Add it to the firebase_credentials group in Codemagic."
+            exit 1
           fi
           echo "firebase-tools version: $(npx firebase-tools --version)"
-          npx firebase-tools deploy --only firestore --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive \
-            && echo "✔ Firestore rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
-            || echo "WARNING: Firestore rules deploy failed — iOS build will continue."
+          npx firebase-tools deploy --only firestore --token "$FIREBASE_TOKEN" --project marketplace305 --non-interactive
+          echo "✔ Firestore rules deployed — $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
       - name: Build the web bundle (Vite -> dist/)
         script: |
           npm run build
