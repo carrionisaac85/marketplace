@@ -78,16 +78,27 @@ async function sendPush(recipientUid, notification, data = {}, badge = null) {
         requireInteraction: false,
       },
     },
+    // Always include APNs overrides so every iOS notification has sound + banner.
+    // badge is optional — only set it when we have a real count.
+    apns: {
+      payload: {
+        aps: {
+          sound: "default",
+          ...(badge != null ? { badge } : {}),
+        },
+      },
+      headers: {
+        "apns-priority": "10",
+      },
+    },
+    android: {
+      notification: {
+        sound: "default",
+        ...(badge != null ? { notificationCount: badge } : {}),
+      },
+      priority: "high",
+    },
   };
-
-  if (badge != null) {
-    message.apns = {
-      payload: { aps: { badge, sound: "default" } },
-    };
-    message.android = {
-      notification: { notificationCount: badge },
-    };
-  }
 
   try {
     await messaging.send(message);
