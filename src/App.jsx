@@ -724,6 +724,8 @@ textarea.fi{resize:vertical;min-height:80px}
 .prof-loc-input::placeholder{color:var(--text2)}
 .prof-action-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid var(--border);background:var(--surface);color:var(--text);margin-bottom:10px;display:block;transition:background .15s}
 .prof-action-btn:active{background:var(--surface2)}
+.prof-support-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1.5px solid #E84B2A;background:var(--surface);color:#E84B2A;margin-bottom:10px;display:block;transition:background .15s,color .15s}
+.prof-support-btn:active{background:#fff0ec}
 .prof-danger-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid #fca5a5;background:var(--surface);color:var(--red);margin-bottom:10px;display:block;transition:background .15s}
 .prof-danger-btn:active{background:#fff5f5}
 `;
@@ -2908,6 +2910,20 @@ return (
               )}
               {/* Actions */}
               <div className="prof-section-hd">Account Actions</div>
+              <button className="prof-support-btn" onClick={async()=>{
+                const url="https://www.want-board.com/support";
+                try{
+                  const {Capacitor}=await import("@capacitor/core");
+                  if(Capacitor.isNativePlatform()){
+                    const {Browser}=await import("@capacitor/browser");
+                    await Browser.open({url});
+                  } else {
+                    window.open(url,"_blank","noopener,noreferrer");
+                  }
+                }catch(err){
+                  window.open(url,"_blank","noopener,noreferrer");
+                }
+              }}>🛟 Support</button>
               <button className="prof-action-btn" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
               <button className="prof-danger-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
             </div>
