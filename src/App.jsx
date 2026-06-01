@@ -738,13 +738,13 @@ const NAV = [
 {id:"myprofile",icon:"👤",label:"Profile"},
 ];
 
-function NativePhotoButton({ onPick, disabled }) {
+function NativePhotoButton({ onPick, disabled, mode = "library" }) {
 const inputRef = useRef(null);
+const isCamera = mode === "camera";
 const handleClick = () => {
   if (disabled) return;
-  // Check synchronously so the file picker opens within the same user gesture.
-  // window.Capacitor is set by the native bridge; undefined in plain browsers.
-  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  // Check synchronously so the picker opens within the same user gesture.
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
     onPick(null);
   } else {
@@ -753,8 +753,16 @@ const handleClick = () => {
 };
 return (
   <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
-    <span>📷</span>{disabled?"…":"Add"}
-    <input ref={inputRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={disabled?undefined:onPick} />
+    <span>{isCamera ? "📸" : "🖼️"}</span>
+    {disabled ? "…" : isCamera ? "Camera" : "Library"}
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      {...(isCamera ? { capture: "environment" } : { multiple: true })}
+      style={{display:"none"}}
+      onChange={disabled ? undefined : onPick}
+    />
   </div>
 );
 }
@@ -1602,6 +1610,47 @@ try {
 }
 };
 
+const handlePostCamera = async (e) => {
+if (postPhotoPicking) return;
+setPostPhotoPicking(true);
+const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
+if (e?.target) e.target.value = "";
+try {
+  const { Capacitor } = await import("@capacitor/core");
+  if (Capacitor.isNativePlatform()) {
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+    if (postPhotos.length >= 3) return;
+    const photo = await Camera.getPhoto({
+      source: CameraSource.Camera,
+      quality: 85,
+      resultType: CameraResultType.Uri,
+      allowEditing: false,
+      saveToGallery: false,
+    });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+    const preview = await new Promise(res => {
+      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
+    });
+    setPostPhotos(p => [...p, file]);
+    setPostPhotoPreviews(p => [...p, preview]);
+    return;
+  }
+  // Web: capture="environment" input provides a single camera photo
+  if (!webFiles?.length) return;
+  const file = webFiles[0];
+  const preview = await new Promise(res => {
+    const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
+  });
+  setPostPhotos(p => [...p, file]);
+  setPostPhotoPreviews(p => [...p, preview]);
+} catch(err) {
+  console.warn("Camera capture failed:", err);
+} finally {
+  setPostPhotoPicking(false);
+}
+};
+
 const removePostPhoto = idx => {
 setPostPhotos(p => p.filter((_,i)=>i!==idx));
 setPostPhotoPreviews(p => p.filter((_,i)=>i!==idx));
@@ -2313,7 +2362,43 @@ try {
   setEditPhotos(p=>[...p,...toAdd]);
   setEditPhotoPreviews(p=>[...p,...previews]);
 } catch(err) {
-  console.warn("Edit photo pick failed:", err);
+  console.warn("Edit library pick failed:", err);
+} finally {
+  setEditPhotoPicking(false);
+}
+};
+
+const handleEditCamera = async (e) => {
+if (editPhotoPicking) return;
+setEditPhotoPicking(true);
+const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
+if (e?.target) e.target.value = "";
+try {
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
+  if (isNative) {
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+    if ((ef.photos||[]).length + editPhotos.length >= 3) return;
+    const photo = await Camera.getPhoto({
+      source: CameraSource.Camera,
+      quality: 85,
+      resultType: CameraResultType.Uri,
+      allowEditing: false,
+      saveToGallery: false,
+    });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+    const preview = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
+    setEditPhotos(p=>[...p, file]);
+    setEditPhotoPreviews(p=>[...p, preview]);
+    return;
+  }
+  if (!webFiles?.length) return;
+  const file = webFiles[0];
+  const preview = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
+  setEditPhotos(p=>[...p, file]);
+  setEditPhotoPreviews(p=>[...p, preview]);
+} catch(err) {
+  console.warn("Edit camera capture failed:", err);
 } finally {
   setEditPhotoPicking(false);
 }
@@ -3482,7 +3567,10 @@ return (
                       </div>
                     ))}
                     {postPhotos.length<3&&(
-                      <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} />
+                      <>
+                        <NativePhotoButton onPick={handlePostCamera} disabled={postPhotoPicking} mode="camera" />
+                        <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} mode="library" />
+                      </>
                     )}
                   </div>
                 </div>
@@ -3639,7 +3727,10 @@ return (
                   </div>
                 ))}
                 {((ef.photos||[]).length + editPhotos.length) < 3 && (
-                  <NativePhotoButton onPick={handleEditPhoto} disabled={editPhotoPicking} />
+                  <>
+                    <NativePhotoButton onPick={handleEditCamera} disabled={editPhotoPicking} mode="camera" />
+                    <NativePhotoButton onPick={handleEditPhoto} disabled={editPhotoPicking} mode="library" />
+                  </>
                 )}
               </div>
             </div>
