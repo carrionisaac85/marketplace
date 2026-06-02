@@ -573,43 +573,43 @@ textarea.fi{resize:vertical;min-height:80px}
 .banned-title{font-family:var(--fd);font-size:24px;font-weight:800;color:#dc2626}
 .banned-sub{font-size:14px;color:var(--text2);max-width:300px}
 
-/* CHAT MODAL */
+/* CHAT SCREEN — full-screen native-style overlay */
+.chat-screen{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:none}
+.chat-header{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-back{background:none;border:none;font-size:26px;line-height:1;color:var(--accent);cursor:pointer;padding:0 6px 0 0;font-family:var(--fb);font-weight:300;flex-shrink:0}
+.chat-header-info{flex:1;min-width:0}
+.chat-header-name{font-family:var(--fd);font-weight:800;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-header-sub{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.chat-offer-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-offer-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.chat-offer-price{font-family:var(--fd);font-size:16px;font-weight:800;color:var(--accent)}
+.chat-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.chat-msg-wrap{display:flex;flex-direction:column;max-width:75%;min-width:0}
+.chat-msg-wrap.mine{align-self:flex-end;align-items:flex-end}
+.chat-msg-wrap.theirs{align-self:flex-start;align-items:flex-start}
+.chat-bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;white-space:pre-wrap;min-width:0;box-sizing:border-box}
+.chat-bubble.mine{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble.theirs{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
+.chat-bubble.offer{border:2px solid var(--accent)}
+.chat-bubble-sender{font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px}
+.chat-bubble-img{width:100%;border-radius:10px;margin-bottom:6px;max-height:200px;object-fit:contain;display:block}
+.chat-bubble-time{font-size:10px;opacity:.55;margin-top:4px;display:block}
+.chat-msg-del{background:none;border:none;color:var(--text2);font-size:10px;cursor:pointer;padding:2px 0;margin-top:2px;font-family:var(--fb)}
+.chat-msg-del:active{color:var(--red)}
+.chat-send-err{padding:6px 16px;color:#dc2626;font-size:12px;background:#fef2f2;border-top:1px solid #fecaca;flex-shrink:0}
+.chat-input-area{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;align-items:center}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
+.chat-input:focus{border-color:var(--accent)}
+.chat-send-btn{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:22px;font-weight:700;cursor:pointer;font-family:var(--fb);font-size:14px;flex-shrink:0;white-space:nowrap}
+.chat-send-btn:active{opacity:.85}
+/* OTHER MODALS (edit, post, etc.) */
 .moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:max(20px,calc(env(safe-area-inset-top,0px) + 10px)) 16px max(20px,calc(env(safe-area-inset-bottom,0px) + 10px))}
-.modal{background:var(--surface);border-radius:20px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.2);border:1px solid var(--border)}
+.modal{background:var(--surface);border-radius:20px;width:100%;max-width:500px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.2);border:1px solid var(--border)}
 .mhead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .mttl{font-family:var(--fd);font-size:16px;font-weight:700}
 .msub{font-size:12px;color:var(--text2);margin-top:2px}
 .mclose{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
-.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:200px}
-.bubble{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
-.bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
-.bubble-wrap{display:flex;flex-direction:column;max-width:80%}
-.bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
-.bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
-.bubble-wrap .bubble{max-width:100%}
-.msg-row{display:flex;align-items:center;max-width:80%;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-.msg-row.mine{align-self:flex-end;justify-content:flex-end}
-.msg-row.theirs{align-self:flex-start;justify-content:flex-start}
-.msg-row-inner{display:flex;flex-direction:column;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform}
-.msg-row-inner .bubble{max-width:100%}
-.msg-row-del{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;border-radius:0 8px 8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
-.msg-row-del:active{opacity:.85}
-.del-msg{display:none;background:none;border:none;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;padding:2px 4px;margin-top:2px;border-radius:4px}
-.del-msg:hover{color:#fff;background:rgba(0,0,0,0.15)}
-.bubble-wrap.mine:hover .del-msg{display:block}
-.bsender{font-size:10px;font-weight:700;margin-bottom:3px;opacity:.7}
-.btime{font-size:10px;opacity:.6;margin-top:4px;text-align:right}
-.minput-row{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
-.minput{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
-.minput:focus{border-color:var(--accent)}
-.msend{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:var(--fb)}
-.chat-offer-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
-.chat-offer-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
-.chat-offer-price{font-family:var(--fd);font-size:17px;font-weight:800;color:var(--accent)}
-.offer-bubble{border:1.5px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--text)!important}
-.bubble.mine.offer-bubble{background:color-mix(in srgb,var(--accent) 20%,#fff)!important;color:var(--text)!important}
 .ebody{padding:20px;overflow-y:auto}
 
 /* EMPTY / LOADING */
@@ -680,22 +680,23 @@ textarea.fi{resize:vertical;min-height:80px}
 .mine-feed-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
 
 /* MESSAGES LIST */
-.msg-tab-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
-.msg-tab-item:last-child{border-bottom:none}
-.msg-tab-item:active{background:var(--surface2)}
-.msg-tab-item.unread{background:#fff9f7}
-.msg-tab-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
-.msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.msg-tab-body{flex:1;min-width:0}
-.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
-.msg-tab-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.msg-tab-time{font-size:11px;color:var(--text2)}
-.msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.msg-tab-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
-.msg-tab-del:active{opacity:.9}
+.msg-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.msg-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
+.msg-item:last-child{border-bottom:none}
+.msg-item:active{background:var(--surface2)}
+.msg-item.unread{background:#fff9f7}
+.msg-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
+.msg-item-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.msg-item-body{flex:1;min-width:0}
+.msg-item-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.msg-item-new{font-size:10px;font-weight:700;color:var(--accent);background:#fff0ec;border-radius:4px;padding:1px 5px;flex-shrink:0}
+.msg-item-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-item-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.msg-item-time{font-size:11px;color:var(--text2)}
+.msg-item-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.msg-item-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
+.msg-item-del:active{opacity:.9}
 
 /* PROFILE PAGE */
 .prof-page{display:flex;flex-direction:column;gap:0;padding-bottom:8px}
@@ -895,84 +896,10 @@ const swipeDidMove = useRef(false);
 const [msgSendErr, setMsgSendErr] = useState("");
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
-const [swipedMsgId, setSwipedMsgId] = useState(null);
-const swipedMsgIdRef = useRef(null);
-const msgSwipeStartX = useRef(0);
-const msgSwipeStartY = useRef(0);
-const msgSwipeIsH = useRef(false);
-const msgActiveDragEl = useRef(null);
-const msgOpenInnerEl = useRef(null);
 const msgsRef = useRef(null);
 const profLocInputRef = useRef(null);
 const profAcRef = useRef(null);
 
-// Keep ref in sync so native touch handlers can read current swipedMsgId without stale closures
-useEffect(() => { swipedMsgIdRef.current = swipedMsgId; }, [swipedMsgId]);
-
-// Native non-passive touch listeners on the msgs container — React's synthetic onTouchMove is
-// passive and can't call preventDefault, so iOS/WKWebView stops delivering live move frames.
-// Attaching directly with {passive:false} fixes that and makes the drag smooth in real time.
-useEffect(() => {
-  const container = msgsRef.current;
-  if (!container) return;
-  const OPEN_OFFSET = -76, THRESHOLD = 60;
-  let startX = 0, startY = 0, isH = false, activeInner = null;
-
-  const onStart = (clientX, clientY, target) => {
-    const row = target.closest('[data-msgid]');
-    if (!row) return;
-    startX = clientX; startY = clientY; isH = false;
-    activeInner = row.querySelector('.msg-row-inner');
-  };
-
-  const onMove = (clientX, clientY) => {
-    if (!activeInner) return false;
-    const dx = clientX - startX, dy = clientY - startY;
-    if (!isH) {
-      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return false;
-      if (Math.abs(dy) > Math.abs(dx)) { activeInner = null; return false; }
-      isH = true;
-    }
-    const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
-    activeInner.style.transition = 'none';
-    activeInner.style.transform = `translateX(${clamped}px)`;
-    return true;
-  };
-
-  const onEnd = (clientX) => {
-    if (!activeInner || !isH) { activeInner = null; return; }
-    const dx = startX - clientX;
-    const inner = activeInner; activeInner = null;
-    const row = inner.closest('[data-msgid]');
-    const msgId = row?.dataset.msgid;
-    inner.style.transition = 'transform 0.2s ease';
-    if (dx >= THRESHOLD) {
-      if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
-        msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
-        msgOpenInnerEl.current.style.transform = 'translateX(0)';
-      }
-      inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
-      msgOpenInnerEl.current = inner;
-      if (msgId) setSwipedMsgId(msgId);
-    } else {
-      inner.style.transform = 'translateX(0)';
-      if (msgId && swipedMsgIdRef.current === msgId) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
-    }
-  };
-
-  const onTS = e => { const t = e.touches[0]; onStart(t.clientX, t.clientY, e.target); };
-  const onTM = e => { const t = e.touches[0]; if (onMove(t.clientX, t.clientY)) e.preventDefault(); };
-  const onTE = e => { const t = e.changedTouches[0]; onEnd(t.clientX); };
-
-  container.addEventListener('touchstart', onTS, {passive: true});
-  container.addEventListener('touchmove', onTM, {passive: false});
-  container.addEventListener('touchend', onTE, {passive: true});
-  return () => {
-    container.removeEventListener('touchstart', onTS);
-    container.removeEventListener('touchmove', onTM);
-    container.removeEventListener('touchend', onTE);
-  };
-}, [chat?.convoId]);
 
 // Auth listener — auth is already platform-aware (getAuth() on native, initializeAuth on web)
 useEffect(() => {
@@ -1867,8 +1794,6 @@ if (!chat || !user) return;
 const target = msgs.find(m => m.id === msgId);
 if (!target || target.senderId !== user.uid) return;
 await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
-setSwipedMsgId(null);
-msgOpenInnerEl.current = null;
 };
 
 const deleteConvo = async (convoId) => {
@@ -2987,24 +2912,37 @@ return (
           {convos.filter(c=>!c.archivedBy?.includes(user.uid)).length===0?(
             <div className="empty"><div className="eicon">💬</div><div className="etitle">No messages yet</div><div className="esub">Contact a seller on any want to start a conversation</div></div>
           ):(
-            <div className="msg-tab-list">
+            <div className="msg-list">
               {convos.filter(c=>!c.archivedBy?.includes(user.uid)).map(c=>{
                 const otherName=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
                 const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
                 return(
-                  <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`} onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}} onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}} onTouchMove={(e)=>{const t=e.touches[0];swipeDidMove.current=true;}} onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}>
-                    <div className="msg-tab-av">{(otherName[0]||"?").toUpperCase()}</div>
-                    <div className="msg-tab-body">
-                      <div className="msg-tab-name">{otherName}{isUnread&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"var(--accent)",background:"#fff0ec",borderRadius:4,padding:"1px 5px"}}>NEW</span>}</div>
-                      <div className="msg-tab-preview">{c.lastMessage||"No messages yet"}</div>
-                      <div className="msg-tab-want">Re: {c.wantTitle||"Unknown want"}</div>
+                  <div key={c.id} className={`msg-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`}
+                    onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}}
+                    onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}}
+                    onTouchMove={()=>{swipeDidMove.current=true;}}
+                    onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}
+                  >
+                    <div className="msg-item-av">{(otherName[0]||"?").toUpperCase()}</div>
+                    <div className="msg-item-body">
+                      <div className="msg-item-name">
+                        {otherName}
+                        {isUnread&&<span className="msg-item-new">NEW</span>}
+                      </div>
+                      <div className="msg-item-preview">{c.lastMessage||"No messages yet"}</div>
+                      <div className="msg-item-want">Re: {c.wantTitle||"Unknown want"}</div>
                     </div>
-                    <div className="msg-tab-right">
-                      <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
-                      {isUnread&&<div className="msg-unread-dot"/>}
+                    <div className="msg-item-right">
+                      <span className="msg-item-time">{ta(c.lastMessageAt||c.createdAt)}</span>
+                      {isUnread&&<div className="msg-item-dot"/>}
                     </div>
                     {swipedConvoId===c.id&&(
-                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
+                      <button className="msg-item-del"
+                        onTouchStart={e=>e.stopPropagation()}
+                        onTouchMove={e=>e.stopPropagation()}
+                        onTouchEnd={e=>e.stopPropagation()}
+                        onClick={e=>{e.stopPropagation();deleteConvo(c.id);}}
+                      >Delete</button>
                     )}
                   </div>
                 );
@@ -3598,111 +3536,55 @@ return (
       </div>
     )}
 
-    {/* CHAT MODAL */}
+    {/* CHAT SCREEN */}
     {chat&&(
-      <div className="moverlay" onClick={()=>setChat(null)}>
-        <div className="modal" onClick={e=>e.stopPropagation()}>
-          <div className="mhead">
-            <div><div className="mttl">💬 {chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+      <div className="chat-screen">
+        <div className="chat-header">
+          <button className="chat-back" onClick={()=>setChat(null)}>‹</button>
+          <div className="chat-header-info">
+            <div className="chat-header-name">{chat.otherName}</div>
+            <div className="chat-header-sub">Re: {chat.wantTitle}</div>
+          </div>
+        </div>
+        {chat.offerPrice&&(
+          <div className="chat-offer-bar">
+            {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt=""/>}
+            <div>
+              <div className="chat-offer-label">Offer</div>
+              <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
             </div>
           </div>
-          {chat.offerPrice&&(
-            <div className="chat-offer-strip">
-              {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt="" />}
-              <div>
-                <div className="chat-offer-label">Offer</div>
-                <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
-              </div>
-            </div>
+        )}
+        <div className="chat-messages" ref={msgsRef}>
+          {msgs.length===0&&(
+            <div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"32px 0",margin:"auto"}}>No messages yet. Say hello!</div>
           )}
-          <div className="msgs" ref={msgsRef}>
-            {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"24px 0"}}>No messages yet. Say hello!</div>}
-            {msgs.map(m=>{
-              const isMine = m.senderId === user.uid;
-              const OPEN_OFFSET = -76;
-              const THRESHOLD = 60;
-
-              const closeOpen = () => {
-                if (msgOpenInnerEl.current) {
-                  msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
-                  msgOpenInnerEl.current.style.transform = 'translateX(0)';
-                  msgOpenInnerEl.current = null;
-                }
-                setSwipedMsgId(null);
-              };
-
-              /* Mouse handlers (desktop) — kept on JSX; mouse events don't have the passive problem */
-              const onMouseDown = isMine ? (e) => {
-                msgSwipeStartX.current = e.clientX;
-                msgSwipeStartY.current = e.clientY;
-                msgSwipeIsH.current = false;
-                msgActiveDragEl.current = e.currentTarget.querySelector('.msg-row-inner');
-              } : undefined;
-
-              const onMouseMove = isMine ? (e) => {
-                if (e.buttons !== 1) return;
-                const inner = msgActiveDragEl.current;
-                if (!inner) return;
-                const dx = e.clientX - msgSwipeStartX.current;
-                const dy = e.clientY - msgSwipeStartY.current;
-                if (!msgSwipeIsH.current) {
-                  if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-                  if (Math.abs(dy) > Math.abs(dx)) { msgActiveDragEl.current = null; return; }
-                  msgSwipeIsH.current = true;
-                }
-                const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
-                inner.style.transition = 'none';
-                inner.style.transform = `translateX(${clamped}px)`;
-              } : undefined;
-
-              const onMouseUp = isMine ? (e) => {
-                const inner = msgActiveDragEl.current;
-                msgActiveDragEl.current = null;
-                if (!inner || !msgSwipeIsH.current) return;
-                const dx = msgSwipeStartX.current - e.clientX;
-                inner.style.transition = 'transform 0.2s ease';
-                if (dx >= THRESHOLD) {
-                  if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
-                    msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
-                    msgOpenInnerEl.current.style.transform = 'translateX(0)';
-                  }
-                  inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
-                  msgOpenInnerEl.current = inner;
-                  setSwipedMsgId(m.id);
-                } else {
-                  inner.style.transform = 'translateX(0)';
-                  if (swipedMsgId === m.id) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
-                }
-              } : undefined;
-
-              return (
-              <div key={m.id} data-msgid={isMine?m.id:undefined} className={`msg-row ${isMine?"mine":"theirs"}`}
-                onMouseDown={onMouseDown}
-                onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp}
-                onClick={(e)=>{if(swipedMsgId===m.id){e.stopPropagation();closeOpen();}}}
-              >
-                {isMine && <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>}
-                <div className="msg-row-inner">
-                  <div className={`bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
-                    {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
-                    {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:200,objectFit:"contain"}} alt="" />}
-                    <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
-                    <div className="btime">{ta(m.createdAt)}</div>
-                  </div>
+          {msgs.map(m=>{
+            const isMine=m.senderId===user.uid;
+            return(
+              <div key={m.id} className={`chat-msg-wrap ${isMine?"mine":"theirs"}`}>
+                {!isMine&&m.senderName&&<div className="chat-bubble-sender">{m.senderName}</div>}
+                <div className={`chat-bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer":""}`}>
+                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
+                  {m.text}
+                  <span className="chat-bubble-time">{ta(m.createdAt)}</span>
                 </div>
+                {isMine&&<button className="chat-msg-del" onClick={()=>deleteMsg(m.id)}>Delete</button>}
               </div>
-              );
-            })}
-            <div ref={btm} />
-          </div>
-          {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca"}}>{msgSendErr}</div>}
-          <div className="minput-row">
-            <input className="minput" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
-            <button className="msend" onClick={sendMsg}>Send</button>
-          </div>
+            );
+          })}
+          <div ref={btm}/>
+        </div>
+        {msgSendErr&&<div className="chat-send-err">{msgSendErr}</div>}
+        <div className="chat-input-area">
+          <input
+            className="chat-input"
+            placeholder="Message..."
+            value={ci}
+            onChange={e=>setCi(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMsg()}
+          />
+          <button className="chat-send-btn" onClick={sendMsg}>Send</button>
         </div>
       </div>
     )}
