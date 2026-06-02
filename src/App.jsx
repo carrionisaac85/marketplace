@@ -679,22 +679,31 @@ textarea.fi{resize:vertical;min-height:80px}
 .mine-feed-body{padding:0 16px 10px}
 .mine-feed-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
 
-/* MESSAGES LIST */
-.msg-tab-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
-.msg-tab-item:last-child{border-bottom:none}
-.msg-tab-item:active{background:var(--surface2)}
-.msg-tab-item.unread{background:#fff9f7}
-.msg-tab-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
-.msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* MESSAGES LIST — Card Feed */
+.msg-tab-list{display:flex;flex-direction:column;padding:12px 0}
+.msg-tab-item{position:relative;margin:0 16px 12px;background:#fff;border-radius:16px;box-shadow:0 2px 8px -2px rgba(0,0,0,.06);cursor:pointer;overflow:hidden;transition:transform .1s}
+.msg-tab-item:active{transform:scale(.98)}
+.msg-tab-item.unread{box-shadow:0 4px 20px -4px rgba(232,75,42,.12)}
+.msg-tab-item.swiped{transform:translateX(-80px)}
+.msg-tab-unread-bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.msg-tab-unread-wash{position:absolute;inset:0;background:linear-gradient(to right,rgba(232,75,42,.03),transparent);pointer-events:none}
+.msg-tab-inner{padding:14px 16px}
+.msg-tab-chip{display:inline-flex;align-items:center;gap:5px;background:#f7f5f2;border:1px solid rgba(232,75,42,.1);border-radius:6px;font-size:11px;font-family:var(--fb);font-weight:500;color:var(--text);padding:3px 8px;max-width:calc(100% - 80px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.msg-tab-chip-dot{width:6px;height:6px;border-radius:50%;background:rgba(232,75,42,.6);flex-shrink:0}
+.msg-tab-ts{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.msg-tab-ts.unread{background:rgba(232,75,42,.1);color:var(--accent)}
+.msg-tab-ts.read{background:#f7f5f2;color:var(--text2)}
+.msg-tab-row{display:flex;align-items:center;gap:14px}
+.msg-tab-av{width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.msg-tab-av.unread{outline:2px solid var(--accent);outline-offset:2px}
+.msg-tab-av-dot{position:absolute;top:-2px;right:-2px;width:14px;height:14px;background:var(--accent);border:2px solid #fff;border-radius:50%}
 .msg-tab-body{flex:1;min-width:0}
-.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
-.msg-tab-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.msg-tab-time{font-size:11px;color:var(--text2)}
+.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:15px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-name.read{font-weight:600;opacity:.8}
+.msg-tab-preview{font-size:13px;color:var(--text2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.45}
+.msg-tab-preview.unread{color:var(--text);font-weight:500}
 .msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.msg-tab-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
+.msg-tab-del{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;border:none;border-radius:0 16px 16px 0}
 .msg-tab-del:active{opacity:.9}
 
 /* PROFILE PAGE */
@@ -2993,18 +3002,26 @@ return (
                 const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
                 return(
                   <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`} onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}} onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}} onTouchMove={(e)=>{const t=e.touches[0];swipeDidMove.current=true;}} onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}>
-                    <div className="msg-tab-av">{(otherName[0]||"?").toUpperCase()}</div>
-                    <div className="msg-tab-body">
-                      <div className="msg-tab-name">{otherName}{isUnread&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"var(--accent)",background:"#fff0ec",borderRadius:4,padding:"1px 5px"}}>NEW</span>}</div>
-                      <div className="msg-tab-preview">{c.lastMessage||"No messages yet"}</div>
-                      <div className="msg-tab-want">Re: {c.wantTitle||"Unknown want"}</div>
-                    </div>
-                    <div className="msg-tab-right">
-                      <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
-                      {isUnread&&<div className="msg-unread-dot"/>}
+                    {isUnread&&<div className="msg-tab-unread-bar"/>}
+                    {isUnread&&<div className="msg-tab-unread-wash"/>}
+                    <div className="msg-tab-inner">
+                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
+                        <div className="msg-tab-chip"><span className="msg-tab-chip-dot"/>{c.wantTitle||"Unknown want"}</div>
+                        <span className={`msg-tab-ts${isUnread?" unread":" read"}`}>{ta(c.lastMessageAt||c.createdAt)}</span>
+                      </div>
+                      <div className="msg-tab-row">
+                        <div className={`msg-tab-av${isUnread?" unread":""}`}>
+                          {(otherName[0]||"?").toUpperCase()}
+                          {isUnread&&<div className="msg-tab-av-dot"/>}
+                        </div>
+                        <div className="msg-tab-body">
+                          <div className={`msg-tab-name${isUnread?"":" read"}`}>{otherName}</div>
+                          <div className={`msg-tab-preview${isUnread?" unread":""}`}>{c.lastMessage||"No messages yet"}</div>
+                        </div>
+                      </div>
                     </div>
                     {swipedConvoId===c.id&&(
-                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
+                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}}>Delete</button>
                     )}
                   </div>
                 );
