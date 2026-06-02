@@ -1,0 +1,86 @@
+The "My Posts" feature needs to support adding images when creating or editing a post. Currently, users cannot reliably take a photo or upload one. I need this functionality fully implemented and tested.
+
+Requirements:
+
+### Image Support
+
+When creating or editing a post, users must be able to:
+
+1. Take a photo using their device camera.
+2. Upload one or more photos from their device.
+3. Preview selected images before publishing.
+4. Remove or replace images before publishing.
+5. Save posts with images attached.
+6. Display uploaded images correctly in the post after publishing.
+
+### Mobile Requirements
+
+* On mobile devices, provide a camera option that opens the device camera directly when supported.
+* Support both iOS and Android browsers.
+* Allow users to choose between:
+
+  * Take Photo
+  * Choose from Gallery
+
+### Desktop Requirements
+
+* Allow image uploads from local files.
+* Support drag-and-drop uploads if possible.
+* Display image previews immediately after selection.
+
+### Technical Tasks
+
+1. Audit the current post creation and editing forms.
+2. Identify why image upload and camera capture are not functioning correctly.
+3. Fix all frontend and backend issues related to image handling.
+4. Verify file upload endpoints are working properly.
+5. Verify images are stored correctly and associated with the correct post.
+6. Verify images are retrieved and rendered correctly in:
+
+   * My Posts
+   * Post Details
+   * Search Results
+   * Feed/List Views
+
+### Validation Rules
+
+* Accept common image formats:
+
+  * JPG
+  * JPEG
+  * PNG
+  * WEBP
+* Validate file size limits.
+* Show clear error messages for unsupported files.
+* Prevent broken image records from being saved.
+
+### UI Requirements
+
+* Add an obvious "Add Photos" button.
+* Show upload progress indicators.
+* Display image thumbnails after upload.
+* Allow users to delete individual images before saving.
+
+### Testing
+
+Test the complete flow:
+
+1. Create post with uploaded image.
+2. Create post using camera capture.
+3. Edit post and add additional images.
+4. Delete images from a post.
+5. View images after publishing.
+6. Verify functionality on desktop and mobile.
+
+### Deliverables
+
+After implementation:
+
+* Explain the root cause of the issue.
+* List all files modified.
+* Describe the image storage method being used.
+* Confirm camera capture works.
+* Confirm file uploads work.
+* Confirm images display correctly throughout the application.
+
+Do not patch around the issue. Fully implement and verify image upload and camera capture support for all posts in the My Posts section.

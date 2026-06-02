@@ -741,12 +741,26 @@ const NAV = [
 {id:"myprofile",icon:"👤",label:"Profile"},
 ];
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
+const MAX_FILE_SIZE_MB = 15;
+
+function validateImageFiles(files) {
+  for (const f of files) {
+    if (!ACCEPTED_IMAGE_TYPES.includes(f.type.toLowerCase())) {
+      return `"${f.name}" is not a supported image type. Use JPG, PNG, or WebP.`;
+    }
+    if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      return `"${f.name}" is too large (max ${MAX_FILE_SIZE_MB}MB).`;
+    }
+  }
+  return null;
+}
+
 function NativePhotoButton({ onPick, disabled, mode = "library" }) {
 const inputRef = useRef(null);
 const isCamera = mode === "camera";
 const handleClick = () => {
   if (disabled) return;
-  // Check synchronously so the picker opens within the same user gesture.
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
     onPick(null);
@@ -754,6 +768,8 @@ const handleClick = () => {
     inputRef.current?.click();
   }
 };
+// Only add capture="environment" on touch devices (mobile), not desktop
+const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 return (
   <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
     <span>{isCamera ? "📸" : "🖼️"}</span>
@@ -761,8 +777,8 @@ return (
     <input
       ref={inputRef}
       type="file"
-      accept="image/*"
-      {...(isCamera ? { capture: "environment" } : { multiple: true })}
+      accept="image/jpeg,image/jpg,image/png,image/webp"
+      {...(isCamera && isTouchDevice ? { capture: "environment" } : { multiple: !isCamera })}
       style={{display:"none"}}
       onChange={disabled ? undefined : onPick}
     />
@@ -879,6 +895,9 @@ const [notifOpen, setNotifOpen] = useState(false);
 const [postPhotos, setPostPhotos] = useState([]);
 const [postPhotoPreviews, setPostPhotoPreviews] = useState([]);
 const [postPhotoPicking, setPostPhotoPicking] = useState(false);
+const [postPhotoErr, setPostPhotoErr] = useState("");
+const [uploadingPhotos, setUploadingPhotos] = useState(false);
+const [editSaveErr, setEditSaveErr] = useState("");
 const [convos, setConvos] = useState([]);
 const [hasUnread, setHasUnread] = useState(false);
 const [msgFilter, setMsgFilter] = useState("all");
@@ -1504,7 +1523,7 @@ r.readAsDataURL(f);
 const handlePostPhoto = async (e) => {
 if (postPhotoPicking) return;
 setPostPhotoPicking(true);
-// Extract files from synthetic event immediately, before any awaits
+setPostPhotoErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
@@ -1524,9 +1543,10 @@ try {
     setPostPhotoPreviews(p => [...p, ...previews]);
     return;
   }
-  // Web path: use files captured before any awaits
   if (!webFiles?.length) return;
   const toAdd = webFiles.slice(0, 3 - postPhotos.length);
+  const validErr = validateImageFiles(toAdd);
+  if (validErr) { setPostPhotoErr(validErr); return; }
   const previews = await Promise.all(toAdd.map(f => new Promise(res => {
     const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
   })));
@@ -1534,6 +1554,7 @@ try {
   setPostPhotoPreviews(p => [...p, ...previews]);
 } catch(err) {
   console.warn("Photo pick failed:", err);
+  setPostPhotoErr("Could not load the selected photo. Please try again.");
 } finally {
   setPostPhotoPicking(false);
 }
@@ -1542,6 +1563,7 @@ try {
 const handlePostCamera = async (e) => {
 if (postPhotoPicking) return;
 setPostPhotoPicking(true);
+setPostPhotoErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
@@ -1565,9 +1587,10 @@ try {
     setPostPhotoPreviews(p => [...p, preview]);
     return;
   }
-  // Web: capture="environment" input provides a single camera photo
   if (!webFiles?.length) return;
   const file = webFiles[0];
+  const validErr = validateImageFiles([file]);
+  if (validErr) { setPostPhotoErr(validErr); return; }
   const preview = await new Promise(res => {
     const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
   });
@@ -1575,6 +1598,7 @@ try {
   setPostPhotoPreviews(p => [...p, preview]);
 } catch(err) {
   console.warn("Camera capture failed:", err);
+  setPostPhotoErr("Camera capture failed. Try using the Library button instead.");
 } finally {
   setPostPhotoPicking(false);
 }
@@ -1627,17 +1651,26 @@ alert(`✅ ${count} test posts added!`);
 
 const postWant = async () => {
 if (!form.title||!form.budget||!user) return;
-setPosting(true);
+setPosting(true); setPostPhotoErr("");
 const lat = userLatLng?.lat ?? null;
 const lng = userLatLng?.lng ?? null;
-const docRef = await addDoc(collection(db,"wants"),{
-title:form.title, description:form.description,
-budget:parseInt(form.budget)||0, category:form.category||"Other",
-location:userLocation||"", user:user.displayName||user.email,
-userId:user.uid, offers:[], createdAt:serverTimestamp(),
-...(lat && lng ? {lat, lng} : {}),
-});
+let docRef;
+try {
+  docRef = await addDoc(collection(db,"wants"),{
+    title:form.title, description:form.description,
+    budget:parseInt(form.budget)||0, category:form.category||"Other",
+    location:userLocation||"", user:user.displayName||user.email,
+    userId:user.uid, offers:[], createdAt:serverTimestamp(),
+    ...(lat && lng ? {lat, lng} : {}),
+  });
+} catch(e) {
+  console.error("Failed to create want:", e);
+  setPostPhotoErr("Failed to post your want. Please try again.");
+  setPosting(false); return;
+}
+let photoUploadFailed = false;
 if (postPhotos.length > 0) {
+  setUploadingPhotos(true);
   try {
     const urls = await Promise.all(postPhotos.map(async (f, i) => {
       const compressed = await compressImage(f);
@@ -1646,11 +1679,18 @@ if (postPhotos.length > 0) {
       return getDownloadURL(snap.ref);
     }));
     await updateDoc(doc(db,"wants",docRef.id), {photos: urls});
-  } catch(e) { console.error("Photo upload failed", e); }
+  } catch(e) {
+    console.error("Photo upload failed:", e);
+    photoUploadFailed = true;
+    setPostPhotoErr("Your want was posted but photos failed to upload. You can add them by editing your post.");
+  } finally {
+    setUploadingPhotos(false);
+  }
 }
-setPosting(false); setPosted(true);
+setPosting(false);
+setPosted(true);
 setForm({title:"",description:"",budget:"",category:"",location:""});
-setPostPhotos([]); setPostPhotoPreviews([]);
+if (!photoUploadFailed) { setPostPhotos([]); setPostPhotoPreviews([]); }
 };
 
 const sendOffer = async wid => {
@@ -2265,6 +2305,7 @@ try {
 const handleEditPhoto = async (e) => {
 if (editPhotoPicking) return;
 setEditPhotoPicking(true);
+setEditSaveErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
@@ -2285,11 +2326,14 @@ try {
   if (!webFiles?.length) return;
   const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
   const toAdd = webFiles.slice(0, remaining);
+  const validErr = validateImageFiles(toAdd);
+  if (validErr) { setEditSaveErr(validErr); return; }
   const previews = await Promise.all(toAdd.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
   setEditPhotos(p=>[...p,...toAdd]);
   setEditPhotoPreviews(p=>[...p,...previews]);
 } catch(err) {
   console.warn("Edit library pick failed:", err);
+  setEditSaveErr("Could not load the selected photo. Please try again.");
 } finally {
   setEditPhotoPicking(false);
 }
@@ -2298,6 +2342,7 @@ try {
 const handleEditCamera = async (e) => {
 if (editPhotoPicking) return;
 setEditPhotoPicking(true);
+setEditSaveErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
@@ -2321,11 +2366,14 @@ try {
   }
   if (!webFiles?.length) return;
   const file = webFiles[0];
+  const validErr = validateImageFiles([file]);
+  if (validErr) { setEditSaveErr(validErr); return; }
   const preview = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
   setEditPhotos(p=>[...p, file]);
   setEditPhotoPreviews(p=>[...p, preview]);
 } catch(err) {
   console.warn("Edit camera capture failed:", err);
+  setEditSaveErr("Camera capture failed. Try using the Library button instead.");
 } finally {
   setEditPhotoPicking(false);
 }
@@ -2333,6 +2381,7 @@ try {
 
 const saveEdit = async () => {
 setEditSaving(true);
+setEditSaveErr("");
 try {
   let photos = ef.photos || [];
   if (editPhotos.length > 0) {
@@ -2348,10 +2397,16 @@ try {
     title:ef.title, description:ef.description, budget:parseInt(ef.budget)||0,
     category:ef.category, location:ef.location, photos,
   });
-} catch(err) { console.error("saveEdit failed", err); }
-setEditSaving(false);
-setEditId(null);
-setEditPhotos([]); setEditPhotoPreviews([]);
+  setEditSaving(false);
+  setEditId(null);
+  setEditPhotos([]); setEditPhotoPreviews([]);
+} catch(err) {
+  console.error("saveEdit failed:", err);
+  setEditSaveErr(editPhotos.length > 0
+    ? "Photo upload failed. Check your connection and try again."
+    : "Failed to save changes. Please try again.");
+  setEditSaving(false);
+}
 };
 
 const unreadCount = convos.filter(c => c.lastSenderId && c.lastSenderId!==user?.uid && !c.readBy?.includes(user?.uid) && !c.archivedBy?.includes(user?.uid)).length;
@@ -3484,11 +3539,11 @@ return (
 
     {/* POST WANT SHEET */}
     {showPostSheet&&(
-      <div className="moverlay" onClick={()=>setShowPostSheet(false)}>
+      <div className="moverlay" onClick={()=>{setShowPostSheet(false);setPostPhotos([]);setPostPhotoPreviews([]);setPostPhotoErr("");}}>
         <div className="modal" onClick={e=>e.stopPropagation()}>
           <div className="mhead">
             <div className="mttl">Post a Want</div>
-            <button className="mclose" onClick={()=>setShowPostSheet(false)}>✕</button>
+            <button className="mclose" onClick={()=>{setShowPostSheet(false);setPostPhotos([]);setPostPhotoPreviews([]);setPostPhotoErr("");}}>✕</button>
           </div>
           <div className="ebody">
             {posted?(
@@ -3512,7 +3567,7 @@ return (
                   </div>
                 </div>
                 <div className="fg">
-                  <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional)</span></label>
+                  <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional — JPG, PNG, WebP)</span></label>
                   <div className="post-photos">
                     {postPhotoPreviews.map((src,i)=>(
                       <div key={i} className="post-photo-wrap">
@@ -3522,13 +3577,16 @@ return (
                     ))}
                     {postPhotos.length<3&&(
                       <>
-                        <NativePhotoButton onPick={handlePostCamera} disabled={postPhotoPicking} mode="camera" />
-                        <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking} mode="library" />
+                        <NativePhotoButton onPick={handlePostCamera} disabled={postPhotoPicking||posting} mode="camera" />
+                        <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking||posting} mode="library" />
                       </>
                     )}
                   </div>
+                  {postPhotoErr&&<div style={{marginTop:6,fontSize:12,color:"var(--red)",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 10px",lineHeight:1.4}}>{postPhotoErr}</div>}
                 </div>
-                <button className="sbtn" onClick={postWant} disabled={posting||!form.title||!form.budget}>{posting?"Posting...":"Post My Want →"}</button>
+                <button className="sbtn" onClick={postWant} disabled={posting||uploadingPhotos||!form.title||!form.budget}>
+                  {uploadingPhotos ? `Uploading ${postPhotos.length} photo${postPhotos.length!==1?"s":""}…` : posting ? "Posting…" : "Post My Want →"}
+                </button>
               </>
             )}
           </div>
@@ -3632,7 +3690,10 @@ return (
                 )}
               </div>
             </div>
-            <button className="sbtn" onClick={saveEdit} disabled={editSaving}>{editSaving?"Saving…":"Save Changes"}</button>
+            {editSaveErr&&<div style={{marginTop:8,fontSize:13,color:"var(--red)",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 12px"}}>{editSaveErr}</div>}
+            <button className="sbtn" onClick={saveEdit} disabled={editSaving}>
+              {editSaving&&editPhotos.length>0?"Uploading photos…":editSaving?"Saving…":"Save Changes"}
+            </button>
           </div>
         </div>
       </div>
