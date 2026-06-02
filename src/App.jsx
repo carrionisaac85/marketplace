@@ -580,7 +580,7 @@ textarea.fi{resize:vertical;min-height:80px}
 .mttl{font-family:var(--fd);font-size:16px;font-weight:700}
 .msub{font-size:12px;color:var(--text2);margin-top:2px}
 .mclose{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
-.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0}
 .bubble{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
 .bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
