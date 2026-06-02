@@ -756,9 +756,8 @@ function validateImageFiles(files) {
   return null;
 }
 
-function NativePhotoButton({ onPick, disabled, mode = "library" }) {
+function AddPhotoButton({ onPick, disabled }) {
 const inputRef = useRef(null);
-const isCamera = mode === "camera";
 const handleClick = () => {
   if (disabled) return;
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
@@ -768,17 +767,15 @@ const handleClick = () => {
     inputRef.current?.click();
   }
 };
-// Only add capture="environment" on touch devices (mobile), not desktop
-const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 return (
   <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
-    <span>{isCamera ? "📸" : "🖼️"}</span>
-    {disabled ? "…" : isCamera ? "Camera" : "Library"}
+    <span>📷</span>
+    {disabled ? "…" : "Add Photos"}
     <input
       ref={inputRef}
       type="file"
-      accept="image/jpeg,image/jpg,image/png,image/webp"
-      {...(isCamera && isTouchDevice ? { capture: "environment" } : { multiple: !isCamera })}
+      accept="image/*"
+      multiple
       style={{display:"none"}}
       onChange={disabled ? undefined : onPick}
     />
@@ -1520,7 +1517,7 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
-const handlePostPhoto = async (e) => {
+const handleAddPostPhotos = async (e) => {
 if (postPhotoPicking) return;
 setPostPhotoPicking(true);
 setPostPhotoErr("");
@@ -1555,50 +1552,6 @@ try {
 } catch(err) {
   console.warn("Photo pick failed:", err);
   setPostPhotoErr("Could not load the selected photo. Please try again.");
-} finally {
-  setPostPhotoPicking(false);
-}
-};
-
-const handlePostCamera = async (e) => {
-if (postPhotoPicking) return;
-setPostPhotoPicking(true);
-setPostPhotoErr("");
-const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
-if (e?.target) e.target.value = "";
-try {
-  const { Capacitor } = await import("@capacitor/core");
-  if (Capacitor.isNativePlatform()) {
-    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    if (postPhotos.length >= 3) return;
-    const photo = await Camera.getPhoto({
-      source: CameraSource.Camera,
-      quality: 85,
-      resultType: CameraResultType.Uri,
-      allowEditing: false,
-      saveToGallery: false,
-    });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-    const preview = await new Promise(res => {
-      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
-    });
-    setPostPhotos(p => [...p, file]);
-    setPostPhotoPreviews(p => [...p, preview]);
-    return;
-  }
-  if (!webFiles?.length) return;
-  const file = webFiles[0];
-  const validErr = validateImageFiles([file]);
-  if (validErr) { setPostPhotoErr(validErr); return; }
-  const preview = await new Promise(res => {
-    const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
-  });
-  setPostPhotos(p => [...p, file]);
-  setPostPhotoPreviews(p => [...p, preview]);
-} catch(err) {
-  console.warn("Camera capture failed:", err);
-  setPostPhotoErr("Camera capture failed. Try using the Library button instead.");
 } finally {
   setPostPhotoPicking(false);
 }
@@ -2302,7 +2255,7 @@ try {
 } catch(e) { console.warn("declineOffer notify failed", e); }
 };
 
-const handleEditPhoto = async (e) => {
+const handleAddEditPhotos = async (e) => {
 if (editPhotoPicking) return;
 setEditPhotoPicking(true);
 setEditSaveErr("");
@@ -2332,48 +2285,8 @@ try {
   setEditPhotos(p=>[...p,...toAdd]);
   setEditPhotoPreviews(p=>[...p,...previews]);
 } catch(err) {
-  console.warn("Edit library pick failed:", err);
+  console.warn("Edit photo pick failed:", err);
   setEditSaveErr("Could not load the selected photo. Please try again.");
-} finally {
-  setEditPhotoPicking(false);
-}
-};
-
-const handleEditCamera = async (e) => {
-if (editPhotoPicking) return;
-setEditPhotoPicking(true);
-setEditSaveErr("");
-const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
-if (e?.target) e.target.value = "";
-try {
-  const isNative = !!(window.Capacitor?.isNativePlatform?.());
-  if (isNative) {
-    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    if ((ef.photos||[]).length + editPhotos.length >= 3) return;
-    const photo = await Camera.getPhoto({
-      source: CameraSource.Camera,
-      quality: 85,
-      resultType: CameraResultType.Uri,
-      allowEditing: false,
-      saveToGallery: false,
-    });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-    const preview = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
-    setEditPhotos(p=>[...p, file]);
-    setEditPhotoPreviews(p=>[...p, preview]);
-    return;
-  }
-  if (!webFiles?.length) return;
-  const file = webFiles[0];
-  const validErr = validateImageFiles([file]);
-  if (validErr) { setEditSaveErr(validErr); return; }
-  const preview = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
-  setEditPhotos(p=>[...p, file]);
-  setEditPhotoPreviews(p=>[...p, preview]);
-} catch(err) {
-  console.warn("Edit camera capture failed:", err);
-  setEditSaveErr("Camera capture failed. Try using the Library button instead.");
 } finally {
   setEditPhotoPicking(false);
 }
@@ -3576,10 +3489,7 @@ return (
                       </div>
                     ))}
                     {postPhotos.length<3&&(
-                      <>
-                        <NativePhotoButton onPick={handlePostCamera} disabled={postPhotoPicking||posting} mode="camera" />
-                        <NativePhotoButton onPick={handlePostPhoto} disabled={postPhotoPicking||posting} mode="library" />
-                      </>
+                      <AddPhotoButton onPick={handleAddPostPhotos} disabled={postPhotoPicking||posting} />
                     )}
                   </div>
                   {postPhotoErr&&<div style={{marginTop:6,fontSize:12,color:"var(--red)",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 10px",lineHeight:1.4}}>{postPhotoErr}</div>}
@@ -3683,10 +3593,7 @@ return (
                   </div>
                 ))}
                 {((ef.photos||[]).length + editPhotos.length) < 3 && (
-                  <>
-                    <NativePhotoButton onPick={handleEditCamera} disabled={editPhotoPicking} mode="camera" />
-                    <NativePhotoButton onPick={handleEditPhoto} disabled={editPhotoPicking} mode="library" />
-                  </>
+                  <AddPhotoButton onPick={handleAddEditPhotos} disabled={editPhotoPicking} />
                 )}
               </div>
             </div>

@@ -1,0 +1,109 @@
+The current image workflow is not working correctly.
+
+Issues:
+
+1. In the iOS app, tapping "Capture Photo" returns "Camera Capture Failed."
+2. In the web app, the "Capture Photo" button opens the photo library instead of the camera.
+3. The current separate Capture/Upload button design creates confusion and inconsistent behavior across platforms.
+
+I want to replace the entire image selection workflow with a simpler, native approach.
+
+New Requirements:
+
+### Replace Current Workflow
+
+Remove:
+
+* Capture Photo button
+* Upload Photo button
+* Any custom camera-launch logic
+* Any direct camera API implementation causing failures
+
+Replace with:
+
+* Single "Add Photo" button
+* Single image picker workflow
+
+### Desired Behavior
+
+When the user taps "Add Photo":
+
+#### Mobile (iOS/Android)
+
+Open the device's native image selection interface.
+
+The operating system should provide its normal options such as:
+
+* Take Photo
+* Choose Existing Photo
+* Photo Library
+* Files (if supported)
+
+Do not force camera mode.
+
+Do not force gallery mode.
+
+Allow the device OS to present the available options.
+
+#### Web/Desktop
+
+Open the standard file picker.
+
+Allow image selection from local files.
+
+### Technical Requirements
+
+Use a standard file input implementation that supports:
+
+* Image uploads
+* Mobile camera access through the operating system
+* Gallery selection
+* Multiple image selection if supported
+
+Avoid custom camera APIs unless absolutely necessary.
+
+Avoid direct camera capture workflows that can fail on iOS.
+
+### Compatibility
+
+Verify functionality on:
+
+* iPhone Safari
+* iPhone installed app/PWA
+* Android Chrome
+* Desktop Chrome
+* Desktop Safari
+* Desktop Edge
+
+### User Experience
+
+When the user selects images:
+
+* Immediately show image previews.
+* Allow image removal before saving.
+* Allow adding additional images.
+* Preserve existing uploaded images when editing a post.
+
+### Testing
+
+Verify:
+
+1. Add photo from gallery on iPhone.
+2. Take photo using iPhone camera through native picker.
+3. Add photo from Android gallery.
+4. Take photo on Android through native picker.
+5. Upload photo from desktop.
+6. Edit a post and add more photos.
+7. Save and retrieve images successfully.
+
+### Deliverables
+
+After implementation provide:
+
+* Root cause of the current camera failure.
+* Files modified.
+* Previous image workflow removed.
+* New image picker workflow implemented.
+* Test results for iOS, Android, and web.
+
+Do not attempt to repair the existing camera-capture workflow. Replace it with a single native image picker experience that lets the operating system handle camera vs. gallery selection.
