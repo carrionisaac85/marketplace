@@ -573,19 +573,17 @@ textarea.fi{resize:vertical;min-height:80px}
 .banned-title{font-family:var(--fd);font-size:24px;font-weight:800;color:#dc2626}
 .banned-sub{font-size:14px;color:var(--text2);max-width:300px}
 
-/* CHAT MODAL — Minimal Modern */
-.moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:max(20px,calc(env(safe-area-inset-top,0px) + 10px)) 16px max(20px,calc(env(safe-area-inset-bottom,0px) + 10px))}
-.modal{background:#F7F5F2;border-radius:20px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.2);border:1px solid var(--border);overflow:hidden}
-.mhead{padding:20px 24px 16px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;border-bottom:1px solid rgba(232,228,223,.5)}
-.mttl{font-family:var(--fd);font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
-.msub{font-size:13px;color:var(--text2);margin-top:3px;font-weight:500}
-.mclose{width:32px;height:32px;border-radius:50%;background:rgba(232,228,223,.5);border:none;cursor:pointer;font-size:14px;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
-.mclose:active{background:var(--border)}
-.msgs{flex:1;overflow-y:auto;padding:20px 16px 8px;display:flex;flex-direction:column;gap:16px;min-height:200px;max-height:340px;scrollbar-width:none}
-.msgs::-webkit-scrollbar{display:none}
-.bubble{max-width:80%;padding:10px 16px;border-radius:12px;font-size:15px;line-height:1.55}
-.bubble.mine{background:var(--accent);color:#fff;align-self:flex-end}
-.bubble.theirs{background:#E8E4DF;color:var(--text);align-self:flex-start}
+/* CHAT MODAL */
+.moverlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:max(20px,calc(env(safe-area-inset-top,0px) + 10px)) 16px max(20px,calc(env(safe-area-inset-bottom,0px) + 10px))}
+.modal{background:var(--surface);border-radius:20px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.2);border:1px solid var(--border)}
+.mhead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mttl{font-family:var(--fd);font-size:16px;font-weight:700}
+.msub{font-size:12px;color:var(--text2);margin-top:2px}
+.mclose{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px}
+.bubble{max-width:80%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
+.bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
 .bubble-wrap{display:flex;flex-direction:column;max-width:80%}
 .bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
 .bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
@@ -595,22 +593,22 @@ textarea.fi{resize:vertical;min-height:80px}
 .msg-row.theirs{align-self:flex-start;justify-content:flex-start}
 .msg-row-inner{display:flex;flex-direction:column;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform}
 .msg-row-inner .bubble{max-width:100%}
-.msg-row-del{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;border-radius:0 12px 12px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
+.msg-row-del{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;border-radius:0 8px 8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
 .msg-row-del:active{opacity:.85}
 .del-msg{display:none;background:none;border:none;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;padding:2px 4px;margin-top:2px;border-radius:4px}
 .del-msg:hover{color:#fff;background:rgba(0,0,0,0.15)}
 .bubble-wrap.mine:hover .del-msg{display:block}
 .bsender{font-size:10px;font-weight:700;margin-bottom:3px;opacity:.7}
-.btime{font-size:11px;opacity:.55;margin-top:4px;text-align:right}
-.minput-row{padding:4px 12px 14px;flex-shrink:0;background:linear-gradient(to bottom,transparent,#F7F5F2 25%)}
-.minput-card{background:#fff;border-radius:20px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.05);border:1px solid rgba(232,228,223,.6)}
-.minput{flex:1;padding:0;border:none;border-radius:0;font-family:var(--fb);font-size:15px;color:var(--text);background:transparent;outline:none}
-.minput::placeholder{color:#aaa}
-.msend{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-weight:600;cursor:pointer;font-family:var(--fb);font-size:14px;flex-shrink:0}
-.msend:active{opacity:.85}
-.chat-offer-chip{display:flex;justify-content:center;padding:12px 0 0}
-.chat-offer-chip-inner{background:rgba(232,75,42,.05);border:1px solid rgba(232,75,42,.12);color:var(--accent);font-size:13px;font-weight:500;padding:6px 16px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
-.offer-bubble{border:1.5px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 8%,#F7F5F2)!important;color:var(--text)!important}
+.btime{font-size:10px;opacity:.6;margin-top:4px;text-align:right}
+.minput-row{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.minput{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
+.minput:focus{border-color:var(--accent)}
+.msend{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:var(--fb)}
+.chat-offer-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-offer-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.chat-offer-price{font-family:var(--fd);font-size:17px;font-weight:800;color:var(--accent)}
+.offer-bubble{border:1.5px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--text)!important}
 .bubble.mine.offer-bubble{background:color-mix(in srgb,var(--accent) 20%,#fff)!important;color:var(--text)!important}
 .ebody{padding:20px;overflow-y:auto}
 
@@ -681,31 +679,22 @@ textarea.fi{resize:vertical;min-height:80px}
 .mine-feed-body{padding:0 16px 10px}
 .mine-feed-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
 
-/* MESSAGES LIST — Card Feed */
-.msg-tab-list{display:flex;flex-direction:column;padding:12px 0}
-.msg-tab-item{position:relative;margin:0 16px 12px;background:#fff;border-radius:16px;box-shadow:0 2px 8px -2px rgba(0,0,0,.06);cursor:pointer;overflow:hidden;transition:transform .1s}
-.msg-tab-item:active{transform:scale(.98)}
-.msg-tab-item.unread{box-shadow:0 4px 20px -4px rgba(232,75,42,.12)}
-.msg-tab-item.swiped{transform:translateX(-80px)}
-.msg-tab-unread-bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
-.msg-tab-unread-wash{position:absolute;inset:0;background:linear-gradient(to right,rgba(232,75,42,.03),transparent);pointer-events:none}
-.msg-tab-inner{padding:14px 16px}
-.msg-tab-chip{display:inline-flex;align-items:center;gap:5px;background:#f7f5f2;border:1px solid rgba(232,75,42,.1);border-radius:6px;font-size:11px;font-family:var(--fb);font-weight:500;color:var(--text);padding:3px 8px;max-width:calc(100% - 80px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.msg-tab-chip-dot{width:6px;height:6px;border-radius:50%;background:rgba(232,75,42,.6);flex-shrink:0}
-.msg-tab-ts{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;white-space:nowrap}
-.msg-tab-ts.unread{background:rgba(232,75,42,.1);color:var(--accent)}
-.msg-tab-ts.read{background:#f7f5f2;color:var(--text2)}
-.msg-tab-row{display:flex;align-items:center;gap:14px}
-.msg-tab-av{width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
-.msg-tab-av.unread{outline:2px solid var(--accent);outline-offset:2px}
-.msg-tab-av-dot{position:absolute;top:-2px;right:-2px;width:14px;height:14px;background:var(--accent);border:2px solid #fff;border-radius:50%}
+/* MESSAGES LIST */
+.msg-tab-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.msg-tab-item:last-child{border-bottom:none}
+.msg-tab-item:active{background:var(--surface2)}
+.msg-tab-item.unread{background:#fff9f7}
+.msg-tab-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
+.msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .msg-tab-body{flex:1;min-width:0}
-.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:15px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-name.read{font-weight:600;opacity:.8}
-.msg-tab-preview{font-size:13px;color:var(--text2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.45}
-.msg-tab-preview.unread{color:var(--text);font-weight:500}
+.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
+.msg-tab-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.msg-tab-time{font-size:11px;color:var(--text2)}
 .msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.msg-tab-del{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;border:none;border-radius:0 16px 16px 0}
+.msg-tab-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
 .msg-tab-del:active{opacity:.9}
 
 /* PROFILE PAGE */
@@ -3004,26 +2993,18 @@ return (
                 const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
                 return(
                   <div key={c.id} className={`msg-tab-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`} onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}} onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}} onTouchMove={(e)=>{const t=e.touches[0];swipeDidMove.current=true;}} onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}>
-                    {isUnread&&<div className="msg-tab-unread-bar"/>}
-                    {isUnread&&<div className="msg-tab-unread-wash"/>}
-                    <div className="msg-tab-inner">
-                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
-                        <div className="msg-tab-chip"><span className="msg-tab-chip-dot"/>{c.wantTitle||"Unknown want"}</div>
-                        <span className={`msg-tab-ts${isUnread?" unread":" read"}`}>{ta(c.lastMessageAt||c.createdAt)}</span>
-                      </div>
-                      <div className="msg-tab-row">
-                        <div className={`msg-tab-av${isUnread?" unread":""}`}>
-                          {(otherName[0]||"?").toUpperCase()}
-                          {isUnread&&<div className="msg-tab-av-dot"/>}
-                        </div>
-                        <div className="msg-tab-body">
-                          <div className={`msg-tab-name${isUnread?"":" read"}`}>{otherName}</div>
-                          <div className={`msg-tab-preview${isUnread?" unread":""}`}>{c.lastMessage||"No messages yet"}</div>
-                        </div>
-                      </div>
+                    <div className="msg-tab-av">{(otherName[0]||"?").toUpperCase()}</div>
+                    <div className="msg-tab-body">
+                      <div className="msg-tab-name">{otherName}{isUnread&&<span style={{marginLeft:6,fontSize:10,fontWeight:700,color:"var(--accent)",background:"#fff0ec",borderRadius:4,padding:"1px 5px"}}>NEW</span>}</div>
+                      <div className="msg-tab-preview">{c.lastMessage||"No messages yet"}</div>
+                      <div className="msg-tab-want">Re: {c.wantTitle||"Unknown want"}</div>
+                    </div>
+                    <div className="msg-tab-right">
+                      <span className="msg-tab-time">{ta(c.lastMessageAt||c.createdAt)}</span>
+                      {isUnread&&<div className="msg-unread-dot"/>}
                     </div>
                     {swipedConvoId===c.id&&(
-                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}}>Delete</button>
+                      <button className="msg-tab-del" onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();deleteConvo(c.id);}} title="Delete">Delete</button>
                     )}
                   </div>
                 );
@@ -3622,12 +3603,18 @@ return (
       <div className="moverlay" onClick={()=>setChat(null)}>
         <div className="modal" onClick={e=>e.stopPropagation()}>
           <div className="mhead">
-            <div><div className="mttl">{chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
-            <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+            <div><div className="mttl">💬 {chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+            </div>
           </div>
           {chat.offerPrice&&(
-            <div className="chat-offer-chip">
-              <div className="chat-offer-chip-inner"><span>💰</span><span>${(chat.offerPrice).toLocaleString()} offer</span></div>
+            <div className="chat-offer-strip">
+              {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt="" />}
+              <div>
+                <div className="chat-offer-label">Offer</div>
+                <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
+              </div>
             </div>
           )}
           <div className="msgs" ref={msgsRef}>
@@ -3711,12 +3698,10 @@ return (
             })}
             <div ref={btm} />
           </div>
-          {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2"}}>{msgSendErr}</div>}
+          {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca"}}>{msgSendErr}</div>}
           <div className="minput-row">
-            <div className="minput-card">
-              <input className="minput" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
-              <button className="msend" onClick={sendMsg}>Send</button>
-            </div>
+            <input className="minput" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
+            <button className="msend" onClick={sendMsg}>Send</button>
           </div>
         </div>
       </div>
