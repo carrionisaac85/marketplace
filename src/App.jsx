@@ -489,7 +489,7 @@ textarea.fi{resize:vertical;min-height:80px}
 .prof-loc-sug-item:active{background:var(--surface2)}
 
 /* MY POSTS */
-.stitle{font-family:var(--fd);font-size:20px;font-weight:800;margin-bottom:6px}
+.stitle{font-family:var(--fd);font-size:20px;font-weight:800;margin-bottom:6px;color:#1A1A1A}
 .ssub{font-size:13px;color:var(--text2);margin-bottom:16px}
 .mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .mtop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
@@ -580,36 +580,38 @@ textarea.fi{resize:vertical;min-height:80px}
 .mttl{font-family:var(--fd);font-size:16px;font-weight:700}
 .msub{font-size:12px;color:var(--text2);margin-top:2px}
 .mclose{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
-.msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px}
-.bubble{max-width:100%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5;word-break:break-word;overflow-wrap:break-word;min-width:0}
-.bubble.mine{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.bubble.theirs{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
-.bubble-wrap{display:flex;flex-direction:column;max-width:75%;min-width:0}
-.bubble-wrap.mine{align-self:flex-end;align-items:flex-end}
-.bubble-wrap.theirs{align-self:flex-start;align-items:flex-start}
-.bubble-wrap .bubble{max-width:100%}
-.msg-row{display:flex;align-items:center;max-width:75%;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;min-width:0}
-.msg-row.mine{align-self:flex-end;justify-content:flex-end}
-.msg-row.theirs{align-self:flex-start;justify-content:flex-start}
-.msg-row-inner{display:flex;flex-direction:column;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform;min-width:0}
-.msg-row-inner .bubble{max-width:100%}
-.msg-row-del{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;border-radius:0 8px 8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
-.msg-row-del:active{opacity:.85}
-.del-msg{display:none;background:none;border:none;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;padding:2px 4px;margin-top:2px;border-radius:4px}
-.del-msg:hover{color:#fff;background:rgba(0,0,0,0.15)}
-.bubble-wrap.mine:hover .del-msg{display:block}
-.bsender{font-size:10px;font-weight:700;margin-bottom:3px;opacity:.7}
-.btime{font-size:10px;opacity:.6;margin-top:4px;text-align:right}
-.minput-row{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
-.minput{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
-.minput:focus{border-color:var(--accent)}
-.msend{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:var(--fb)}
-.chat-offer-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-screen{position:fixed;inset:0;z-index:200;background:#fff;display:flex;flex-direction:column}
+.chat-header{background:#fff;border-bottom:1px solid var(--border);padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-back{background:none;border:none;cursor:pointer;padding:4px 6px;color:#1A1A1A;font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.chat-header-info{flex:1;min-width:0}
+.chat-header-name{font-family:var(--fd);font-weight:700;font-size:17px;color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-header-sub{font-size:12px;color:#6B6560;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.chat-row{display:flex;width:100%;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.chat-row.mine{justify-content:flex-end}
+.chat-row.theirs{justify-content:flex-start}
+.chat-row-inner{display:flex;flex-direction:column;max-width:70%;min-width:0;position:relative;z-index:1;transition:transform .25s cubic-bezier(.25,.8,.25,1);will-change:transform}
+.chat-row.mine .chat-row-inner{align-items:flex-end;padding:0 16px 0 8px}
+.chat-row.theirs .chat-row-inner{align-items:flex-start;padding:0 8px 0 16px}
+.chat-bubble{padding:12px;border-radius:16px;font-size:15px;line-height:1.5;word-break:break-word;overflow-wrap:break-word}
+.chat-bubble.mine{background:#E84B2A;color:#fff;border-bottom-right-radius:4px}
+.chat-bubble.theirs{background:#F0F0F0;color:#1A1A1A;border-bottom-left-radius:4px}
+.chat-bubble-time{font-size:11px;opacity:.65;margin-top:4px}
+.chat-bubble.mine .chat-bubble-time{color:#fff;text-align:right}
+.chat-bubble.theirs .chat-bubble-time{color:#1A1A1A;text-align:left}
+.chat-del-btn{position:absolute;right:0;top:0;bottom:0;width:76px;background:var(--red);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);z-index:0;display:flex;align-items:center;justify-content:center}
+.chat-del-btn:active{opacity:.85}
+.chat-sender{font-size:11px;font-weight:700;color:#6B6560;margin-bottom:3px}
+.chat-offer-bubble{border:1.5px solid var(--accent)!important;background:rgba(232,75,42,.08)!important;color:var(--text)!important}
+.chat-offer-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#FFF5F3;border-bottom:1px solid var(--border);flex-shrink:0}
 .chat-offer-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
-.chat-offer-price{font-family:var(--fd);font-size:17px;font-weight:800;color:var(--accent)}
-.offer-bubble{border:1.5px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--text)!important}
-.bubble.mine.offer-bubble{background:color-mix(in srgb,var(--accent) 20%,#fff)!important;color:var(--text)!important}
+.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B6560}
+.chat-offer-price{font-family:var(--fd);font-size:17px;font-weight:800;color:#E84B2A}
+.chat-input-bar{background:#fff;border-top:1px solid var(--border);padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;flex-shrink:0}
+.chat-input{flex:1;padding:10px 16px;border:1.5px solid var(--border);border-radius:22px;font-family:var(--fb);font-size:15px;color:#1A1A1A;background:#fff;outline:none}
+.chat-input:focus{border-color:#E84B2A}
+.chat-send-btn{width:44px;height:44px;min-width:44px;background:#E84B2A;color:#fff;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;transition:opacity .15s;line-height:1}
+.chat-send-btn:active{opacity:.8}
 .ebody{padding:20px;overflow-y:auto}
 
 /* EMPTY / LOADING */
@@ -680,22 +682,22 @@ textarea.fi{resize:vertical;min-height:80px}
 .mine-feed-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
 
 /* MESSAGES LIST */
-.msg-tab-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.msg-tab-list{display:flex;flex-direction:column;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.msg-tab-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative;transition:background .1s}
 .msg-tab-item:last-child{border-bottom:none}
 .msg-tab-item:active{background:var(--surface2)}
 .msg-tab-item.unread{background:#fff9f7}
 .msg-tab-item.swiped{background:#fff0ec;border-left:4px solid var(--red)}
-.msg-tab-av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.msg-tab-av{width:48px;height:48px;border-radius:50%;background:#E84B2A;color:#fff;font-family:var(--fd);font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .msg-tab-body{flex:1;min-width:0}
-.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:2px}
-.msg-tab-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msg-tab-want{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-name{font-family:var(--fd);font-weight:700;font-size:15px;color:#1A1A1A;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-tab-preview{font-size:13px;color:#6B6560;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.msg-tab-want{font-size:11px;color:#6B6560;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msg-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.msg-tab-time{font-size:11px;color:var(--text2)}
-.msg-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.msg-tab-del{padding:6px 12px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
-.msg-tab-del:active{opacity:.9}
+.msg-tab-time{font-size:11px;color:#6B6560}
+.msg-unread-dot{width:9px;height:9px;border-radius:50%;background:#E84B2A}
+.msg-tab-del{padding:6px 12px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;white-space:nowrap}
+.msg-tab-del:active{opacity:.85}
 
 /* PROFILE PAGE */
 .prof-page{display:flex;flex-direction:column;gap:0;padding-bottom:8px}
@@ -922,7 +924,7 @@ useEffect(() => {
     const row = target.closest('[data-msgid]');
     if (!row) return;
     startX = clientX; startY = clientY; isH = false;
-    activeInner = row.querySelector('.msg-row-inner');
+    activeInner = row.querySelector('.chat-row-inner');
   };
 
   const onMove = (clientX, clientY) => {
@@ -3620,111 +3622,109 @@ return (
       </div>
     )}
 
-    {/* CHAT MODAL */}
+    {/* CHAT SCREEN */}
     {chat&&(
-      <div className="moverlay" onClick={()=>setChat(null)}>
-        <div className="modal" onClick={e=>e.stopPropagation()}>
-          <div className="mhead">
-            <div><div className="mttl">💬 {chat.otherName}</div><div className="msub">Re: {chat.wantTitle}</div></div>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <button className="mclose" onClick={()=>setChat(null)}>✕</button>
+      <div className="chat-screen">
+        {/* HEADER */}
+        <div className="chat-header">
+          <button className="chat-back" onClick={()=>setChat(null)}>‹</button>
+          <div className="chat-header-info">
+            <div className="chat-header-name">{chat.otherName}</div>
+            <div className="chat-header-sub">Re: {chat.wantTitle}</div>
+          </div>
+        </div>
+        {/* OFFER STRIP */}
+        {chat.offerPrice&&(
+          <div className="chat-offer-strip">
+            {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt="" />}
+            <div>
+              <div className="chat-offer-label">Offer</div>
+              <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
             </div>
           </div>
-          {chat.offerPrice&&(
-            <div className="chat-offer-strip">
-              {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt="" />}
-              <div>
-                <div className="chat-offer-label">Offer</div>
-                <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
-              </div>
-            </div>
-          )}
-          <div className="msgs" ref={msgsRef}>
-            {msgs.length===0&&<div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"24px 0"}}>No messages yet. Say hello!</div>}
-            {msgs.map(m=>{
-              const isMine = m.senderId === user.uid;
-              const OPEN_OFFSET = -76;
-              const THRESHOLD = 60;
-
-              const closeOpen = () => {
-                if (msgOpenInnerEl.current) {
+        )}
+        {/* MESSAGES */}
+        <div className="chat-msgs" ref={msgsRef}>
+          {msgs.length===0&&<div style={{textAlign:"center",color:"#6B6560",fontSize:14,padding:"40px 16px"}}>No messages yet. Say hello! 👋</div>}
+          {msgs.map(m=>{
+            const isMine = m.senderId === user.uid;
+            const OPEN_OFFSET = -76;
+            const THRESHOLD = 60;
+            const closeOpen = () => {
+              if (msgOpenInnerEl.current) {
+                msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
+                msgOpenInnerEl.current.style.transform = 'translateX(0)';
+                msgOpenInnerEl.current = null;
+              }
+              setSwipedMsgId(null);
+            };
+            const onMouseDown = isMine ? (e) => {
+              msgSwipeStartX.current = e.clientX;
+              msgSwipeStartY.current = e.clientY;
+              msgSwipeIsH.current = false;
+              msgActiveDragEl.current = e.currentTarget.querySelector('.chat-row-inner');
+            } : undefined;
+            const onMouseMove = isMine ? (e) => {
+              if (e.buttons !== 1) return;
+              const inner = msgActiveDragEl.current;
+              if (!inner) return;
+              const dx = e.clientX - msgSwipeStartX.current;
+              const dy = e.clientY - msgSwipeStartY.current;
+              if (!msgSwipeIsH.current) {
+                if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+                if (Math.abs(dy) > Math.abs(dx)) { msgActiveDragEl.current = null; return; }
+                msgSwipeIsH.current = true;
+              }
+              const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
+              inner.style.transition = 'none';
+              inner.style.transform = `translateX(${clamped}px)`;
+            } : undefined;
+            const onMouseUp = isMine ? (e) => {
+              const inner = msgActiveDragEl.current;
+              msgActiveDragEl.current = null;
+              if (!inner || !msgSwipeIsH.current) return;
+              const dx = msgSwipeStartX.current - e.clientX;
+              inner.style.transition = 'transform 0.2s ease';
+              if (dx >= THRESHOLD) {
+                if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
                   msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
                   msgOpenInnerEl.current.style.transform = 'translateX(0)';
-                  msgOpenInnerEl.current = null;
                 }
-                setSwipedMsgId(null);
-              };
-
-              /* Mouse handlers (desktop) — kept on JSX; mouse events don't have the passive problem */
-              const onMouseDown = isMine ? (e) => {
-                msgSwipeStartX.current = e.clientX;
-                msgSwipeStartY.current = e.clientY;
-                msgSwipeIsH.current = false;
-                msgActiveDragEl.current = e.currentTarget.querySelector('.msg-row-inner');
-              } : undefined;
-
-              const onMouseMove = isMine ? (e) => {
-                if (e.buttons !== 1) return;
-                const inner = msgActiveDragEl.current;
-                if (!inner) return;
-                const dx = e.clientX - msgSwipeStartX.current;
-                const dy = e.clientY - msgSwipeStartY.current;
-                if (!msgSwipeIsH.current) {
-                  if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-                  if (Math.abs(dy) > Math.abs(dx)) { msgActiveDragEl.current = null; return; }
-                  msgSwipeIsH.current = true;
-                }
-                const clamped = Math.max(OPEN_OFFSET - 10, Math.min(0, dx));
-                inner.style.transition = 'none';
-                inner.style.transform = `translateX(${clamped}px)`;
-              } : undefined;
-
-              const onMouseUp = isMine ? (e) => {
-                const inner = msgActiveDragEl.current;
-                msgActiveDragEl.current = null;
-                if (!inner || !msgSwipeIsH.current) return;
-                const dx = msgSwipeStartX.current - e.clientX;
-                inner.style.transition = 'transform 0.2s ease';
-                if (dx >= THRESHOLD) {
-                  if (msgOpenInnerEl.current && msgOpenInnerEl.current !== inner) {
-                    msgOpenInnerEl.current.style.transition = 'transform 0.2s ease';
-                    msgOpenInnerEl.current.style.transform = 'translateX(0)';
-                  }
-                  inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
-                  msgOpenInnerEl.current = inner;
-                  setSwipedMsgId(m.id);
-                } else {
-                  inner.style.transform = 'translateX(0)';
-                  if (swipedMsgId === m.id) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
-                }
-              } : undefined;
-
-              return (
-              <div key={m.id} data-msgid={isMine?m.id:undefined} className={`msg-row ${isMine?"mine":"theirs"}`}
+                inner.style.transform = `translateX(${OPEN_OFFSET}px)`;
+                msgOpenInnerEl.current = inner;
+                setSwipedMsgId(m.id);
+              } else {
+                inner.style.transform = 'translateX(0)';
+                if (swipedMsgId === m.id) { setSwipedMsgId(null); msgOpenInnerEl.current = null; }
+              }
+            } : undefined;
+            return (
+              <div key={m.id} data-msgid={isMine?m.id:undefined} className={`chat-row ${isMine?"mine":"theirs"}`}
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
                 onClick={(e)=>{if(swipedMsgId===m.id){e.stopPropagation();closeOpen();}}}
               >
-                {isMine && <button className="msg-row-del" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>}
-                <div className="msg-row-inner">
-                  <div className={`bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer-bubble":""}`}>
-                    {m.senderId!==user.uid&&<div className="bsender">{m.senderName}</div>}
+                {isMine&&<button className="chat-del-btn" onClick={e=>{e.stopPropagation();deleteMsg(m.id);}}>Delete</button>}
+                <div className="chat-row-inner">
+                  {!isMine&&m.senderName&&<div className="chat-sender">{m.senderName}</div>}
+                  <div className={`chat-bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" chat-offer-bubble":""}`}>
                     {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} style={{width:"100%",borderRadius:8,marginBottom:6,maxHeight:200,objectFit:"contain"}} alt="" />}
                     <span style={{whiteSpace:"pre-line"}}>{m.text}</span>
-                    <div className="btime">{ta(m.createdAt)}</div>
+                    <div className="chat-bubble-time">{ta(m.createdAt)}</div>
                   </div>
                 </div>
               </div>
-              );
-            })}
-            <div ref={btm} />
-          </div>
-          {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca"}}>{msgSendErr}</div>}
-          <div className="minput-row">
-            <input className="minput" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
-            <button className="msend" onClick={sendMsg}>Send</button>
-          </div>
+            );
+          })}
+          <div ref={btm} />
+        </div>
+        {/* ERROR */}
+        {msgSendErr&&<div style={{padding:"6px 16px",color:"#dc2626",fontSize:12,background:"#fef2f2",borderTop:"1px solid #fecaca",flexShrink:0}}>{msgSendErr}</div>}
+        {/* INPUT BAR */}
+        <div className="chat-input-bar">
+          <input className="chat-input" placeholder="Type a message..." value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} />
+          <button className="chat-send-btn" onClick={sendMsg}>➤</button>
         </div>
       </div>
     )}
