@@ -1395,7 +1395,7 @@ throw popupErr;
 } catch(e) {
 const code = e?.code || "";
 const msg = code === "auth/unauthorized-domain"
-  ? "This domain isn't authorized for Google sign-in. Use the published app at want-board.com."
+  ? `Google sign-in isn't enabled for this domain (${window.location.hostname}). Contact support.`
   : code === "auth/network-request-failed"
   ? "Network error — check your connection and try again."
   : code === "auth/user-disabled"
