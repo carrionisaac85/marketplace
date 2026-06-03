@@ -1530,17 +1530,15 @@ try {
     if (postPhotos.length >= 3) return;
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
-      quality: 85,
-      resultType: CameraResultType.DataUrl,
+      quality: 90,
+      resultType: CameraResultType.Uri,
       allowEditing: false,
       saveToGallery: false,
     });
-    const dataUrl = photo.dataUrl;
-    const res2 = await fetch(dataUrl);
-    const blob = await res2.blob();
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
     setPostPhotos(p => [...p, file]);
-    setPostPhotoPreviews(p => [...p, dataUrl]);
+    setPostPhotoPreviews(p => [...p, photo.webPath]);
     return;
   }
   if (!webFiles?.length) return;
@@ -2273,17 +2271,15 @@ try {
     if ((ef.photos||[]).length + editPhotos.length >= 3) return;
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
-      quality: 85,
-      resultType: CameraResultType.DataUrl,
+      quality: 90,
+      resultType: CameraResultType.Uri,
       allowEditing: false,
       saveToGallery: false,
     });
-    const dataUrl = photo.dataUrl;
-    const res2 = await fetch(dataUrl);
-    const blob = await res2.blob();
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
     setEditPhotos(p=>[...p, file]);
-    setEditPhotoPreviews(p=>[...p, dataUrl]);
+    setEditPhotoPreviews(p=>[...p, photo.webPath]);
     return;
   }
   if (!webFiles?.length) return;
