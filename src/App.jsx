@@ -2813,15 +2813,16 @@ return (
               <div className="prof-section-hd">Account Actions</div>
               <button className="prof-support-btn" onClick={async()=>{
                 const url="https://www.want-board.com/support";
-                try{
-                  const {Capacitor}=await import("@capacitor/core");
-                  if(Capacitor.isNativePlatform()){
+                const isNative=!!(window.Capacitor?.isNativePlatform?.());
+                if(isNative){
+                  try{
                     const {Browser}=await import("@capacitor/browser");
-                    await Browser.open({url});
-                  } else {
-                    window.open(url,"_blank","noopener,noreferrer");
+                    await Browser.open({url,presentationStyle:"popover"});
+                  }catch(err){
+                    console.warn("Browser.open failed:",err);
+                    // Do NOT call window.open on native — WKWebView blocks popups (blank page).
                   }
-                }catch(err){
+                } else {
                   window.open(url,"_blank","noopener,noreferrer");
                 }
               }}>🛟 Support</button>
