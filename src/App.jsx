@@ -20,18 +20,6 @@ import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Badge } from "@capawesome/capacitor-badge";
 
-// ─── In-app debug logger ───────────────────────────────────────────────────
-const __wlogs = [];
-function wlog(msg) {
-  const ts = new Date().toISOString().slice(11, 23);
-  const entry = `[${ts}] ${msg}`;
-  __wlogs.unshift(entry);
-  if (__wlogs.length > 80) __wlogs.length = 80;
-  console.log("[WB]", msg);
-}
-wlog(`module-init platform=${Capacitor.getPlatform()} native=${Capacitor.isNativePlatform()}`);
-// ──────────────────────────────────────────────────────────────────────────
-
 async function setAppBadge(count) {
   const n = Math.max(0, Number(count) || 0);
   if (Capacitor.isNativePlatform()) {
@@ -771,15 +759,11 @@ function validateImageFiles(files) {
 function AddPhotoButton({ onPick, disabled }) {
 const inputRef = useRef(null);
 const handleClick = () => {
-  wlog(`AddPhotoButton.tap disabled=${disabled}`);
-  if (disabled) { wlog("tap ignored — disabled"); return; }
-  const isNative = Capacitor.isNativePlatform();
-  wlog(`isNative=${isNative} platform=${Capacitor.getPlatform()}`);
+  if (disabled) return;
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    wlog("native → calling onPick(null)");
     onPick(null);
   } else {
-    wlog("web → inputRef.click()");
     inputRef.current?.click();
   }
 };
@@ -802,8 +786,6 @@ return (
 export default function App() {
 const [user, setUser] = useState(null);
 const [authLoading, setAuthLoading] = useState(true);
-const [showDebug, setShowDebug] = useState(false);
-const [debugRefresh, setDebugRefresh] = useState(0);
 const [authTab, setAuthTab] = useState("login");
 const [agreeTerms, setAgreeTerms] = useState(false);
 const [legalPage, setLegalPage] = useState(null);
@@ -1536,21 +1518,16 @@ r.readAsDataURL(f);
 };
 
 const handleAddPostPhotos = async (e) => {
-wlog(`handleAddPostPhotos called e=${e===null?"null":"FileEvent"}`);
-if (postPhotoPicking) { wlog("already picking — skip"); return; }
+if (postPhotoPicking) return;
 setPostPhotoPicking(true);
 setPostPhotoErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
-  const isNative = Capacitor.isNativePlatform();
-  wlog(`isNative=${isNative} platform=${Capacitor.getPlatform()} webFiles=${webFiles?.length??0}`);
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    wlog("importing @capacitor/camera");
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    wlog(`Camera imported OK. postPhotos.length=${postPhotos.length}`);
-    if (postPhotos.length >= 3) { wlog("max 3 photos — skip"); return; }
-    wlog("calling Camera.getPhoto source=Prompt resultType=DataUrl");
+    if (postPhotos.length >= 3) return;
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
       quality: 85,
@@ -1558,40 +1535,29 @@ try {
       allowEditing: false,
       saveToGallery: false,
     });
-    wlog(`Camera.getPhoto returned dataUrl=${photo?.dataUrl?"present len="+photo.dataUrl.length:"MISSING/NULL"}`);
     const dataUrl = photo.dataUrl;
-    if (!dataUrl) { wlog("ERROR: dataUrl empty"); throw new Error("Camera returned no dataUrl"); }
-    wlog("fetch(dataUrl)…");
     const res2 = await fetch(dataUrl);
-    wlog(`fetch status=${res2.status} ok=${res2.ok}`);
     const blob = await res2.blob();
-    wlog(`blob size=${blob.size} type=${blob.type}`);
     const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-    wlog(`File created ${file.name} size=${file.size}`);
     setPostPhotos(p => [...p, file]);
     setPostPhotoPreviews(p => [...p, dataUrl]);
-    wlog("✓ photo added to state");
     return;
   }
-  wlog(`web path webFiles=${webFiles?.length??0}`);
-  if (!webFiles?.length) { wlog("no webFiles — skip"); return; }
+  if (!webFiles?.length) return;
   const toAdd = webFiles.slice(0, 3 - postPhotos.length);
   const validErr = validateImageFiles(toAdd);
-  if (validErr) { wlog("validation err: "+validErr); setPostPhotoErr(validErr); return; }
+  if (validErr) { setPostPhotoErr(validErr); return; }
   const previews = await Promise.all(toAdd.map(f => new Promise(res => {
     const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
   })));
   setPostPhotos(p => [...p, ...toAdd]);
   setPostPhotoPreviews(p => [...p, ...previews]);
-  wlog(`✓ web photos added count=${toAdd.length}`);
 } catch(err) {
-  const msg = err?.message || String(err) || "unknown";
-  wlog(`CATCH: "${msg}" stack=${String(err?.stack||"").slice(0,120)}`);
-  if (msg.toLowerCase().includes("cancel")) { wlog("user cancelled — ignore"); return; }
+  const msg = err?.message || "";
+  if (msg.toLowerCase().includes("cancel")) return;
   console.warn("Photo pick failed:", err);
   setPostPhotoErr("Could not load the selected photo. Please try again.");
 } finally {
-  wlog("finally → setPostPhotoPicking(false)");
   setPostPhotoPicking(false);
 }
 };
@@ -2295,22 +2261,16 @@ try {
 };
 
 const handleAddEditPhotos = async (e) => {
-wlog(`handleAddEditPhotos called e=${e===null?"null":"FileEvent"}`);
-if (editPhotoPicking) { wlog("already picking — skip"); return; }
+if (editPhotoPicking) return;
 setEditPhotoPicking(true);
 setEditSaveErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
-  const isNative = Capacitor.isNativePlatform();
-  wlog(`isNative=${isNative} platform=${Capacitor.getPlatform()}`);
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    wlog("importing @capacitor/camera (edit)");
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    const total = (ef.photos||[]).length + editPhotos.length;
-    wlog(`Camera imported. total existing photos=${total}`);
-    if (total >= 3) { wlog("max 3 photos — skip"); return; }
-    wlog("calling Camera.getPhoto source=Prompt resultType=DataUrl");
+    if ((ef.photos||[]).length + editPhotos.length >= 3) return;
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
       quality: 85,
@@ -2318,37 +2278,28 @@ try {
       allowEditing: false,
       saveToGallery: false,
     });
-    wlog(`Camera.getPhoto returned dataUrl=${photo?.dataUrl?"present len="+photo.dataUrl.length:"MISSING/NULL"}`);
     const dataUrl = photo.dataUrl;
-    if (!dataUrl) { wlog("ERROR: dataUrl empty"); throw new Error("Camera returned no dataUrl"); }
     const res2 = await fetch(dataUrl);
-    wlog(`fetch status=${res2.status}`);
     const blob = await res2.blob();
     const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-    wlog(`File created size=${file.size}`);
     setEditPhotos(p=>[...p, file]);
     setEditPhotoPreviews(p=>[...p, dataUrl]);
-    wlog("✓ edit photo added");
     return;
   }
-  wlog(`web path webFiles=${webFiles?.length??0}`);
-  if (!webFiles?.length) { wlog("no webFiles — skip"); return; }
+  if (!webFiles?.length) return;
   const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
   const toAdd = webFiles.slice(0, remaining);
   const validErr = validateImageFiles(toAdd);
-  if (validErr) { wlog("validation err: "+validErr); setEditSaveErr(validErr); return; }
+  if (validErr) { setEditSaveErr(validErr); return; }
   const previews = await Promise.all(toAdd.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
   setEditPhotos(p=>[...p,...toAdd]);
   setEditPhotoPreviews(p=>[...p,...previews]);
-  wlog(`✓ web edit photos added count=${toAdd.length}`);
 } catch(err) {
-  const msg = err?.message || String(err) || "unknown";
-  wlog(`CATCH (edit): "${msg}" stack=${String(err?.stack||"").slice(0,120)}`);
-  if (msg.toLowerCase().includes("cancel")) { wlog("user cancelled — ignore"); return; }
+  const msg = err?.message || "";
+  if (msg.toLowerCase().includes("cancel")) return;
   console.warn("Edit photo pick failed:", err);
   setEditSaveErr("Could not load the selected photo. Please try again.");
 } finally {
-  wlog("finally (edit) → setEditPhotoPicking(false)");
   setEditPhotoPicking(false);
 }
 };
@@ -2865,47 +2816,22 @@ return (
               {/* Actions */}
               <div className="prof-section-hd">Account Actions</div>
               <button className="prof-support-btn" onClick={async()=>{
-                wlog("Support button tapped");
-                const url="https://www.want-board.com";
-                const isNative=Capacitor.isNativePlatform();
-                wlog(`isNative=${isNative} platform=${Capacitor.getPlatform()} url=${url}`);
+                const url="https://www.want-board.com/support";
+                const isNative=!!(window.Capacitor?.isNativePlatform?.());
                 if(isNative){
-                  wlog("native → Browser.open");
                   try{
                     const {Browser}=await import("@capacitor/browser");
-                    wlog("Browser module imported OK");
                     await Browser.open({url});
-                    wlog("Browser.open completed ✓");
                   }catch(err){
-                    const msg=err?.message||String(err)||"unknown";
-                    wlog(`Browser.open FAILED: "${msg}"`);
-                    wlog("fallback → window.location.href");
+                    console.warn("Browser.open failed, falling back to location.href:",err);
                     window.location.href=url;
                   }
                 } else {
-                  wlog("web → window.open _blank");
                   window.open(url,"_blank","noopener,noreferrer");
                 }
               }}>🛟 Support</button>
               <button className="prof-action-btn" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
               <button className="prof-danger-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
-              {/* ── Debug Panel ── */}
-              <div style={{marginTop:20,borderTop:"1px solid #eee",paddingTop:14}}>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{setShowDebug(s=>!s);setDebugRefresh(n=>n+1);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1px solid #ccc",background:"#f5f5f5",fontFamily:"monospace",fontSize:11,cursor:"pointer",color:"#555"}}>
-                    {showDebug?"▲ Hide Debug Log":"▼ Show Debug Log"} ({__wlogs.length} entries)
-                  </button>
-                  {showDebug&&<button onClick={()=>{__wlogs.length=0;setDebugRefresh(n=>n+1);}} style={{padding:"9px 14px",borderRadius:10,border:"1px solid #fca5a5",background:"#fef2f2",fontSize:11,cursor:"pointer",color:"#b91c1c"}}>Clear</button>}
-                </div>
-                {showDebug&&(
-                  <div style={{marginTop:8,background:"#0d0d0d",color:"#4ade80",fontFamily:"monospace",fontSize:10,lineHeight:1.6,padding:10,borderRadius:10,maxHeight:280,overflowY:"auto"}}>
-                    {__wlogs.length===0
-                      ?<div style={{color:"#555"}}>No logs yet — tap Add Photos or Support, then re-open this panel.</div>
-                      :__wlogs.map((l,i)=><div key={i} style={{borderBottom:"1px solid #1a1a1a",paddingBottom:1,marginBottom:1,wordBreak:"break-all"}}>{l}</div>)
-                    }
-                  </div>
-                )}
-              </div>
             </div>
           </>
         );
