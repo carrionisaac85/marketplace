@@ -1524,8 +1524,8 @@ setPostPhotoErr("");
 const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
 if (e?.target) e.target.value = "";
 try {
-  const { Capacitor } = await import("@capacitor/core");
-  if (Capacitor.isNativePlatform()) {
+  const isNative = !!(window.Capacitor?.isNativePlatform?.());
+  if (isNative) {
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
     if (postPhotos.length >= 3) return;
     const photo = await Camera.getPhoto({
@@ -2823,8 +2823,8 @@ return (
                     const {Browser}=await import("@capacitor/browser");
                     await Browser.open({url});
                   }catch(err){
-                    console.warn("Browser.open failed:",err);
-                    // Do NOT call window.open on native — WKWebView blocks popups (blank page).
+                    console.warn("Browser.open failed, falling back to location.href:",err);
+                    window.location.href=url;
                   }
                 } else {
                   window.open(url,"_blank","noopener,noreferrer");
