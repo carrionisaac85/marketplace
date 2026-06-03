@@ -727,6 +727,21 @@ textarea.fi{resize:vertical;min-height:80px}
 .prof-action-btn:active{background:var(--surface2)}
 .prof-support-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1.5px solid #E84B2A;background:var(--surface);color:#E84B2A;margin-bottom:10px;display:block;transition:background .15s,color .15s}
 .prof-support-btn:active{background:#fff0ec}
+.support-page{display:flex;flex-direction:column;min-height:100%}
+.support-topbar{display:flex;align-items:center;gap:12px;padding:16px 0 12px;margin-bottom:4px}
+.support-back{background:none;border:none;font-family:var(--fd);font-weight:700;font-size:15px;color:var(--accent);cursor:pointer;padding:0;line-height:1}
+.support-title{font-family:var(--fd);font-weight:800;font-size:20px;color:var(--text)}
+.support-body{display:flex;flex-direction:column;gap:0;padding-bottom:40px}
+.support-section-hd{font-family:var(--fd);font-weight:700;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:20px}
+.support-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:4px}
+.support-row{display:flex;align-items:flex-start;gap:12px}
+.support-icon{font-size:20px;line-height:1;margin-top:2px}
+.support-row-label{font-family:var(--fd);font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.support-row-val{font-family:var(--fb);font-size:15px;color:var(--text);text-decoration:none;display:block}
+a.support-row-val{color:#E84B2A}
+.support-faq-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:8px}
+.support-faq-q{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px}
+.support-faq-a{font-family:var(--fb);font-size:14px;color:var(--text2);line-height:1.5}
 .prof-danger-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid #fca5a5;background:var(--surface);color:var(--red);margin-bottom:10px;display:block;transition:background .15s}
 .prof-danger-btn:active{background:#fff5f5}
 `;
@@ -2811,21 +2826,7 @@ return (
               )}
               {/* Actions */}
               <div className="prof-section-hd">Account Actions</div>
-              <button className="prof-support-btn" onClick={async()=>{
-                const url="https://www.want-board.com/support";
-                const isNative=!!(window.Capacitor?.isNativePlatform?.());
-                if(isNative){
-                  try{
-                    const {Browser}=await import("@capacitor/browser");
-                    await Browser.open({url});
-                  }catch(err){
-                    console.warn("Browser.open failed, falling back to location.href:",err);
-                    window.location.href=url;
-                  }
-                } else {
-                  window.open(url,"_blank","noopener,noreferrer");
-                }
-              }}>🛟 Support</button>
+              <button className="prof-support-btn" onClick={()=>setView("support")}>🛟 Support</button>
               <button className="prof-action-btn" onClick={()=>{signOut(auth);setView("browse");}}>Sign Out</button>
               <button className="prof-danger-btn" onClick={deleteAccount} disabled={deletingAccount}>{deletingAccount?"Deleting…":"Delete Account"}</button>
             </div>
@@ -2833,6 +2834,58 @@ return (
         );
       })()}
 
+
+      {/* SUPPORT */}
+      {view==="support"&&(
+        <div className="support-page">
+          <div className="support-topbar">
+            <button className="support-back" onClick={()=>setView("myprofile")}>← Back</button>
+            <div className="support-title">Support</div>
+          </div>
+          <div className="support-body">
+            <div className="support-section-hd">Contact Us</div>
+            <div className="support-card">
+              <div className="support-row">
+                <span className="support-icon">✉️</span>
+                <div>
+                  <div className="support-row-label">Email</div>
+                  <a className="support-row-val" href="mailto:support@wantboard.app">support@wantboard.app</a>
+                </div>
+              </div>
+            </div>
+            <div className="support-section-hd">Frequently Asked Questions</div>
+            {[
+              {q:"How do I post a Want?",a:"Tap the + button at the bottom of the screen, fill in what you're looking for, add photos if you like, and tap Post."},
+              {q:"How do I make an offer?",a:"Tap on any Want from the browse feed and tap 'Make Offer'. You can add a price, photo, and message."},
+              {q:"How do I mark a Want as sold?",a:"Go to My Wants, open the Want, and tap 'Mark as Sold' once you've found what you were looking for."},
+              {q:"Can I edit my Want after posting?",a:"Yes — go to My Wants, tap the Want, and tap Edit to update the title, description, photos, or price."},
+              {q:"How do I delete my account?",a:"Go to Profile → Delete Account. This is permanent and removes all your data immediately."},
+            ].map(({q,a},i)=>(
+              <div key={i} className="support-faq-card">
+                <div className="support-faq-q">{q}</div>
+                <div className="support-faq-a">{a}</div>
+              </div>
+            ))}
+            <div className="support-section-hd">App Info</div>
+            <div className="support-card">
+              <div className="support-row">
+                <span className="support-icon">📱</span>
+                <div>
+                  <div className="support-row-label">App</div>
+                  <div className="support-row-val">WantBoard</div>
+                </div>
+              </div>
+              <div className="support-row" style={{borderTop:"1px solid var(--border)",marginTop:10,paddingTop:10}}>
+                <span className="support-icon">🌐</span>
+                <div>
+                  <div className="support-row-label">Website</div>
+                  <div className="support-row-val">want-board.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MY WANTS */}
       {view==="mine"&&(
