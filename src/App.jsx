@@ -1526,18 +1526,22 @@ if (e?.target) e.target.value = "";
 try {
   const { Capacitor } = await import("@capacitor/core");
   if (Capacitor.isNativePlatform()) {
-    const { Camera, CameraResultType } = await import("@capacitor/camera");
-    const remaining = 3 - postPhotos.length;
-    if (remaining <= 0) return;
-    const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
-    const selected = (result.photos || []).slice(0, remaining);
-    const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
-    const files = blobs.map((b, i) => new File([b], `photo_${Date.now()}_${i}.jpg`, { type: b.type || "image/jpeg" }));
-    const previews = await Promise.all(files.map(f => new Promise(res => {
-      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
-    })));
-    setPostPhotos(p => [...p, ...files]);
-    setPostPhotoPreviews(p => [...p, ...previews]);
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+    if (postPhotos.length >= 3) return;
+    const photo = await Camera.getPhoto({
+      source: CameraSource.Prompt,
+      quality: 85,
+      resultType: CameraResultType.Uri,
+      allowEditing: false,
+      saveToGallery: false,
+    });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+    const preview = await new Promise(res => {
+      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
+    });
+    setPostPhotos(p => [...p, file]);
+    setPostPhotoPreviews(p => [...p, preview]);
     return;
   }
   if (!webFiles?.length) return;
@@ -2264,16 +2268,20 @@ if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    const { Camera, CameraResultType } = await import("@capacitor/camera");
-    const remaining = 3 - (ef.photos||[]).length - editPhotos.length;
-    if (remaining <= 0) return;
-    const result = await Camera.pickImages({ limit: remaining, quality: 85, resultType: CameraResultType.Uri });
-    const selected = (result.photos||[]).slice(0, remaining);
-    const blobs = await Promise.all(selected.map(p => fetch(p.webPath).then(r => r.blob())));
-    const files = blobs.map((b,i) => new File([b], `photo_${Date.now()}_${i}.jpg`, { type: b.type||"image/jpeg" }));
-    const previews = await Promise.all(files.map(f => new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(f); })));
-    setEditPhotos(p=>[...p,...files]);
-    setEditPhotoPreviews(p=>[...p,...previews]);
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+    if ((ef.photos||[]).length + editPhotos.length >= 3) return;
+    const photo = await Camera.getPhoto({
+      source: CameraSource.Prompt,
+      quality: 85,
+      resultType: CameraResultType.Uri,
+      allowEditing: false,
+      saveToGallery: false,
+    });
+    const blob = await fetch(photo.webPath).then(r => r.blob());
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type||"image/jpeg" });
+    const preview = await new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(file); });
+    setEditPhotos(p=>[...p, file]);
+    setEditPhotoPreviews(p=>[...p, preview]);
     return;
   }
   if (!webFiles?.length) return;
