@@ -1531,17 +1531,16 @@ try {
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
       quality: 85,
-      resultType: CameraResultType.Uri,
+      resultType: CameraResultType.DataUrl,
       allowEditing: false,
       saveToGallery: false,
     });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-    const preview = await new Promise(res => {
-      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file);
-    });
+    const dataUrl = photo.dataUrl;
+    const res2 = await fetch(dataUrl);
+    const blob = await res2.blob();
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
     setPostPhotos(p => [...p, file]);
-    setPostPhotoPreviews(p => [...p, preview]);
+    setPostPhotoPreviews(p => [...p, dataUrl]);
     return;
   }
   if (!webFiles?.length) return;
@@ -1554,6 +1553,8 @@ try {
   setPostPhotos(p => [...p, ...toAdd]);
   setPostPhotoPreviews(p => [...p, ...previews]);
 } catch(err) {
+  const msg = err?.message || "";
+  if (msg.toLowerCase().includes("cancel")) return;
   console.warn("Photo pick failed:", err);
   setPostPhotoErr("Could not load the selected photo. Please try again.");
 } finally {
@@ -2273,15 +2274,16 @@ try {
     const photo = await Camera.getPhoto({
       source: CameraSource.Prompt,
       quality: 85,
-      resultType: CameraResultType.Uri,
+      resultType: CameraResultType.DataUrl,
       allowEditing: false,
       saveToGallery: false,
     });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type||"image/jpeg" });
-    const preview = await new Promise(res => { const r=new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsDataURL(file); });
+    const dataUrl = photo.dataUrl;
+    const res2 = await fetch(dataUrl);
+    const blob = await res2.blob();
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
     setEditPhotos(p=>[...p, file]);
-    setEditPhotoPreviews(p=>[...p, preview]);
+    setEditPhotoPreviews(p=>[...p, dataUrl]);
     return;
   }
   if (!webFiles?.length) return;
@@ -2293,6 +2295,8 @@ try {
   setEditPhotos(p=>[...p,...toAdd]);
   setEditPhotoPreviews(p=>[...p,...previews]);
 } catch(err) {
+  const msg = err?.message || "";
+  if (msg.toLowerCase().includes("cancel")) return;
   console.warn("Edit photo pick failed:", err);
   setEditSaveErr("Could not load the selected photo. Please try again.");
 } finally {
@@ -2817,7 +2821,7 @@ return (
                 if(isNative){
                   try{
                     const {Browser}=await import("@capacitor/browser");
-                    await Browser.open({url,presentationStyle:"popover"});
+                    await Browser.open({url});
                   }catch(err){
                     console.warn("Browser.open failed:",err);
                     // Do NOT call window.open on native — WKWebView blocks popups (blank page).
