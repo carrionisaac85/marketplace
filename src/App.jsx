@@ -1541,19 +1541,22 @@ if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    if (postPhotos.length >= 3) return;
-    const photo = await Camera.getPhoto({
-      source: CameraSource.Prompt,
-      quality: 90,
-      resultType: CameraResultType.Uri,
-      allowEditing: false,
-      saveToGallery: false,
-    });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-    setPostPhotos(p => [...p, file]);
-    setPostPhotoPreviews(p => [...p, photo.webPath]);
+    const { Camera } = await import("@capacitor/camera");
+    const limit = 3 - postPhotos.length;
+    if (limit <= 0) return;
+    const result = await Camera.pickImages({ limit });
+    const newFiles = [];
+    const newPreviews = [];
+    for (const photo of result.photos) {
+      const blob = await fetch(photo.webPath).then(r => r.blob());
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+      newFiles.push(file);
+      newPreviews.push(photo.webPath);
+    }
+    if (newFiles.length > 0) {
+      setPostPhotos(p => [...p, ...newFiles]);
+      setPostPhotoPreviews(p => [...p, ...newPreviews]);
+    }
     return;
   }
   if (!webFiles?.length) return;
@@ -2282,19 +2285,22 @@ if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    if ((ef.photos||[]).length + editPhotos.length >= 3) return;
-    const photo = await Camera.getPhoto({
-      source: CameraSource.Prompt,
-      quality: 90,
-      resultType: CameraResultType.Uri,
-      allowEditing: false,
-      saveToGallery: false,
-    });
-    const blob = await fetch(photo.webPath).then(r => r.blob());
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-    setEditPhotos(p=>[...p, file]);
-    setEditPhotoPreviews(p=>[...p, photo.webPath]);
+    const { Camera } = await import("@capacitor/camera");
+    const limit = 3 - (ef.photos||[]).length - editPhotos.length;
+    if (limit <= 0) return;
+    const result = await Camera.pickImages({ limit });
+    const newFiles = [];
+    const newPreviews = [];
+    for (const photo of result.photos) {
+      const blob = await fetch(photo.webPath).then(r => r.blob());
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+      newFiles.push(file);
+      newPreviews.push(photo.webPath);
+    }
+    if (newFiles.length > 0) {
+      setEditPhotos(p=>[...p, ...newFiles]);
+      setEditPhotoPreviews(p=>[...p, ...newPreviews]);
+    }
     return;
   }
   if (!webFiles?.length) return;
