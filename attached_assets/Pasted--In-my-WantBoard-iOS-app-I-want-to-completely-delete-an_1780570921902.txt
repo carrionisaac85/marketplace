@@ -1,0 +1,39 @@
+"In my WantBoard iOS app, I want to completely delete and rebuild the photo/camera functionality in the post a want ad screen from scratch. Delete all existing camera and photo upload code and replace it with a clean new implementation similar to how OfferUp and Facebook Marketplace work. Here is exactly what I want:
+Photo selection UI:
+
+At the top of the new post screen show a large photo upload area
+Inside that area show two clear buttons side by side:
+
+A camera icon button labeled 'Take Photo'
+A photo icon button labeled 'Choose from Library'
+
+
+After a photo is selected show a preview of the photo in the upload area with an X button to remove it and try again
+Allow up to 4 photos to be added similar to OfferUp and Facebook Marketplace
+Show empty photo slots so the user knows they can add more photos
+
+Camera and library functionality:
+
+On native iOS use the Capacitor Camera plugin for both options:
+
+'Take Photo' button: use Camera.getPhoto() with source: CameraSource.Camera
+'Choose from Library' button: use Camera.getPhoto() with source: CameraSource.Photos
+Use resultType: CameraResultType.Uri and quality: 90
+
+
+On mobile web use a standard HTML file input with accept='image/*' for library and accept='image/*' capture='environment' for camera
+Use Capacitor.isNativePlatform() to detect iOS and switch between native and web implementations
+
+Permissions:
+
+Make sure NSCameraUsageDescription is in Info.plist with the description 'WantBoard needs camera access to add photos to your post'
+Make sure NSPhotoLibraryUsageDescription is in Info.plist with the description 'WantBoard needs photo library access to add photos to your post'
+Request permissions before opening camera or library and show a friendly error message if permission is denied
+
+Styling:
+
+Match the clean simple style of the rest of the app using brand color #E84B2A for buttons and icons
+Photo slots should be square with rounded corners
+The UI should look clean and intuitive on both iPhone and iPad
+
+After rebuilding, make sure it works correctly on iPhone, iPad, and web. Commit and push all changes to GitHub."

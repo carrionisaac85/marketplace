@@ -281,6 +281,18 @@ main{-webkit-overflow-scrolling:touch;}
 .photo-src-btn{background:var(--surface2);border:none;border-radius:12px;padding:15px;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .15s}
 .photo-src-btn:active{background:var(--border)}
 .photo-src-cancel{background:none;border:none;border-radius:12px;padding:13px;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;margin-top:2px}
+.photo-upload-area{margin-top:4px}
+.photo-action-row{display:flex;gap:10px;margin-bottom:12px}
+.photo-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 8px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:14px;cursor:pointer;font-family:var(--fd);font-size:13px;font-weight:600;color:var(--text2);transition:border-color .15s,color .15s,background .15s;-webkit-tap-highlight-color:transparent;user-select:none}
+.photo-action-btn:hover,.photo-action-btn:active{border-color:var(--accent);color:var(--accent);background:#fff5f3}
+.photo-action-btn-icon{font-size:20px;line-height:1;flex-shrink:0}
+.photo-slots-row{display:flex;gap:8px}
+.photo-slot{flex:1;aspect-ratio:1/1;border-radius:12px;overflow:hidden;position:relative;min-width:0}
+.photo-slot-empty{border:1.5px dashed var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center}
+.photo-slot-empty-icon{width:26px;height:26px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:16px;font-weight:500;line-height:1}
+.photo-slot-filled img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-slot-rm{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.photo-err{margin-top:8px;font-size:12px;color:var(--red);background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;line-height:1.4}
 .want-photos{display:flex;gap:6px;overflow-x:auto;margin-top:6px;margin-bottom:4px;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 .want-photo{width:80px;height:80px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
 .sh-photos{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch}
@@ -935,6 +947,8 @@ const [postPhotos, setPostPhotos] = useState([]);
 const [postPhotoPreviews, setPostPhotoPreviews] = useState([]);
 const [postPhotoPicking, setPostPhotoPicking] = useState(false);
 const [postPhotoErr, setPostPhotoErr] = useState("");
+const postCameraInputRef = useRef(null);
+const postLibraryInputRef = useRef(null);
 const [uploadingPhotos, setUploadingPhotos] = useState(false);
 const [editSaveErr, setEditSaveErr] = useState("");
 const [convos, setConvos] = useState([]);
@@ -1559,59 +1573,45 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
-const handleAddPostPhotos = async (e) => {
-if (postPhotoPicking) return;
+const handleAddPostPhotos = async (source, webFile) => {
+if (postPhotoPicking || postPhotos.length >= 4) return;
 setPostPhotoPicking(true);
 setPostPhotoErr("");
-const webFiles = e?.target?.files ? Array.from(e.target.files) : null;
-if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
     const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    const limit = 3 - postPhotos.length;
-    if (limit <= 0) return;
-    if (e?.nativeSource === "camera") {
-      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.DataUrl, allowEditing: false, saveToGallery: false });
-      const blob = await fetch(photo.dataUrl).then(r => r.blob());
-      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-      setPostPhotos(p => [...p, file]);
-      setPostPhotoPreviews(p => [...p, photo.dataUrl]);
-    } else {
-      const result = await Camera.pickImages({ limit });
-      const newFiles = [];
-      const newPreviews = [];
-      for (const photo of result.photos) {
-        const blob = await fetch(photo.webPath).then(r => r.blob());
-        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-        newFiles.push(file);
-        newPreviews.push(photo.webPath);
-      }
-      if (newFiles.length > 0) {
-        setPostPhotos(p => [...p, ...newFiles]);
-        setPostPhotoPreviews(p => [...p, ...newPreviews]);
-      }
-    }
-    return;
+    const photo = await Camera.getPhoto({
+      source: source === "camera" ? CameraSource.Camera : CameraSource.Photos,
+      quality: 90,
+      resultType: CameraResultType.DataUrl,
+      allowEditing: false,
+      saveToGallery: false,
+    });
+    const blob = await fetch(photo.dataUrl).then(r => r.blob());
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
+    setPostPhotos(p => [...p, file]);
+    setPostPhotoPreviews(p => [...p, photo.dataUrl]);
+  } else if (webFile) {
+    const validErr = validateImageFiles([webFile]);
+    if (validErr) { setPostPhotoErr(validErr); return; }
+    const preview = await new Promise(res => {
+      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(webFile);
+    });
+    setPostPhotos(p => [...p, webFile]);
+    setPostPhotoPreviews(p => [...p, preview]);
   }
-  if (!webFiles?.length) return;
-  const toAdd = webFiles.slice(0, 3 - postPhotos.length);
-  const validErr = validateImageFiles(toAdd);
-  if (validErr) { setPostPhotoErr(validErr); return; }
-  const previews = await Promise.all(toAdd.map(f => new Promise(res => {
-    const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(f);
-  })));
-  setPostPhotos(p => [...p, ...toAdd]);
-  setPostPhotoPreviews(p => [...p, ...previews]);
 } catch(err) {
-  const msg = err?.message || "";
-  if (msg.toLowerCase().includes("cancel")) return;
+  const msg = (err?.message || "").toLowerCase();
+  if (msg.includes("cancel") || msg.includes("no image") || msg.includes("dismissed") || msg.includes("user cancelled")) return;
   console.warn("Photo pick failed:", err);
-  setPostPhotoErr("Could not load the selected photo. Please try again.");
+  setPostPhotoErr("Could not load photo. Please try again.");
 } finally {
   setPostPhotoPicking(false);
 }
 };
+const onPostCameraChange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleAddPostPhotos("camera", f); };
+const onPostLibraryChange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleAddPostPhotos("library", f); };
 
 const removePostPhoto = idx => {
 setPostPhotos(p => p.filter((_,i)=>i!==idx));
@@ -3591,19 +3591,36 @@ return (
                   </div>
                 </div>
                 <div className="fg">
-                  <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 3, optional — JPG, PNG, WebP)</span></label>
-                  <div className="post-photos">
-                    {postPhotoPreviews.map((src,i)=>(
-                      <div key={i} className="post-photo-wrap">
-                        <img src={src} className="post-photo-thumb" alt={`photo ${i+1}`} />
-                        <button className="post-photo-rm" onClick={()=>removePostPhoto(i)}>✕</button>
+                  <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 4, optional)</span></label>
+                  <div className="photo-upload-area">
+                    {postPhotos.length < 4 && (
+                      <div className="photo-action-row">
+                        <div className="photo-action-btn" style={{opacity:postPhotoPicking||posting?0.5:1,pointerEvents:postPhotoPicking||posting?"none":"auto"}} onClick={()=>{if(!!(window.Capacitor?.isNativePlatform?.()))handleAddPostPhotos("camera");else postCameraInputRef.current?.click();}}>
+                          <span className="photo-action-btn-icon">📷</span>Take Photo
+                          <input ref={postCameraInputRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={onPostCameraChange} />
+                        </div>
+                        <div className="photo-action-btn" style={{opacity:postPhotoPicking||posting?0.5:1,pointerEvents:postPhotoPicking||posting?"none":"auto"}} onClick={()=>{if(!!(window.Capacitor?.isNativePlatform?.()))handleAddPostPhotos("library");else postLibraryInputRef.current?.click();}}>
+                          <span className="photo-action-btn-icon">🖼️</span>Choose from Library
+                          <input ref={postLibraryInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={onPostLibraryChange} />
+                        </div>
                       </div>
-                    ))}
-                    {postPhotos.length<3&&(
-                      <AddPhotoButton onPick={handleAddPostPhotos} disabled={postPhotoPicking||posting} />
                     )}
+                    <div className="photo-slots-row">
+                      {[0,1,2,3].map(i=>(
+                        postPhotoPreviews[i]?(
+                          <div key={i} className="photo-slot photo-slot-filled">
+                            <img src={postPhotoPreviews[i]} alt={`photo ${i+1}`} />
+                            <button className="photo-slot-rm" onClick={()=>removePostPhoto(i)}>✕</button>
+                          </div>
+                        ):(
+                          <div key={i} className="photo-slot photo-slot-empty">
+                            <div className="photo-slot-empty-icon">+</div>
+                          </div>
+                        )
+                      ))}
+                    </div>
                   </div>
-                  {postPhotoErr&&<div style={{marginTop:6,fontSize:12,color:"var(--red)",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 10px",lineHeight:1.4}}>{postPhotoErr}</div>}
+                  {postPhotoErr&&<div className="photo-err">{postPhotoErr}</div>}
                 </div>
                 <button className="sbtn" onClick={postWant} disabled={posting||uploadingPhotos||!form.title||!form.budget}>
                   {uploadingPhotos ? `Uploading ${postPhotos.length} photo${postPhotos.length!==1?"s":""}…` : posting ? "Posting…" : "Post My Want →"}
