@@ -17,3 +17,21 @@ id = "uFRYjTwkMBuXp5c8S25IF"
 uri = "file://artifacts/mockup-sandbox/public/images/leather-jacket.jpg"
 type = "image"
 title = "vintage brown leather motorcycle jacket on hanger plain background"
+
+[[outputs]]
+id = "qBzFXSljfyfULbkv80485"
+uri = "file://artifacts/mockup-sandbox/public/images/camera.jpg"
+type = "image"
+title = "vintage film camera on a wooden table"
+
+[[outputs]]
+id = "lisuiiG5JJZ1YLNHhKwt7"
+uri = "file://artifacts/mockup-sandbox/public/images/guitar.jpg"
+type = "image"
+title = "acoustic guitar resting against a wall"
+
+[[outputs]]
+id = "sIg7D-CeARNv3qcOqHsXU"
+uri = "file://artifacts/mockup-sandbox/public/images/chair.jpg"
+type = "image"
+title = "modern ergonomic office chair empty"
