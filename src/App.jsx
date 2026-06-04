@@ -229,7 +229,7 @@ main{-webkit-overflow-scrolling:touch;}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) max(20px,calc(10px + env(safe-area-inset-bottom,0px))) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06);min-height:60px}
-.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:4px 6px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;overflow:hidden}
+.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:4px 6px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .bitem:hover,.bitem.active{color:var(--accent)}
 .bicon{font-size:22px;line-height:1}
 .notif-badge{position:absolute;top:0;right:6px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
@@ -3207,7 +3207,7 @@ return (
         }}>
           <span className="bicon">{n.icon}</span>
           {n.id==="messages"&&hasUnread&&<span className="notif-badge" />}
-          <span>{n.label}</span>
+          <span style={{maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
         </div>
       ))}
     </nav>
