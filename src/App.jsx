@@ -275,6 +275,12 @@ main{-webkit-overflow-scrolling:touch;}
 .add-photo-btn{width:72px;height:72px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:11px;font-weight:600;gap:2px;font-family:var(--fd);transition:border-color .15s,color .15s}
 .add-photo-btn:hover{border-color:var(--accent);color:var(--accent)}
 .add-photo-btn span{font-size:20px}
+.photo-src-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center}
+.photo-src-sheet{width:100%;max-width:480px;background:var(--surface);border-radius:18px 18px 0 0;padding:12px 16px calc(env(safe-area-inset-bottom)+16px);display:flex;flex-direction:column;gap:10px}
+.photo-src-title{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--text2);text-align:center;padding-bottom:2px}
+.photo-src-btn{background:var(--surface2);border:none;border-radius:12px;padding:15px;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .15s}
+.photo-src-btn:active{background:var(--border)}
+.photo-src-cancel{background:none;border:none;border-radius:12px;padding:13px;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;margin-top:2px}
 .want-photos{display:flex;gap:6px;overflow-x:auto;margin-top:6px;margin-bottom:4px;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 .want-photo{width:80px;height:80px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
 .sh-photos{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch}
@@ -773,28 +779,49 @@ function validateImageFiles(files) {
 
 function AddPhotoButton({ onPick, disabled }) {
 const inputRef = useRef(null);
+const [showSheet, setShowSheet] = useState(false);
+const isNative = !!(window.Capacitor?.isNativePlatform?.());
 const handleClick = () => {
   if (disabled) return;
-  const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    onPick(null);
+    setShowSheet(true);
   } else {
     inputRef.current?.click();
   }
 };
+const handleSource = (src) => {
+  setShowSheet(false);
+  onPick({ nativeSource: src });
+};
 return (
-  <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
-    <span>📷</span>
-    {disabled ? "…" : "Add Photos"}
-    <input
-      ref={inputRef}
-      type="file"
-      accept="image/*"
-      multiple
-      style={{display:"none"}}
-      onChange={disabled ? undefined : onPick}
-    />
-  </div>
+  <>
+    <div className="add-photo-btn" onClick={handleClick} style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1}}>
+      <span>📷</span>
+      {disabled ? "…" : "Add Photos"}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{display:"none"}}
+        onChange={disabled ? undefined : onPick}
+      />
+    </div>
+    {showSheet && (
+      <div className="photo-src-overlay" onClick={() => setShowSheet(false)}>
+        <div className="photo-src-sheet" onClick={e => e.stopPropagation()}>
+          <div className="photo-src-title">Add Photo</div>
+          <button className="photo-src-btn" onClick={() => handleSource("camera")}>
+            <span>📷</span> Take Photo
+          </button>
+          <button className="photo-src-btn" onClick={() => handleSource("library")}>
+            <span>🖼️</span> Choose from Library
+          </button>
+          <button className="photo-src-cancel" onClick={() => setShowSheet(false)}>Cancel</button>
+        </div>
+      </div>
+    )}
+  </>
 );
 }
 
@@ -1541,21 +1568,29 @@ if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    const { Camera } = await import("@capacitor/camera");
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
     const limit = 3 - postPhotos.length;
     if (limit <= 0) return;
-    const result = await Camera.pickImages({ limit });
-    const newFiles = [];
-    const newPreviews = [];
-    for (const photo of result.photos) {
+    if (e?.nativeSource === "camera") {
+      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.Uri, allowEditing: false, saveToGallery: false });
       const blob = await fetch(photo.webPath).then(r => r.blob());
       const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-      newFiles.push(file);
-      newPreviews.push(photo.webPath);
-    }
-    if (newFiles.length > 0) {
-      setPostPhotos(p => [...p, ...newFiles]);
-      setPostPhotoPreviews(p => [...p, ...newPreviews]);
+      setPostPhotos(p => [...p, file]);
+      setPostPhotoPreviews(p => [...p, photo.webPath]);
+    } else {
+      const result = await Camera.pickImages({ limit });
+      const newFiles = [];
+      const newPreviews = [];
+      for (const photo of result.photos) {
+        const blob = await fetch(photo.webPath).then(r => r.blob());
+        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+        newFiles.push(file);
+        newPreviews.push(photo.webPath);
+      }
+      if (newFiles.length > 0) {
+        setPostPhotos(p => [...p, ...newFiles]);
+        setPostPhotoPreviews(p => [...p, ...newPreviews]);
+      }
     }
     return;
   }
@@ -2285,21 +2320,29 @@ if (e?.target) e.target.value = "";
 try {
   const isNative = !!(window.Capacitor?.isNativePlatform?.());
   if (isNative) {
-    const { Camera } = await import("@capacitor/camera");
+    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
     const limit = 3 - (ef.photos||[]).length - editPhotos.length;
     if (limit <= 0) return;
-    const result = await Camera.pickImages({ limit });
-    const newFiles = [];
-    const newPreviews = [];
-    for (const photo of result.photos) {
+    if (e?.nativeSource === "camera") {
+      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.Uri, allowEditing: false, saveToGallery: false });
       const blob = await fetch(photo.webPath).then(r => r.blob());
       const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
-      newFiles.push(file);
-      newPreviews.push(photo.webPath);
-    }
-    if (newFiles.length > 0) {
-      setEditPhotos(p=>[...p, ...newFiles]);
-      setEditPhotoPreviews(p=>[...p, ...newPreviews]);
+      setEditPhotos(p=>[...p, file]);
+      setEditPhotoPreviews(p=>[...p, photo.webPath]);
+    } else {
+      const result = await Camera.pickImages({ limit });
+      const newFiles = [];
+      const newPreviews = [];
+      for (const photo of result.photos) {
+        const blob = await fetch(photo.webPath).then(r => r.blob());
+        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+        newFiles.push(file);
+        newPreviews.push(photo.webPath);
+      }
+      if (newFiles.length > 0) {
+        setEditPhotos(p=>[...p, ...newFiles]);
+        setEditPhotoPreviews(p=>[...p, ...newPreviews]);
+      }
     }
     return;
   }
