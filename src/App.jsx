@@ -1572,11 +1572,11 @@ try {
     const limit = 3 - postPhotos.length;
     if (limit <= 0) return;
     if (e?.nativeSource === "camera") {
-      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.Uri, allowEditing: false, saveToGallery: false });
-      const blob = await fetch(photo.webPath).then(r => r.blob());
-      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.DataUrl, allowEditing: false, saveToGallery: false });
+      const blob = await fetch(photo.dataUrl).then(r => r.blob());
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
       setPostPhotos(p => [...p, file]);
-      setPostPhotoPreviews(p => [...p, photo.webPath]);
+      setPostPhotoPreviews(p => [...p, photo.dataUrl]);
     } else {
       const result = await Camera.pickImages({ limit });
       const newFiles = [];
@@ -2324,11 +2324,11 @@ try {
     const limit = 3 - (ef.photos||[]).length - editPhotos.length;
     if (limit <= 0) return;
     if (e?.nativeSource === "camera") {
-      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.Uri, allowEditing: false, saveToGallery: false });
-      const blob = await fetch(photo.webPath).then(r => r.blob());
-      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+      const photo = await Camera.getPhoto({ source: CameraSource.Camera, quality: 90, resultType: CameraResultType.DataUrl, allowEditing: false, saveToGallery: false });
+      const blob = await fetch(photo.dataUrl).then(r => r.blob());
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
       setEditPhotos(p=>[...p, file]);
-      setEditPhotoPreviews(p=>[...p, photo.webPath]);
+      setEditPhotoPreviews(p=>[...p, photo.dataUrl]);
     } else {
       const result = await Camera.pickImages({ limit });
       const newFiles = [];
