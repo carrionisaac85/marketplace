@@ -2898,7 +2898,7 @@ return (
                 <span className="support-icon">✉️</span>
                 <div>
                   <div className="support-row-label">Email</div>
-                  <a className="support-row-val" href="mailto:support@wantboard.app">support@wantboard.app</a>
+                  <a className="support-row-val" href="mailto:boardwant@gmail.com">boardwant@gmail.com</a>
                 </div>
               </div>
             </div>
