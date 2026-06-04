@@ -947,8 +947,6 @@ const [postPhotos, setPostPhotos] = useState([]);
 const [postPhotoPreviews, setPostPhotoPreviews] = useState([]);
 const [postPhotoPicking, setPostPhotoPicking] = useState(false);
 const [postPhotoErr, setPostPhotoErr] = useState("");
-const postCameraInputRef = useRef(null);
-const postLibraryInputRef = useRef(null);
 const [uploadingPhotos, setUploadingPhotos] = useState(false);
 const [editSaveErr, setEditSaveErr] = useState("");
 const [convos, setConvos] = useState([]);
@@ -1573,45 +1571,24 @@ r.onload=ev=>{ setPhotoPrev(ev.target.result); };
 r.readAsDataURL(f);
 };
 
-const handleAddPostPhotos = async (source, webFile) => {
-if (postPhotoPicking || postPhotos.length >= 4) return;
-setPostPhotoPicking(true);
+const handlePostPhotoChange = e => {
+const files = Array.from(e.target.files || []);
+e.target.value = "";
+if (!files.length) return;
 setPostPhotoErr("");
-try {
-  const isNative = !!(window.Capacitor?.isNativePlatform?.());
-  if (isNative) {
-    const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
-    const photo = await Camera.getPhoto({
-      source: source === "camera" ? CameraSource.Camera : CameraSource.Photos,
-      quality: 90,
-      resultType: CameraResultType.DataUrl,
-      allowEditing: false,
-      saveToGallery: false,
-    });
-    const blob = await fetch(photo.dataUrl).then(r => r.blob());
-    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-    setPostPhotos(p => [...p, file]);
-    setPostPhotoPreviews(p => [...p, photo.dataUrl]);
-  } else if (webFile) {
-    const validErr = validateImageFiles([webFile]);
-    if (validErr) { setPostPhotoErr(validErr); return; }
-    const preview = await new Promise(res => {
-      const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(webFile);
-    });
-    setPostPhotos(p => [...p, webFile]);
-    setPostPhotoPreviews(p => [...p, preview]);
-  }
-} catch(err) {
-  const msg = (err?.message || "").toLowerCase();
-  if (msg.includes("cancel") || msg.includes("no image") || msg.includes("dismissed") || msg.includes("user cancelled")) return;
-  console.warn("Photo pick failed:", err);
-  setPostPhotoErr("Could not load photo. Please try again.");
-} finally {
-  setPostPhotoPicking(false);
-}
+const remaining = 4 - postPhotos.length;
+const toAdd = files.slice(0, remaining);
+const validErr = validateImageFiles(toAdd);
+if (validErr) { setPostPhotoErr(validErr); return; }
+toAdd.forEach(f => {
+  const r = new FileReader();
+  r.onload = ev => {
+    setPostPhotos(p => [...p, f]);
+    setPostPhotoPreviews(p => [...p, ev.target.result]);
+  };
+  r.readAsDataURL(f);
+});
 };
-const onPostCameraChange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleAddPostPhotos("camera", f); };
-const onPostLibraryChange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleAddPostPhotos("library", f); };
 
 const removePostPhoto = idx => {
 setPostPhotos(p => p.filter((_,i)=>i!==idx));
@@ -3594,16 +3571,10 @@ return (
                   <label className="fl">Photos <span style={{color:"var(--text2)",fontWeight:400}}>(up to 4, optional)</span></label>
                   <div className="photo-upload-area">
                     {postPhotos.length < 4 && (
-                      <div className="photo-action-row">
-                        <div className="photo-action-btn" style={{opacity:postPhotoPicking||posting?0.5:1,pointerEvents:postPhotoPicking||posting?"none":"auto"}} onClick={()=>{if(!!(window.Capacitor?.isNativePlatform?.()))handleAddPostPhotos("camera");else postCameraInputRef.current?.click();}}>
-                          <span className="photo-action-btn-icon">📷</span>Take Photo
-                          <input ref={postCameraInputRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={onPostCameraChange} />
-                        </div>
-                        <div className="photo-action-btn" style={{opacity:postPhotoPicking||posting?0.5:1,pointerEvents:postPhotoPicking||posting?"none":"auto"}} onClick={()=>{if(!!(window.Capacitor?.isNativePlatform?.()))handleAddPostPhotos("library");else postLibraryInputRef.current?.click();}}>
-                          <span className="photo-action-btn-icon">🖼️</span>Choose from Library
-                          <input ref={postLibraryInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={onPostLibraryChange} />
-                        </div>
-                      </div>
+                      <label className="photo-action-btn" style={{display:"flex",marginBottom:12,opacity:posting?0.5:1,pointerEvents:posting?"none":"auto",cursor:"pointer"}}>
+                        <span className="photo-action-btn-icon">📷</span>Add Photos
+                        <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePostPhotoChange} />
+                      </label>
                     )}
                     <div className="photo-slots-row">
                       {[0,1,2,3].map(i=>(
