@@ -228,12 +228,14 @@ main{-webkit-overflow-scrolling:touch;}
 .ptr.active .ptr-icon{animation:ptr-spin .7s linear infinite}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:16px;right:16px;z-index:100;background:rgba(255,255,255,0.88);border-radius:24px;display:flex;align-items:center;justify-content:space-around;padding:6px 4px;box-shadow:0 8px 32px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,255,255,.6);border:1px solid rgba(255,255,255,0.5);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);min-height:64px}
-.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:6px 4px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-.bitem:hover,.bitem.active{color:var(--accent)}
-.bitem.active .bicon::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:rgba(232,75,42,0.1);box-shadow:0 0 14px rgba(232,75,42,0.28);z-index:-1}
-.bicon{font-size:22px;line-height:1;position:relative;display:inline-block}
-.notif-badge{position:absolute;top:2px;right:8px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff}
+.bnav{position:fixed;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:16px;right:16px;z-index:100;background:rgba(255,255,255,0.75);border-radius:20px;display:flex;align-items:center;justify-content:space-around;padding:8px 4px;box-shadow:0 8px 32px rgba(0,0,0,.08);border:1px solid rgba(255,255,255,0.5);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);min-height:68px}
+.bitem{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;flex:1;min-width:0;padding:0 2px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:500;transition:color .15s,opacity .15s;position:relative;-webkit-text-size-adjust:100%;text-size-adjust:100%;opacity:0.65}
+.bitem:hover{opacity:0.85}
+.bitem.active{color:var(--accent);opacity:1}
+.bicon-wrap{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.bicon-glow{position:absolute;inset:0;border-radius:50%;background:rgba(232,75,42,0.1);box-shadow:0 0 12px rgba(232,75,42,0.4)}
+.bicon{display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+.notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff;z-index:2}
 
 /* NOTIFICATION BELL */
 .bell-btn{background:none;border:none;cursor:pointer;font-size:19px;padding:4px 5px;position:relative;display:flex;align-items:center;line-height:1}
@@ -777,11 +779,18 @@ a.support-row-val{color:#E84B2A}
 
 const CATS = ["All","Electronics","Furniture","Tools","Sports","Home","Music","Fashion","Collectibles","Other"];
 const RADIUS_OPTIONS = [5, 10, 25, 50];
+const TAB_ICONS={
+  home:(a)=><svg viewBox="0 0 24 24" width="20" height="20" fill={a?"currentColor":"none"} stroke="currentColor" strokeWidth={a?1.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline fill="none" points="9 22 9 12 15 12 15 22"/></svg>,
+  list:(a)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={a?1.5:2} strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+  message:(a)=><svg viewBox="0 0 24 24" width="20" height="20" fill={a?"currentColor":"none"} stroke="currentColor" strokeWidth={a?1.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  user:(a)=><svg viewBox="0 0 24 24" width="20" height="20" fill={a?"currentColor":"none"} stroke="currentColor" strokeWidth={a?1.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  settings:(a)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={a?1.5:2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+};
 const NAV = [
-{id:"browse",icon:"🏠",label:"Home"},
-{id:"mine",icon:"📋",label:"My Wants"},
-{id:"messages",icon:"💬",label:"Messages"},
-{id:"myprofile",icon:"👤",label:"Profile"},
+{id:"browse",icon:"home",label:"Home"},
+{id:"mine",icon:"list",label:"My Wants"},
+{id:"messages",icon:"message",label:"Messages"},
+{id:"myprofile",icon:"user",label:"Profile"},
 ];
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
@@ -3228,16 +3237,22 @@ return (
 
     {/* BOTTOM NAV */}
     <nav className="bnav">
-      {[...NAV,...(isAdmin?[{id:"admin",icon:"⚙️",label:"Admin"}]:[])].map(n=>(
-        <div key={n.id} className={`bitem ${view===n.id?"active":""}`} onClick={()=>{
+      {[...NAV,...(isAdmin?[{id:"admin",icon:"settings",label:"Admin"}]:[])].map(n=>{
+        const isActive=view===n.id;
+        return(
+        <div key={n.id} className={`bitem ${isActive?"active":""}`} onClick={()=>{
           if (n.id==="myprofile") { setProfileTab("overview"); loadMyReviews(); }
           setView(n.id);
         }}>
-          <span className="bicon">{n.icon}</span>
-          {n.id==="messages"&&hasUnread&&<span className="notif-badge" />}
+          <div className="bicon-wrap">
+            {isActive&&<div className="bicon-glow"/>}
+            <div className="bicon">{TAB_ICONS[n.icon]?.(isActive)}</div>
+            {n.id==="messages"&&hasUnread&&<span className="notif-badge"/>}
+          </div>
           <span style={{maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.label}</span>
         </div>
-      ))}
+        );
+      })}
     </nav>
 
     {/* USER PROFILE SHEET */}
