@@ -228,11 +228,12 @@ main{-webkit-overflow-scrolling:touch;}
 .ptr.active .ptr-icon{animation:ptr-spin .7s linear infinite}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:8px calc(env(safe-area-inset-right,0px)) max(20px,calc(10px + env(safe-area-inset-bottom,0px))) calc(env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06);min-height:60px}
-.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:4px 6px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.bnav{position:fixed;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:16px;right:16px;z-index:100;background:rgba(255,255,255,0.88);border-radius:24px;display:flex;align-items:center;justify-content:space-around;padding:6px 4px;box-shadow:0 8px 32px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,255,255,.6);border:1px solid rgba(255,255,255,0.5);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);min-height:64px}
+.bitem{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;min-width:0;padding:6px 4px;color:var(--text2);font-family:var(--fd);font-size:10px;font-weight:600;transition:color .15s;position:relative;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .bitem:hover,.bitem.active{color:var(--accent)}
-.bicon{font-size:22px;line-height:1}
-.notif-badge{position:absolute;top:0;right:6px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
+.bitem.active .bicon::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:rgba(232,75,42,0.1);box-shadow:0 0 14px rgba(232,75,42,0.28);z-index:-1}
+.bicon{font-size:22px;line-height:1;position:relative;display:inline-block}
+.notif-badge{position:absolute;top:2px;right:8px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff}
 
 /* NOTIFICATION BELL */
 .bell-btn{background:none;border:none;cursor:pointer;font-size:19px;padding:4px 5px;position:relative;display:flex;align-items:center;line-height:1}
@@ -299,7 +300,7 @@ main{-webkit-overflow-scrolling:touch;}
 .sh-photo{width:130px;height:130px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
 
 /* MAIN */
-.main{max-width:1100px;margin:0 auto;padding:20px 16px;flex:1;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:max(100px,calc(80px + env(safe-area-inset-bottom,0px)))}
+.main{max-width:1100px;margin:0 auto;padding:20px 16px;flex:1;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:max(120px,calc(100px + env(safe-area-inset-bottom,0px)))}
 
 /* CATEGORIES */
 .cats{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
@@ -671,16 +672,25 @@ textarea.fi{resize:vertical;min-height:80px}
 .legal-updated{font-size:12px;color:var(--text2);font-style:italic;margin-bottom:16px!important}
 
 /* SINGLE COLUMN FEED */
-.feed-col{display:flex;flex-direction:column;gap:14px}
-.feed-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;cursor:pointer;transition:box-shadow .2s}
+.feed-col{display:flex;flex-direction:column;gap:16px}
+.feed-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;cursor:pointer;transition:box-shadow .2s}
 .feed-card:active{box-shadow:0 3px 14px rgba(0,0,0,.1)}
 .feed-urow{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
-.feed-body{padding:0 16px 10px}
+.feed-body{padding:0 16px 14px}
 .feed-title{font-family:var(--fd);font-weight:700;font-size:16px;color:var(--text);margin-bottom:5px;line-height:1.3}
-.feed-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.feed-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.feed-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.feed-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .feed-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2)}
 .feed-img{width:100%;max-height:220px;object-fit:cover;display:block;border-radius:0}
+.feed-trending{background:linear-gradient(to right,rgba(232,75,42,0.09),transparent);padding:8px 16px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--accent);border-bottom:1px solid rgba(232,75,42,0.08);font-family:var(--fd)}
+.feed-activity{background:var(--surface2);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:10px;border:1px solid var(--border)}
+.feed-offer-av-stack{display:flex;align-items:center}
+.feed-offer-av{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:var(--fd);color:#fff;margin-left:-6px;flex-shrink:0}
+.feed-offer-av:first-child{margin-left:0}
+.feed-activity-label{font-size:12px;color:var(--text);font-weight:500;margin-left:2px}
+.feed-activity-label strong{font-weight:700}
+.feed-cta{width:100%;background:var(--text);color:#fff;border:none;border-radius:12px;padding:13px;font-family:var(--fb);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.feed-cta:active{background:var(--accent)}
 
 /* MY WANTS POST CARD */
 .mine-new-card{border:2px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:var(--surface)}
@@ -2674,31 +2684,49 @@ return (
                   : null;
                 return (
                 <div key={w.id} className="feed-card" onClick={()=>setSheet(w)}>
+                  {(w.offers||[]).length>=3&&(
+                    <div className="feed-trending">
+                      🔥 Trending
+                      <span style={{marginLeft:"auto",fontSize:11,display:"flex",alignItems:"center",gap:3}}>👁 {(w.offers||[]).length*3+5} viewing</span>
+                    </div>
+                  )}
                   <div className="feed-urow">
                     <div className="av" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{(w.user||"?")[0].toUpperCase()}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div className="wuser profile-link" onClick={e=>{e.stopPropagation();openProfile(w.userId,w.user);}}>{w.user}</div>
                       <div className="wtime">{ta(w.createdAt)}{w.location?` · 📍 ${w.location}`:""}</div>
                     </div>
-                    <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                      <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
+                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
+                    </div>
                   </div>
                   <div className="feed-body">
                     <div className="feed-title">{w.title}</div>
                     <div className="feed-desc">{w.description}</div>
+                    {(w.photos||[]).length>0&&(
+                      <img src={w.photos[0]} className="feed-img" style={{borderRadius:10,marginBottom:10}} alt="" onClick={e=>e.stopPropagation()} />
+                    )}
                     <div className="feed-pills">
                       <span className="tag">{w.category}</span>
                       {distMi!==null&&<span className="dist-badge">📍 {distMi<0.1?"nearby":distMi.toFixed(1)+" mi away"}</span>}
                     </div>
-                    {(w.photos||[]).length>0&&(
-                      <img src={w.photos[0]} className="feed-img" style={{borderRadius:10,marginBottom:4}} alt="" onClick={e=>e.stopPropagation()} />
+                    {(w.offers||[]).length>0?(
+                      <div className="feed-activity">
+                        <div className="feed-offer-av-stack">
+                          {(w.offers||[]).slice(0,3).map((o,i)=>(
+                            <div key={i} className="feed-offer-av" style={{background:['#E84B2A','#2563EB','#16A34A'][i%3]}}>{(o.fromName||"?")[0].toUpperCase()}</div>
+                          ))}
+                          {(w.offers||[]).length>3&&<div className="feed-offer-av" style={{background:"#EBEBEB",color:"#888"}}><span style={{fontSize:9,fontWeight:700}}>+{(w.offers||[]).length-3}</span></div>}
+                        </div>
+                        <span className="feed-activity-label"><strong>{w.offers.length}</strong> seller{w.offers.length!==1?"s":""} offered</span>
+                      </div>
+                    ):(
+                      w.userId!==user.uid&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>💬 No offers yet — be the first!</div>
                     )}
-                  </div>
-                  <div className="feed-foot">
-                    <div className="ocnt">💬 {(w.offers||[]).length===0?<span style={{color:"var(--text2)"}}>No offers yet</span>:<><strong>{w.offers.length}</strong> offer{w.offers.length!==1?"s":""}</>}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
-                      {w.userId!==user.uid&&<button className="obtn" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact</button>}
-                    </div>
+                    {w.userId!==user.uid&&(
+                      <button className="feed-cta" onClick={e=>{e.stopPropagation();setSheet(w);}}>Make an Offer →</button>
+                    )}
                   </div>
                 </div>
               );
