@@ -1,3 +1,4 @@
 - [UI redesign decisions](ui-redesign.md) — nav changed to [Home/Mine/Messages/Profile]; post form is now a modal sheet (showPostSheet); offers tab removed; profile is tabless single-scroll page
 - [SSH push workflow](ssh-push.md) — SSH key gets wiped on container restart; same pub key persists if key not overwritten; must add to GitHub deploy keys before pushing
 - [App architecture](app-arch.md) — single-file React app at src/App.jsx (~3300 lines); all CSS is a template literal const css; all state in one component; Firebase Firestore + Storage + Auth
+- [Ad creative plan](ad-creative-plan.md) — 5 angles for WantBoard app-install campaign; saved for future build session

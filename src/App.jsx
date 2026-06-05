@@ -616,8 +616,20 @@ textarea.fi{resize:vertical;min-height:80px}
 .chat-bubble-sender{font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px}
 .chat-bubble-img{width:100%;border-radius:10px;margin-bottom:6px;max-height:200px;object-fit:contain;display:block}
 .chat-bubble-time{font-size:10px;opacity:.55;margin-top:4px;display:block}
-.chat-msg-del{background:none;border:none;color:var(--text2);font-size:10px;cursor:pointer;padding:2px 0;margin-top:2px;font-family:var(--fb)}
-.chat-msg-del:active{color:var(--red)}
+.chat-bubble-row{display:flex;align-items:flex-end;gap:4px}
+.chat-msg-wrap.mine .chat-bubble-row{flex-direction:row-reverse}
+.chat-bubble-menu-btn{opacity:0;background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:8px;transition:opacity .15s;flex-shrink:0;line-height:1;font-family:var(--fb);letter-spacing:1px}
+.chat-bubble-row:hover .chat-bubble-menu-btn{opacity:1}
+.chat-bubble-menu-btn:active{background:var(--surface2)}
+.chat-bubble.deleted{opacity:.55;font-style:italic}
+.chat-deleted-text{color:var(--text2);font-size:13px}
+.msg-sheet-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
+.msg-sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+.msg-sheet-btn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--surface2);font-family:var(--fb);font-size:15px;font-weight:600;cursor:pointer;text-align:left;color:var(--text)}
+.msg-sheet-btn.danger{color:#dc2626}
+.msg-sheet-btn:active{opacity:.75}
+.msg-sheet-cancel{width:100%;padding:15px;border:none;border-radius:14px;background:var(--surface2);font-family:var(--fb);font-size:15px;font-weight:700;cursor:pointer;text-align:center;color:var(--text2);margin-top:4px}
+.msg-sheet-cancel:active{opacity:.75}
 .chat-send-err{padding:6px 16px;color:#dc2626;font-size:12px;background:#fef2f2;border-top:1px solid #fecaca;flex-shrink:0}
 .chat-input-area{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;align-items:center}
 .chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;font-family:var(--fb);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
@@ -983,6 +995,8 @@ const swipeStartX = useRef(0);
 const swipeStartY = useRef(0);
 const swipeDidMove = useRef(false);
 const [msgSendErr, setMsgSendErr] = useState("");
+const [msgActionSheet, setMsgActionSheet] = useState(null);
+const longPressTimer = useRef(null);
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
 const msgsRef = useRef(null);
@@ -1838,7 +1852,21 @@ const deleteMsg = async (msgId) => {
 if (!chat || !user) return;
 const target = msgs.find(m => m.id === msgId);
 if (!target || target.senderId !== user.uid) return;
-await deleteDoc(doc(db,"conversations",chat.convoId,"messages",msgId));
+await updateDoc(doc(db,"conversations",chat.convoId,"messages",msgId),{deleted:true,deletedAt:serverTimestamp()});
+};
+
+const startLongPress = (msgId, isMine) => {
+if (!isMine) return;
+longPressTimer.current = setTimeout(() => {
+  setMsgActionSheet(msgId);
+}, 500);
+};
+
+const cancelLongPress = () => {
+if (longPressTimer.current) {
+  clearTimeout(longPressTimer.current);
+  longPressTimer.current = null;
+}
 };
 
 const deleteConvo = async (convoId) => {
@@ -3674,12 +3702,26 @@ return (
             return(
               <div key={m.id} className={`chat-msg-wrap ${isMine?"mine":"theirs"}`}>
                 {!isMine&&m.senderName&&<div className="chat-bubble-sender">{m.senderName}</div>}
-                <div className={`chat-bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer":""}`}>
-                  {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
-                  {m.text}
-                  <span className="chat-bubble-time">{ta(m.createdAt)}</span>
+                <div className="chat-bubble-row">
+                  <div
+                    className={`chat-bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer":""}${m.deleted?" deleted":""}`}
+                    onTouchStart={()=>startLongPress(m.id,isMine)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                  >
+                    {m.deleted
+                      ? <span className="chat-deleted-text">Message deleted</span>
+                      : <>
+                          {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
+                          {m.text}
+                          <span className="chat-bubble-time">{ta(m.createdAt)}</span>
+                        </>
+                    }
+                  </div>
+                  {isMine&&!m.deleted&&(
+                    <button className="chat-bubble-menu-btn" onClick={()=>setMsgActionSheet(m.id)} title="Options">···</button>
+                  )}
                 </div>
-                {isMine&&<button className="chat-msg-del" onClick={()=>deleteMsg(m.id)}>Delete</button>}
               </div>
             );
           })}
@@ -3695,6 +3737,25 @@ return (
             onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMsg()}
           />
           <button className="chat-send-btn" onClick={sendMsg}>Send</button>
+        </div>
+      </div>
+    )}
+
+    {/* MESSAGE ACTION SHEET */}
+    {msgActionSheet&&(
+      <div className="msg-sheet-overlay" onClick={()=>setMsgActionSheet(null)}>
+        <div className="msg-sheet" onClick={e=>e.stopPropagation()}>
+          <button className="msg-sheet-btn danger" onClick={async()=>{await deleteMsg(msgActionSheet);setMsgActionSheet(null);}}>
+            🗑 Delete Message
+          </button>
+          <button className="msg-sheet-btn" onClick={()=>{
+            const m=msgs.find(x=>x.id===msgActionSheet);
+            if(m&&!m.deleted)navigator.clipboard?.writeText(m.text||"").catch(()=>{});
+            setMsgActionSheet(null);
+          }}>
+            📋 Copy
+          </button>
+          <button className="msg-sheet-cancel" onClick={()=>setMsgActionSheet(null)}>Cancel</button>
         </div>
       </div>
     )}
