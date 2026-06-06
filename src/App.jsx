@@ -1504,9 +1504,11 @@ setAuthErr(""); setAuthBusy(true);
 try {
 const { Capacitor } = await import("@capacitor/core");
 if (Capacitor.isNativePlatform()) {
-const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
-const googleUser = await GoogleAuth.signIn();
-const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
+const result = await FirebaseAuthentication.signInWithGoogle();
+const idToken = result.credential?.idToken;
+if (!idToken) throw new Error("No Google ID token received");
+const credential = GoogleAuthProvider.credential(idToken);
 await signInWithCredential(auth, credential);
 } else {
 const provider = new GoogleAuthProvider();
