@@ -136,42 +136,44 @@ workflows:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            2>&1 | tee /tmp/xcodebuild_archive.log | grep -E "error:|warning: |Build succeeded|** ARCHIVE"
+            2>&1 | tee /tmp/xcodebuild_archive.log | grep -E "error:|warning:|ARCHIVE SUCCEEDED|Build succeeded"
 
           echo "=== xcodebuild export ==="
-          cat > /tmp/ExportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>PLACEHOLDER_TEAM</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.wantboard.app</key>
-              <string>PLACEHOLDER_PROFILE</string>
-            </dict>
-          </dict>
-          </plist>
-          PLIST
-
-          sed -i "s/PLACEHOLDER_TEAM/$TEAM_ID/" /tmp/ExportOptions.plist
-          sed -i "s/PLACEHOLDER_PROFILE/$PROFILE_UUID/" /tmp/ExportOptions.plist
+          python3 -c "
+import os
+team = os.environ['TEAM_ID']
+prof = os.environ['PROFILE_UUID']
+plist = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>{team}</string>
+  <key>uploadBitcode</key>
+  <false/>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.wantboard.app</key>
+    <string>{prof}</string>
+  </dict>
+</dict>
+</plist>'''.format(team=team, prof=prof)
+open('/tmp/ExportOptions.plist', 'w').write(plist)
+print('ExportOptions.plist written')
+"
 
           xcodebuild \
             -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportOptionsPlist /tmp/ExportOptions.plist \
             -exportPath "$IPA_DIR" \
-            2>&1 | tee /tmp/xcodebuild_export.log | grep -E "error:|warning: |Export succeeded|** EXPORT"
+            2>&1 | tee /tmp/xcodebuild_export.log | grep -E "error:|warning:|EXPORT SUCCEEDED|Export succeeded"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
