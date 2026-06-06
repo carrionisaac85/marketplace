@@ -596,33 +596,58 @@ textarea.fi{resize:vertical;min-height:80px}
 
 /* CHAT SCREEN — full-screen native-style overlay */
 .chat-screen{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:none}
-.chat-header{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.chat-back{background:none;border:none;font-size:26px;line-height:1;color:var(--accent);cursor:pointer;padding:0 6px 0 0;font-family:var(--fb);font-weight:300;flex-shrink:0}
-.chat-header-info{flex:1;min-width:0}
-.chat-header-name{font-family:var(--fd);font-weight:800;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-header-sub{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
-.chat-offer-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
-.chat-offer-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.chat-offer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
-.chat-offer-price{font-family:var(--fd);font-size:16px;font-weight:800;color:var(--accent)}
-.chat-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
-.chat-msg-wrap{display:flex;flex-direction:column;max-width:75%;min-width:0}
-.chat-msg-wrap.mine{align-self:flex-end;align-items:flex-end}
-.chat-msg-wrap.theirs{align-self:flex-start;align-items:flex-start}
-.chat-bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;white-space:pre-wrap;min-width:0;box-sizing:border-box}
-.chat-bubble.mine{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
-.chat-bubble.theirs{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
+.chat-header{background:var(--accent);padding:calc(16px + env(safe-area-inset-top,0px)) 16px 18px;flex-shrink:0}
+.chat-header-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.chat-back{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:10px;width:32px;height:32px;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
+.chat-header-title{flex:1;font-family:var(--fd);font-weight:700;font-size:15px;color:#fff;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-offer-badge{background:rgba(255,255,255,.2);border-radius:100px;padding:4px 12px;font-family:var(--fd);font-weight:700;color:#fff;font-size:13px;white-space:nowrap;flex-shrink:0}
+.deal-pipeline{padding:0 12px;position:relative}
+.deal-track-bg{position:absolute;top:11px;left:28px;right:28px;height:2px;background:rgba(255,255,255,.25);z-index:0}
+.deal-track-fill{position:absolute;top:11px;left:28px;height:2px;background:rgba(255,255,255,.7);transition:width .4s ease;z-index:0}
+.deal-stages{display:flex;align-items:flex-start;position:relative;z-index:1}
+.deal-stage{flex:1;display:flex;flex-direction:column;align-items:center}
+.deal-dot{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.deal-dot.done,.deal-dot.active{background:#fff;border-color:#fff}
+.deal-dot-check{color:var(--accent);font-weight:800;font-size:11px;line-height:1}
+.deal-dot-inner{width:8px;height:8px;border-radius:50%;background:var(--accent);display:block}
+.deal-stage-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.45);text-align:center;white-space:nowrap}
+.deal-stage-label.active{color:#fff}
+@keyframes dealDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.15)}}
+.deal-dot.active{animation:dealDotPulse 1.6s ease-in-out infinite}
+.deal-actions{background:#fff9f8;border-bottom:1px solid #fde8e2;padding:10px 14px;display:flex;gap:8px;flex-shrink:0}
+.deal-accept-btn{flex:1;padding:9px 8px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-family:var(--fd);font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.deal-accept-btn:active{opacity:.85}
+.deal-counter-btn{flex:1;padding:9px 8px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--fd);font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.deal-counter-btn:active{opacity:.85}
+.deal-pass-btn{padding:9px 14px;background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:10px;font-family:var(--fb);font-weight:600;font-size:12px;cursor:pointer}
+.deal-agreed-banner{background:#f0fdf4;border-bottom:1px solid #bbf7d0;padding:11px 16px;text-align:center;font-family:var(--fd);font-weight:700;color:#15803d;font-size:13px;flex-shrink:0}
+.deal-declined-banner{background:#fef2f2;border-bottom:1px solid #fecaca;padding:11px 16px;text-align:center;font-family:var(--fd);font-weight:700;color:#dc2626;font-size:13px;flex-shrink:0}
+.deal-counter-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.deal-counter-label{font-size:13px;color:var(--text2);white-space:nowrap;flex-shrink:0}
+.deal-counter-field{flex:1;display:flex;align-items:center;background:var(--surface2);border-radius:10px;padding:0 10px;border:1.5px solid var(--accent)}
+.deal-counter-dollar{color:var(--accent);font-weight:700;font-size:14px}
+.deal-counter-input{flex:1;background:none;border:none;font-family:var(--fd);font-weight:700;font-size:16px;color:var(--text);outline:none;padding:8px 6px}
+.deal-counter-send{padding:9px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--fd);font-weight:700;font-size:13px;cursor:pointer}
+.deal-counter-cancel{padding:9px 10px;background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1}
+.chat-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:0;min-height:0;background:var(--surface2)}
+.chat-convo-label{font-size:10px;color:#bbb;text-align:center;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}
+.chat-msg-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.chat-msg-row.mine{flex-direction:row-reverse}
+.chat-msg-av{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:10px;flex-shrink:0;margin-top:2px}
+.chat-msg-row.mine .chat-msg-av{background:var(--text)}
+.chat-msg-row.theirs .chat-msg-av{background:var(--accent)}
+.chat-msg-body{flex:1;max-width:75%;min-width:0}
+.chat-msg-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:4px;font-size:11px}
+.chat-msg-row.mine .chat-msg-meta{flex-direction:row-reverse}
+.chat-msg-sender{font-weight:600;color:var(--text)}
+.chat-msg-time{color:#bbb}
+.chat-bubble{padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;white-space:pre-wrap;display:inline-block;max-width:100%;box-sizing:border-box}
+.chat-msg-row.mine .chat-bubble{background:var(--text);color:#fff;border-bottom-right-radius:4px}
+.chat-msg-row.theirs .chat-bubble{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
 .chat-bubble.offer{border:2px solid var(--accent)}
-.chat-bubble-sender{font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px}
-.chat-bubble-img{width:100%;border-radius:10px;margin-bottom:6px;max-height:200px;object-fit:contain;display:block}
-.chat-bubble-time{font-size:10px;opacity:.55;margin-top:4px;display:block}
-.chat-bubble-row{display:flex;align-items:flex-end;gap:4px}
-.chat-msg-wrap.mine .chat-bubble-row{flex-direction:row-reverse}
-.chat-bubble-menu-btn{opacity:0;background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:8px;transition:opacity .15s;flex-shrink:0;line-height:1;font-family:var(--fb);letter-spacing:1px}
-.chat-bubble-row:hover .chat-bubble-menu-btn{opacity:1}
-.chat-bubble-menu-btn:active{background:var(--surface2)}
 .chat-bubble.deleted{opacity:.55;font-style:italic}
 .chat-deleted-text{color:var(--text2);font-size:13px}
+.chat-bubble-img{width:100%;border-radius:10px;margin-bottom:6px;max-height:200px;object-fit:contain;display:block}
 .msg-sheet-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
 .msg-sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
 .msg-sheet-btn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--surface2);font-family:var(--fb);font-size:15px;font-weight:600;cursor:pointer;text-align:left;color:var(--text)}
@@ -996,6 +1021,8 @@ const swipeStartY = useRef(0);
 const swipeDidMove = useRef(false);
 const [msgSendErr, setMsgSendErr] = useState("");
 const [msgActionSheet, setMsgActionSheet] = useState(null);
+const [showCounterInput, setShowCounterInput] = useState(false);
+const [counterAmt, setCounterAmt] = useState("");
 const longPressTimer = useRef(null);
 const btm = useRef(null);
 const prevMsgCount = useRef(0);
@@ -1406,7 +1433,7 @@ if (!pendingConvoId || convos.length === 0) return;
 const convo = convos.find(c => c.id === pendingConvoId);
 if (convo) {
 const on = convo.participants?.find(uid => uid !== user?.uid) ? convo.lastSenderName || "User" : "User";
-setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "", offerPrice: convo.offerPrice||null, offerPhotoUrl: convo.offerPhotoUrl||null, participants:convo.participants||[] });
+setChat({ convoId: convo.id, otherName: on, wantTitle: convo.wantTitle || "", offerPrice: convo.offerPrice||null, offerPhotoUrl: convo.offerPhotoUrl||null, participants:convo.participants||[], wantUserId:convo.wantUserId||null, offerStatus:convo.offerStatus||null });
 setPendingConvoId(null);
 }
 }, [pendingConvoId, convos, user]);
@@ -1853,6 +1880,43 @@ if (!chat || !user) return;
 const target = msgs.find(m => m.id === msgId);
 if (!target || target.senderId !== user.uid) return;
 await updateDoc(doc(db,"conversations",chat.convoId,"messages",msgId),{deleted:true,deletedAt:serverTimestamp()});
+};
+
+const acceptChatOffer = async () => {
+if (!chat) return;
+try {
+  await updateDoc(doc(db,"conversations",chat.convoId),{offerStatus:"accepted",updatedAt:serverTimestamp()});
+  setChat(prev=>prev?({...prev,offerStatus:"accepted"}):prev);
+} catch(e) { console.error("acceptChatOffer failed",e); }
+};
+
+const declineChatOffer = async () => {
+if (!chat) return;
+try {
+  await updateDoc(doc(db,"conversations",chat.convoId),{offerStatus:"declined",updatedAt:serverTimestamp()});
+  setChat(prev=>prev?({...prev,offerStatus:"declined"}):prev);
+} catch(e) { console.error("declineChatOffer failed",e); }
+};
+
+const sendCounterOffer = async (amt) => {
+const parsed = parseFloat(String(amt).replace(/[^0-9.]/g,""));
+if (!chat || !parsed || isNaN(parsed)) return;
+setShowCounterInput(false);
+try {
+  const text = `💸 Counter offer: $${parsed.toLocaleString()}`;
+  await updateDoc(doc(db,"conversations",chat.convoId),{
+    offerPrice:parsed, offerStatus:"pending",
+    updatedAt:serverTimestamp(), lastMessage:text,
+    lastSenderId:user.uid, lastSenderName:user.displayName||user.email, readBy:[user.uid],
+  });
+  await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
+    text, type:"offer", offerPrice:parsed,
+    participants:chat.participants||[], senderId:user.uid,
+    senderName:user.displayName||user.email, createdAt:serverTimestamp(),
+  });
+  setChat(prev=>prev?({...prev,offerPrice:parsed,offerStatus:"pending"}):prev);
+  setCounterAmt("");
+} catch(e) { console.error("sendCounterOffer failed",e); }
 };
 
 const startLongPress = (msgId, isMine) => {
@@ -2604,7 +2668,7 @@ return (
                     {unreadConvos.map(c=>{
                       const on=Object.entries(c.participantNames||{}).find(([id])=>id!==user.uid)?.[1]||"Someone";
                       return (
-                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});setNotifOpen(false);}}>
+                        <div key={c.id} className="notif-item" onClick={()=>{setChat({convoId:c.id,otherName:on,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[],wantUserId:c.wantUserId||null,offerStatus:c.offerStatus||null});setNotifOpen(false);}}>
                           <div className="notif-dot unread"/>
                           <div className="notif-body">
                             <div className="notif-name">💬 {on}</div>
@@ -3039,7 +3103,7 @@ return (
                 const isUnread=c.lastSenderId&&c.lastSenderId!==user.uid&&!c.readBy?.includes(user.uid);
                 return(
                   <div key={c.id} className={`msg-item${isUnread?" unread":""}${swipedConvoId===c.id?" swiped":""}`}
-                    onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[]});}}
+                    onClick={()=>{if(swipedConvoId===c.id){setSwipedConvoId(null);return;}setChat({convoId:c.id,otherName,wantTitle:c.wantTitle,offerPrice:c.offerPrice||null,offerPhotoUrl:c.offerPhotoUrl||null,participants:c.participants||[],wantUserId:c.wantUserId||null,offerStatus:c.offerStatus||null});}}
                     onTouchStart={(e)=>{const t=e.touches[0];swipeDidMove.current=false;swipeStartX.current=t.clientX;swipeStartY.current=t.clientY;}}
                     onTouchMove={()=>{swipeDidMove.current=true;}}
                     onTouchEnd={(e)=>{const t=e.changedTouches[0];const dx=swipeStartX.current-t.clientX;if(!swipeDidMove.current||dx<40){setSwipedConvoId(swipedConvoId===c.id?null:c.id);}}}
@@ -3675,36 +3739,80 @@ return (
     )}
 
     {/* CHAT SCREEN */}
-    {chat&&(
+    {chat&&(()=>{
+      const dealStage = chat.offerStatus==="accepted" ? 2 : 1;
+      const stageLabels = ["Offer sent","In review","Agreed"];
+      const fillW = dealStage===0?"0":dealStage===1?"calc(50% - 28px)":"calc(100% - 56px)";
+      const isBuyer = !!(chat.wantUserId && user && user.uid===chat.wantUserId);
+      const canAct = !!(chat.offerPrice && isBuyer && chat.offerStatus!=="accepted" && chat.offerStatus!=="declined");
+      return (
       <div className="chat-screen">
         <div className="chat-header">
-          <button className="chat-back" onClick={()=>setChat(null)}>‹</button>
-          <div className="chat-header-info">
-            <div className="chat-header-name">{chat.otherName}</div>
-            <div className="chat-header-sub">Re: {chat.wantTitle}</div>
+          <div className="chat-header-row">
+            <button className="chat-back" onClick={()=>{setChat(null);setShowCounterInput(false);setCounterAmt("");}}>‹</button>
+            <div className="chat-header-title">{chat.otherName}{chat.wantTitle?` · ${chat.wantTitle}`:""}</div>
+            {chat.offerPrice&&<div className="chat-offer-badge">${(chat.offerPrice).toLocaleString()} offer</div>}
           </div>
-        </div>
-        {chat.offerPrice&&(
-          <div className="chat-offer-bar">
-            {chat.offerPhotoUrl&&<img src={chat.offerPhotoUrl} className="chat-offer-thumb" alt=""/>}
-            <div>
-              <div className="chat-offer-label">Offer</div>
-              <div className="chat-offer-price">${(chat.offerPrice).toLocaleString()}</div>
+          {chat.offerPrice&&(
+            <div className="deal-pipeline">
+              <div className="deal-track-bg"/>
+              <div className="deal-track-fill" style={{width:fillW}}/>
+              <div className="deal-stages">
+                {stageLabels.map((label,i)=>(
+                  <div key={i} className="deal-stage">
+                    <div className={`deal-dot${i<dealStage?" done":i===dealStage?" active":""}`}>
+                      {i<dealStage&&<span className="deal-dot-check">✓</span>}
+                      {i===dealStage&&<span className="deal-dot-inner"/>}
+                    </div>
+                    <div className={`deal-stage-label${i<=dealStage?" active":""}`}>{label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+        </div>
+        {canAct&&!showCounterInput&&(
+          <div className="deal-actions">
+            <button className="deal-accept-btn" onClick={acceptChatOffer}>Accept ${(chat.offerPrice).toLocaleString()}</button>
+            <button className="deal-counter-btn" onClick={()=>{setCounterAmt(String(chat.offerPrice));setShowCounterInput(true);}}>Counter →</button>
+            <button className="deal-pass-btn" onClick={declineChatOffer}>Pass</button>
           </div>
+        )}
+        {showCounterInput&&(
+          <div className="deal-counter-strip">
+            <span className="deal-counter-label">Counter with:</span>
+            <div className="deal-counter-field">
+              <span className="deal-counter-dollar">$</span>
+              <input className="deal-counter-input" value={counterAmt} onChange={e=>setCounterAmt(e.target.value)} type="number" inputMode="decimal" autoFocus/>
+            </div>
+            <button className="deal-counter-send" onClick={()=>sendCounterOffer(counterAmt)}>Send</button>
+            <button className="deal-counter-cancel" onClick={()=>setShowCounterInput(false)}>✕</button>
+          </div>
+        )}
+        {chat.offerPrice&&chat.offerStatus==="accepted"&&(
+          <div className="deal-agreed-banner">🎉 Deal agreed at ${(chat.offerPrice).toLocaleString()} — coordinate pickup below</div>
+        )}
+        {chat.offerPrice&&chat.offerStatus==="declined"&&(
+          <div className="deal-declined-banner">Offer passed on</div>
         )}
         <div className="chat-messages" ref={msgsRef}>
           {msgs.length===0&&(
             <div style={{textAlign:"center",color:"var(--text2)",fontSize:13,padding:"32px 0",margin:"auto"}}>No messages yet. Say hello!</div>
           )}
+          <div className="chat-convo-label">Conversation</div>
           {msgs.map(m=>{
             const isMine=m.senderId===user.uid;
+            const initials=(isMine?"Y":(m.senderName||chat.otherName||"?")[0]).toUpperCase();
             return(
-              <div key={m.id} className={`chat-msg-wrap ${isMine?"mine":"theirs"}`}>
-                {!isMine&&m.senderName&&<div className="chat-bubble-sender">{m.senderName}</div>}
-                <div className="chat-bubble-row">
+              <div key={m.id} className={`chat-msg-row ${isMine?"mine":"theirs"}`}>
+                <div className="chat-msg-av">{initials}</div>
+                <div className="chat-msg-body">
+                  <div className="chat-msg-meta">
+                    <span className="chat-msg-sender">{isMine?"You":m.senderName||chat.otherName}</span>
+                    <span className="chat-msg-time">{ta(m.createdAt)}</span>
+                  </div>
                   <div
-                    className={`chat-bubble ${isMine?"mine":"theirs"}${m.type==="offer"?" offer":""}${m.deleted?" deleted":""}`}
+                    className={`chat-bubble${m.type==="offer"?" offer":""}${m.deleted?" deleted":""}`}
                     onTouchStart={()=>startLongPress(m.id,isMine)}
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
@@ -3714,13 +3822,9 @@ return (
                       : <>
                           {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
                           {m.text}
-                          <span className="chat-bubble-time">{ta(m.createdAt)}</span>
                         </>
                     }
                   </div>
-                  {isMine&&!m.deleted&&(
-                    <button className="chat-bubble-menu-btn" onClick={()=>setMsgActionSheet(m.id)} title="Options">···</button>
-                  )}
                 </div>
               </div>
             );
@@ -3739,7 +3843,8 @@ return (
           <button className="chat-send-btn" onClick={sendMsg}>Send</button>
         </div>
       </div>
-    )}
+      );
+    })()}
 
     {/* MESSAGE ACTION SHEET */}
     {msgActionSheet&&(
