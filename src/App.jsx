@@ -1504,7 +1504,7 @@ setAuthErr(""); setAuthBusy(true);
 try {
 const { Capacitor } = await import("@capacitor/core");
 if (Capacitor.isNativePlatform()) {
-const { GoogleAuth } = await import("@capacitor-community/google-auth");
+const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
 const googleUser = await GoogleAuth.signIn();
 const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
 await signInWithCredential(auth, credential);
