@@ -648,6 +648,11 @@ textarea.fi{resize:vertical;min-height:80px}
 .chat-bubble.deleted{opacity:.55;font-style:italic}
 .chat-deleted-text{color:var(--text2);font-size:13px}
 .chat-bubble-img{width:100%;border-radius:10px;margin-bottom:6px;max-height:200px;object-fit:contain;display:block}
+.chat-bubble-wrap{display:flex;align-items:center;gap:4px}
+.chat-msg-row.mine .chat-bubble-wrap{flex-direction:row-reverse}
+.chat-bubble-menu-btn{opacity:0;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:8px;transition:opacity .15s;flex-shrink:0;line-height:1;letter-spacing:2px;font-family:var(--fb)}
+.chat-msg-row:hover .chat-bubble-menu-btn{opacity:1}
+.chat-bubble-menu-btn:active{background:var(--surface2);opacity:1}
 .msg-sheet-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
 .msg-sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
 .msg-sheet-btn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--surface2);font-family:var(--fb);font-size:15px;font-weight:600;cursor:pointer;text-align:left;color:var(--text)}
@@ -3811,19 +3816,24 @@ return (
                     <span className="chat-msg-sender">{isMine?"You":m.senderName||chat.otherName}</span>
                     <span className="chat-msg-time">{ta(m.createdAt)}</span>
                   </div>
-                  <div
-                    className={`chat-bubble${m.type==="offer"?" offer":""}${m.deleted?" deleted":""}`}
-                    onTouchStart={()=>startLongPress(m.id,isMine)}
-                    onTouchEnd={cancelLongPress}
-                    onTouchMove={cancelLongPress}
-                  >
-                    {m.deleted
-                      ? <span className="chat-deleted-text">Message deleted</span>
-                      : <>
-                          {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
-                          {m.text}
-                        </>
-                    }
+                  <div className="chat-bubble-wrap">
+                    <div
+                      className={`chat-bubble${m.type==="offer"?" offer":""}${m.deleted?" deleted":""}`}
+                      onTouchStart={()=>startLongPress(m.id,isMine)}
+                      onTouchEnd={cancelLongPress}
+                      onTouchMove={cancelLongPress}
+                    >
+                      {m.deleted
+                        ? <span className="chat-deleted-text">Message deleted</span>
+                        : <>
+                            {m.type==="offer"&&m.offerPhotoUrl&&<img src={m.offerPhotoUrl} className="chat-bubble-img" alt=""/>}
+                            {m.text}
+                          </>
+                      }
+                    </div>
+                    {isMine&&!m.deleted&&(
+                      <button className="chat-bubble-menu-btn" onClick={()=>setMsgActionSheet(m.id)} title="Options">···</button>
+                    )}
                   </div>
                 </div>
               </div>
