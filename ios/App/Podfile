@@ -21,10 +21,6 @@ end
 
 target 'App' do
   capacitor_pods
-  # Force minimum versions that include required PrivacyInfo.xcprivacy manifests (Apple ITMS-91061)
-  pod 'GTMSessionFetcher', '~> 3.4'
-  pod 'GoogleUtilities', '~> 8.0'
-  pod 'FirebaseAuth', '~> 11.0'
 end
 
 post_install do |installer|
