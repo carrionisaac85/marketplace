@@ -2832,7 +2832,7 @@ return (
                       w.userId!==user.uid&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>💬 No offers yet — be the first!</div>
                     )}
                     {w.userId!==user.uid&&(
-                      <button className="feed-cta" onClick={e=>{e.stopPropagation();setSheet(w);}}>Make an Offer →</button>
+                      <button className="feed-cta" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact →</button>
                     )}
                   </div>
                 </div>
