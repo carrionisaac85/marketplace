@@ -139,34 +139,16 @@ workflows:
             2>&1 | tee /tmp/xcodebuild_archive.log | grep -E "error:|warning:|ARCHIVE SUCCEEDED|Build succeeded"
 
           echo "=== xcodebuild export ==="
-          python3 -c "
-import os
-team = os.environ['TEAM_ID']
-prof = os.environ['PROFILE_UUID']
-plist = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-<plist version=\"1.0\">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>{team}</string>
-  <key>uploadBitcode</key>
-  <false/>
-  <key>uploadSymbols</key>
-  <true/>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.wantboard.app</key>
-    <string>{prof}</string>
-  </dict>
-</dict>
-</plist>'''.format(team=team, prof=prof)
-open('/tmp/ExportOptions.plist', 'w').write(plist)
-print('ExportOptions.plist written')
-"
+          PLIST=/tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Clear dict" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadBitcode bool false" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.wantboard.app string $PROFILE_UUID" "$PLIST"
+          echo "ExportOptions.plist written"
 
           xcodebuild \
             -exportArchive \
