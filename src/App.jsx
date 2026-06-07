@@ -1502,15 +1502,29 @@ try {
 setForgotBusy(false);
 };
 
+const nativeSignInWithTimeout = (pluginCall, label) => {
+const timeout = new Promise((_, reject) =>
+  setTimeout(() => reject(new Error(`${label} timed out — plugin returned no response (check native setup)`)), 20000)
+);
+return Promise.race([pluginCall, timeout]);
+};
+
 const signInWithApple = async () => {
+console.log("[Auth] Apple sign-in tapped");
 setAuthErr(""); setAuthBusy(true);
 try {
 const { Capacitor } = await import("@capacitor/core");
+console.log("[Auth] isNativePlatform:", Capacitor.isNativePlatform());
 if (Capacitor.isNativePlatform()) {
 const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-const result = await FirebaseAuthentication.signInWithApple();
+console.log("[Auth] Calling FirebaseAuthentication.signInWithApple...");
+const result = await nativeSignInWithTimeout(
+  FirebaseAuthentication.signInWithApple(),
+  "Apple sign-in"
+);
+console.log("[Auth] Apple result:", JSON.stringify(result));
 const idToken = result.credential?.idToken;
-if (!idToken) throw new Error("No Apple ID token received");
+if (!idToken) throw new Error("No Apple ID token received from plugin");
 const nonce = result.credential?.nonce;
 const provider = new OAuthProvider("apple.com");
 const credential = provider.credential({ idToken, rawNonce: nonce });
@@ -1521,7 +1535,7 @@ try {
 await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 } catch (popupErr) {
 if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
-setAuthBusy(false); return;
+return;
 }
 if (popupErr?.code === "auth/popup-blocked") {
 await signInWithRedirect(auth, provider, browserPopupRedirectResolver); return;
@@ -1530,29 +1544,40 @@ throw popupErr;
 }
 }
 } catch(e) {
+console.error("[Auth] Apple sign-in error:", e?.code, e?.message);
 const code = e?.code || "";
 if (code === "1000" || e?.message?.toLowerCase().includes("cancel") || e?.message?.toLowerCase().includes("dismiss")) {
-setAuthBusy(false); return;
+return;
 }
 const msg = code === "auth/network-request-failed"
 ? "Network error — check your connection and try again."
 : code === "auth/user-disabled"
 ? "This account has been disabled."
-: "Apple sign-in failed. Please try again.";
-setAuthErr(msg);
+: (e?.message || "Apple sign-in failed. Please try again.");
+const { Capacitor: Cap } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
+if (Cap?.isNativePlatform()) alert(`Apple sign-in error\n${code || ""}\n${e?.message || msg}`);
+setAuthErr("Apple sign-in failed. Please try again.");
+} finally {
 setAuthBusy(false);
 }
 };
 
 const signInWithGoogle = async () => {
+console.log("[Auth] Google sign-in tapped");
 setAuthErr(""); setAuthBusy(true);
 try {
 const { Capacitor } = await import("@capacitor/core");
+console.log("[Auth] isNativePlatform:", Capacitor.isNativePlatform());
 if (Capacitor.isNativePlatform()) {
 const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-const result = await FirebaseAuthentication.signInWithGoogle();
+console.log("[Auth] Calling FirebaseAuthentication.signInWithGoogle...");
+const result = await nativeSignInWithTimeout(
+  FirebaseAuthentication.signInWithGoogle(),
+  "Google sign-in"
+);
+console.log("[Auth] Google result credential keys:", Object.keys(result.credential || {}));
 const idToken = result.credential?.idToken;
-if (!idToken) throw new Error("No Google ID token received");
+if (!idToken) throw new Error("No Google ID token received from plugin");
 const credential = GoogleAuthProvider.credential(idToken);
 await signInWithCredential(auth, credential);
 } else {
@@ -1562,12 +1587,9 @@ provider.addScope("profile");
 try {
 await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 } catch (popupErr) {
-// popup-closed-by-user = user dismissed it intentionally, not an error
 if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
-setAuthBusy(false);
 return;
 }
-// popup blocked → fall back to redirect flow
 if (popupErr?.code === "auth/popup-blocked") {
 await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
 return;
@@ -1576,15 +1598,19 @@ throw popupErr;
 }
 }
 } catch(e) {
+console.error("[Auth] Google sign-in error:", e?.code, e?.message);
 const code = e?.code || "";
 const msg = code === "auth/unauthorized-domain"
-  ? `Google sign-in isn't enabled for this domain (${window.location.hostname}). Contact support.`
+  ? `Google sign-in isn't enabled for this domain (${window.location.hostname}).`
   : code === "auth/network-request-failed"
   ? "Network error — check your connection and try again."
   : code === "auth/user-disabled"
   ? "This account has been disabled."
-  : "Google sign-in failed. Please try again.";
-setAuthErr(msg);
+  : (e?.message || "Google sign-in failed. Please try again.");
+const { Capacitor: Cap } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
+if (Cap?.isNativePlatform()) alert(`Google sign-in error\n${code || ""}\n${e?.message || msg}`);
+setAuthErr("Google sign-in failed. Please try again.");
+} finally {
 setAuthBusy(false);
 }
 };
