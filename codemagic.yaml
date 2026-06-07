@@ -24,7 +24,6 @@ workflows:
         - $HOME/.npm
         - node_modules
         - $HOME/Library/Caches/CocoaPods
-        - ios/App/Pods
     integrations:
       app_store_connect: Codemagic App
     scripts:
@@ -63,6 +62,29 @@ workflows:
       - name: Sync web build into iOS project
         script: |
           npx cap sync ios
+      - name: Guarantee FirebaseAuthentication config in capacitor.config.json
+        script: |
+          CONFIG="ios/App/App/capacitor.config.json"
+          echo "=== capacitor.config.json BEFORE patch ==="
+          cat "$CONFIG"
+          python3 - << 'PYEOF'
+import json, sys
+path = "ios/App/App/capacitor.config.json"
+with open(path) as f:
+    cfg = json.load(f)
+plugins = cfg.setdefault("plugins", {})
+# Remove legacy GoogleAuth plugin config if present
+plugins.pop("GoogleAuth", None)
+# Always write the correct FirebaseAuthentication config
+plugins["FirebaseAuthentication"] = {
+    "skipNativeAuth": True,
+    "providers": ["google.com", "apple.com"]
+}
+with open(path, "w") as f:
+    json.dump(cfg, f, indent="\t")
+print("=== capacitor.config.json AFTER patch ===")
+print(json.dumps(cfg, indent=2))
+PYEOF
       - name: Patch Google Sign-In URL scheme in Info.plist
         script: |
           if [ -n "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
