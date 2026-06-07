@@ -41,7 +41,50 @@ post_install do |installer|
 
       # Prevent Apple Silicon / static linking issues
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+
+      # Force the RGCFA_INCLUDE_GOOGLE compile flag onto the Firebase
+      # Authentication plugin's own target. The plugin gates ALL of its
+      # Google Sign-In Swift code behind `#if RGCFA_INCLUDE_GOOGLE`. That flag
+      # is supposed to come from the /Google subspec's plain `xcconfig`, but
+      # under `use_frameworks!` a subspec's plain xcconfig is unreliable and
+      # frequently lands on the app target instead of the pod target — so the
+      # plugin compiles WITHOUT the flag and signInWithGoogle becomes an empty
+      # no-op (no sheet, promise never resolves, JS times out). Setting it here
+      # explicitly guarantees the Google code is compiled into the plugin.
+      if target.name == 'CapacitorFirebaseAuthentication'
+        flags = config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)'
+        flags = flags.is_a?(Array) ? flags.join(' ') : flags.to_s
+        flags = '$(inherited)' if flags.strip.empty?
+        unless flags.include?('-DRGCFA_INCLUDE_GOOGLE')
+          flags = "#{flags} -DRGCFA_INCLUDE_GOOGLE"
+        end
+        config.build_settings['OTHER_SWIFT_FLAGS'] = flags
+        puts "[Podfile] #{target.name} (#{config.name}) OTHER_SWIFT_FLAGS => #{flags}"
+      end
     end
+  end
+
+  # Force `-ObjC` onto the App target so the statically-linked Capacitor plugin
+  # classes are not dead-stripped. Capacitor registers plugins by NAME at runtime
+  # via NSClassFromString(packageClassList[i]); there is no compile-time reference
+  # to e.g. FirebaseAuthenticationPlugin, so the linker can strip it from the
+  # static framework — causing `"FirebaseAuthentication" plugin is not implemented
+  # on iOS`. `-ObjC` loads all Obj-C classes/categories from static archives.
+  # NOTE: the App target lives in App.xcodeproj (the user project), NOT in
+  # installer.pods_project.targets — so iterate the aggregate targets' user project.
+  installer.aggregate_targets.each do |agg|
+    next unless agg.user_project
+    agg.user_project.native_targets.each do |target|
+      next unless target.name == 'App'
+      target.build_configurations.each do |config|
+        ldflags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+        ldflags = [ldflags] if ldflags.is_a?(String)
+        ldflags << '-ObjC' unless ldflags.include?('-ObjC')
+        config.build_settings['OTHER_LDFLAGS'] = ldflags
+        puts "[Podfile] App (#{config.name}) OTHER_LDFLAGS => #{ldflags.join(' ')}"
+      end
+    end
+    agg.user_project.save
   end
 
   assertDeploymentTarget(installer)
