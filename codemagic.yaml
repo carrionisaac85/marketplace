@@ -90,6 +90,19 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
+      - name: Verify Google Sign-In compile flag and pods
+        script: |
+          echo "=== Confirm GoogleSignIn pod installed ==="
+          grep -E "GoogleSignIn" ios/App/Podfile.lock || echo "WARNING: GoogleSignIn not found in Podfile.lock"
+          echo ""
+          echo "=== Confirm RGCFA_INCLUDE_GOOGLE flag in generated Pods xcconfig ==="
+          if grep -rl "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/Target\ Support\ Files/ 2>/dev/null | grep -i "CapacitorFirebaseAuthentication"; then
+            echo "OK: RGCFA_INCLUDE_GOOGLE is present in the CapacitorFirebaseAuthentication xcconfig"
+            grep -rn "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/Target\ Support\ Files/ 2>/dev/null | grep -i "CapacitorFirebaseAuthentication"
+          else
+            echo "ERROR: RGCFA_INCLUDE_GOOGLE not found in any CapacitorFirebaseAuthentication xcconfig — Google Sign-In native code will be compiled out!"
+            exit 1
+          fi
       - name: Set up code signing (uploaded certificate + profile)
         script: |
           keychain initialize

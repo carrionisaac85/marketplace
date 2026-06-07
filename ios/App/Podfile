@@ -24,6 +24,26 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+
+      # Force the RGCFA_INCLUDE_GOOGLE compile flag onto the Firebase
+      # Authentication plugin's own target. The plugin gates ALL of its
+      # Google Sign-In Swift code behind `#if RGCFA_INCLUDE_GOOGLE`. That
+      # flag is supposed to come from the /Google subspec's plain `xcconfig`,
+      # but under `use_frameworks!` a subspec's plain xcconfig is unreliable
+      # and frequently lands on the app target instead of the pod target —
+      # so the plugin compiles WITHOUT the flag and signInWithGoogle becomes
+      # an empty no-op (no sheet, promise never resolves, JS times out).
+      # Setting it explicitly here guarantees the Google code is compiled in.
+      if target.name == 'CapacitorFirebaseAuthentication'
+        flags = config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)'
+        flags = flags.is_a?(Array) ? flags.join(' ') : flags.to_s
+        flags = '$(inherited)' if flags.strip.empty?
+        unless flags.include?('-DRGCFA_INCLUDE_GOOGLE')
+          flags = "#{flags} -DRGCFA_INCLUDE_GOOGLE"
+        end
+        config.build_settings['OTHER_SWIFT_FLAGS'] = flags
+        puts "[Podfile] #{target.name} (#{config.name}) OTHER_SWIFT_FLAGS => #{flags}"
+      end
     end
   end
   assertDeploymentTarget(installer)
