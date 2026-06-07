@@ -170,6 +170,18 @@ workflows:
             echo "ERROR: RGCFA_INCLUDE_GOOGLE not found anywhere in ios/App/Pods — Google Sign-In native code will be compiled out!"
             exit 1
           fi
+          echo ""
+          echo "=== Confirm -ObjC linker flag landed on the App target (prevents plugin dead-strip) ==="
+          # post_install writes OTHER_LDFLAGS = -ObjC into the App target inside
+          # App.xcodeproj/project.pbxproj. Without it, statically-linked Capacitor
+          # plugin classes registered by name (NSClassFromString) get dead-stripped
+          # → "FirebaseAuthentication plugin not implemented on iOS".
+          if grep -q "\"-ObjC\"" ios/App/App.xcodeproj/project.pbxproj || grep -q "\\-ObjC" ios/App/App.xcodeproj/project.pbxproj; then
+            echo "OK: -ObjC present in App.xcodeproj/project.pbxproj"
+          else
+            echo "ERROR: -ObjC not found in App target build settings — plugin classes may be dead-stripped at runtime!"
+            exit 1
+          fi
       - name: Set up code signing (uploaded certificate + profile)
         script: |
           keychain initialize
