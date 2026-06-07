@@ -213,6 +213,18 @@ workflows:
           echo "Profile UUID: $PROFILE_UUID"
           echo "Profile name: $PROFILE_NAME"
 
+          # Sign in with Apple requires the App ID capability to be authorized by
+          # the provisioning profile. If it is missing, the native Apple sheet
+          # opens and immediately dismisses at runtime with error 1000.
+          if /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /dev/stdin <<< "$PROFILE_DATA" >/dev/null 2>&1; then
+            echo "OK: provisioning profile authorizes Sign in with Apple"
+          else
+            echo "WARNING: provisioning profile does NOT include 'Sign in with Apple'."
+            echo "         Enable it for App ID com.wantboard.app in Apple Developer,"
+            echo "         regenerate the provisioning profile, and re-upload it to Codemagic."
+            echo "         Apple Sign-In will fail on-device (error 1000) until this is fixed."
+          fi
+
           sed -i "" "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
           sed -i "" "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"$TEAM_ID\";/g" "$PBXPROJ"
           sed -i "" "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = \"$TEAM_ID\";/g" "$PBXPROJ"

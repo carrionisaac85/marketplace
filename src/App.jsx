@@ -1578,18 +1578,29 @@ throw popupErr;
 }
 } catch(e) {
 console.error("[Auth] Apple sign-in error:", e?.code, e?.message);
-const code = e?.code || "";
-if (code === "1000" || e?.message?.toLowerCase().includes("cancel") || e?.message?.toLowerCase().includes("dismiss")) {
-return;
-}
+const code = String(e?.code || "");
+const lower = (e?.message || "").toLowerCase();
+// Genuine user cancellation only. Apple's ASAuthorizationError.canceled == 1001.
+// Do NOT swallow 1000 (ASAuthorizationError.unknown) — that is a REAL failure
+// (usually "Sign in with Apple" not authorized by the provisioning profile/App ID,
+// or the Apple provider not enabled in Firebase Auth). Hiding it made the sheet
+// appear to "open and close instantly" with no feedback.
+const userCancelled = code === "1001" || code.endsWith(".1001") || lower.includes("cancel");
+if (userCancelled) return;
 const msg = code === "auth/network-request-failed"
 ? "Network error — check your connection and try again."
 : code === "auth/user-disabled"
 ? "This account has been disabled."
 : (e?.message || "Apple sign-in failed. Please try again.");
 const { Capacitor: Cap } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
-if (Cap?.isNativePlatform()) alert(`Apple sign-in error\n${code || ""}\n${e?.message || msg}`);
-setAuthErr("Apple sign-in failed. Please try again.");
+if (Cap?.isNativePlatform()) {
+const isUnknown = code === "1000" || code.endsWith(".1000");
+const hint = isUnknown
+? "\n\nThis usually means “Sign in with Apple” is not enabled for this app in the Apple Developer account (App ID capability + provisioning profile), or the Apple provider is not configured in Firebase Authentication."
+: "";
+alert(`Apple sign-in error\n${code || ""}\n${e?.message || msg}${hint}`);
+}
+setAuthErr(code ? `Apple sign-in failed (${code}). Please try again.` : "Apple sign-in failed. Please try again.");
 } finally {
 setAuthBusy(false);
 }
