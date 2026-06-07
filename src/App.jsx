@@ -1502,50 +1502,6 @@ try {
 setForgotBusy(false);
 };
 
-const signInWithApple = async () => {
-setAuthErr(""); setAuthBusy(true);
-try {
-if (Capacitor.isNativePlatform()) {
-  const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
-  const result = await SignInWithApple.authorize({
-    clientId: "com.wantboard.app",
-    redirectURI: "https://marketplace305.firebaseapp.com/__/auth/handler",
-    scopes: "email name",
-  });
-  const provider = new OAuthProvider("apple.com");
-  const credential = provider.credential({ idToken: result.response.identityToken });
-  await signInWithCredential(auth, credential);
-} else {
-  const provider = new OAuthProvider("apple.com");
-  provider.addScope("email");
-  provider.addScope("name");
-  try {
-    await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-  } catch (popupErr) {
-    if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
-      setAuthBusy(false); return;
-    }
-    if (popupErr?.code === "auth/popup-blocked") {
-      await signInWithRedirect(auth, provider, browserPopupRedirectResolver); return;
-    }
-    throw popupErr;
-  }
-}
-} catch(e) {
-console.error("[Auth] Apple sign-in error:", e?.code, e?.message, e);
-const code = e?.code || "";
-const msg = code === "auth/unauthorized-domain"
-  ? `Apple sign-in isn't enabled for this domain (${window.location.hostname}). Contact support.`
-  : code === "auth/network-request-failed"
-  ? "Network error — check your connection and try again."
-  : code === "auth/user-disabled"
-  ? "This account has been disabled."
-  : "Apple sign-in failed. Please try again.";
-setAuthErr(msg);
-setAuthBusy(false);
-}
-};
-
 const signInWithGoogle = async () => {
 setAuthErr(""); setAuthBusy(true);
 try {
@@ -1586,6 +1542,55 @@ const msg = code === "auth/unauthorized-domain"
   : "Google sign-in failed. Please try again.";
 setAuthErr(msg);
 setAuthBusy(false);
+}
+};
+
+const signInWithApple = async () => {
+setAuthErr(""); setAuthBusy(true);
+try {
+  if (Capacitor.isNativePlatform()) {
+    const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
+    const res = await SignInWithApple.authorize({
+      clientId: "com.wantboard.app",
+      redirectURI: "https://marketplace305.firebaseapp.com/__/auth/handler",
+      scopes: "name email",
+    });
+    const provider = new OAuthProvider("apple.com");
+    const credential = provider.credential({ idToken: res.response.identityToken });
+    const result = await signInWithCredential(auth, credential);
+    if (getAdditionalUserInfo(result)?.isNewUser && res.response.givenName) {
+      await updateProfile(result.user, { displayName: `${res.response.givenName} ${res.response.familyName || ""}`.trim() });
+    }
+  } else {
+    const provider = new OAuthProvider("apple.com");
+    provider.addScope("name");
+    provider.addScope("email");
+    try {
+      await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+    } catch (popupErr) {
+      if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
+        setAuthBusy(false); return;
+      }
+      if (popupErr?.code === "auth/popup-blocked") {
+        await signInWithRedirect(auth, provider, browserPopupRedirectResolver); return;
+      }
+      throw popupErr;
+    }
+  }
+} catch(e) {
+  console.log("[Auth] Apple sign-in error:", e?.code, e?.message);
+  const code = e?.code || "";
+  const msg = code === "auth/operation-not-allowed"
+    ? "Apple sign-in is not enabled. Contact support."
+    : code === "auth/network-request-failed"
+    ? "Network error — check your connection and try again."
+    : code === "auth/user-disabled"
+    ? "This account has been disabled."
+    : e?.message?.includes("cancel") || e?.message?.includes("Cancel")
+    ? null
+    : "Apple sign-in failed. Please try again.";
+  if (msg) setAuthErr(msg);
+  setAuthBusy(false);
 }
 };
 
@@ -2614,7 +2619,7 @@ if (!user) return (
 Continue with Google
 </button>
 <button className="auth-apple" onClick={signInWithApple} disabled={authBusy}>
-<svg width="17" height="17" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.4 0 663.7 0 541.8c0-194.3 127.4-297.5 252.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+<svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.8 143.8-317.9 285-317.9 71 0 130.3 46.8 174.8 46.8 42.8 0 109.8-49.4 190.5-49.4zm-234.8-81.3c36.7-41.9 63-98.5 63-155.1 0-8.3-.7-16.7-2.1-24.3-59.6 2.3-131.7 39.9-176.1 90.2-33.3 37.1-65.2 96.5-65.2 154.5 0 9 1.4 18 2.1 20.8 3.7.6 9.7 1.4 15.7 1.4 54.2 0 121.3-36.1 162.6-87.6z"/></svg>
 Continue with Apple
 </button>
 </div>
