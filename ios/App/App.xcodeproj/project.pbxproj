@@ -372,7 +372,7 @@
                                 OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
                                 PRODUCT_BUNDLE_IDENTIFIER = com.wantboard.app;
                                 PRODUCT_NAME = "$(TARGET_NAME)";
-                                REVERSED_CLIENT_ID = "";
+                                REVERSED_CLIENT_ID = "com.googleusercontent.apps.445461567451-l624o1lvgm32o2ev74circibb1c8i8rj";
                                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
                                 SWIFT_VERSION = 5.0;
                                 TARGETED_DEVICE_FAMILY = "1,2";
@@ -393,7 +393,7 @@
                                 MARKETING_VERSION = 1.0;
                                 PRODUCT_BUNDLE_IDENTIFIER = com.wantboard.app;
                                 PRODUCT_NAME = "$(TARGET_NAME)";
-                                REVERSED_CLIENT_ID = "";
+                                REVERSED_CLIENT_ID = "com.googleusercontent.apps.445461567451-l624o1lvgm32o2ev74circibb1c8i8rj";
                                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
                                 SWIFT_VERSION = 5.0;
                                 TARGETED_DEVICE_FAMILY = "1,2";
