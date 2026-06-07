@@ -904,6 +904,7 @@ return (
 
 export default function App() {
 const [user, setUser] = useState(null);
+const [userDocName, setUserDocName] = useState("");
 const [authLoading, setAuthLoading] = useState(true);
 const [authTab, setAuthTab] = useState("login");
 const [agreeTerms, setAgreeTerms] = useState(false);
@@ -918,6 +919,8 @@ const [forgotSent, setForgotSent] = useState(false);
 const [forgotBusy, setForgotBusy] = useState(false);
 const [forgotErr, setForgotErr] = useState("");
 
+const isAppleRelayEmail = email => Boolean(email?.includes("privaterelay.appleid.com"));
+const userDisplayName = user?.displayName || userDocName || (isAppleRelayEmail(user?.email) ? "" : (user?.email || ""));
 const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 const [banned, setBanned] = useState([]);
 const [adminTab, setAdminTab] = useState("dashboard");
@@ -1047,7 +1050,11 @@ useEffect(() => {
     setAuthLoading(false);
     if (u) {
       const sd = setDoc, st = serverTimestamp;
-      sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
+      const isRelay = u.email?.includes("privaterelay.appleid.com");
+      const upsert = { uid: u.uid, joinedAt: st() };
+      if (u.displayName) upsert.name = u.displayName;
+      if (!isRelay && u.email) upsert.email = u.email;
+      sd(doc(db,"users",u.uid), upsert, {merge:true}).catch(err=>console.error("User upsert failed:",err));
     }
   });
   // Safety timeout: if onAuthStateChanged never fires in a native webview, unfreeze the UI
@@ -1077,6 +1084,7 @@ if (!user) return;
 return onSnapshot(doc(db,"users",user.uid), snap => {
   if (snap.exists()) {
     const data = snap.data();
+    setUserDocName(data.name || "");
     setMyReviewedKeys(data.reviewedKeys||[]);
     setSavedWants(data.savedWants||[]);
     setMyReportedWants(data.reportedWants||[]);
@@ -1528,11 +1536,36 @@ if (!idToken) throw new Error("No Apple ID token received from plugin");
 const nonce = result.credential?.nonce;
 const provider = new OAuthProvider("apple.com");
 const credential = provider.credential({ idToken, rawNonce: nonce });
-await signInWithCredential(auth, credential);
+const fbResult = await signInWithCredential(auth, credential);
+// Apple only sends name/email on first sign-in — capture and persist immediately
+const appleProfile = result.additionalUserInfo?.profile;
+const firstName = appleProfile?.name?.firstName || "";
+const lastName = appleProfile?.name?.lastName || "";
+const appleFullName = [firstName, lastName].filter(Boolean).join(" ").trim() || result.user?.displayName || "";
+const appleEmail = appleProfile?.email || "";
+if (appleFullName && !fbResult.user.displayName) {
+  await updateProfile(fbResult.user, { displayName: appleFullName }).catch(()=>{});
+}
+const isRelay = fbResult.user.email?.includes("privaterelay.appleid.com");
+const appleUpsert = { uid: fbResult.user.uid, joinedAt: serverTimestamp() };
+if (appleFullName) appleUpsert.name = appleFullName;
+if (appleEmail) appleUpsert.email = appleEmail;
+else if (!isRelay && fbResult.user.email) appleUpsert.email = fbResult.user.email;
+if (Object.keys(appleUpsert).length > 2) {
+  setDoc(doc(db,"users",fbResult.user.uid), appleUpsert, {merge:true}).catch(()=>{});
+}
 } else {
 const provider = new OAuthProvider("apple.com");
 try {
-await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+const webResult = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+const webFullName = webResult.user.displayName || "";
+const webIsRelay = webResult.user.email?.includes("privaterelay.appleid.com");
+const webUpsert = { uid: webResult.user.uid, joinedAt: serverTimestamp() };
+if (webFullName) webUpsert.name = webFullName;
+if (!webIsRelay && webResult.user.email) webUpsert.email = webResult.user.email;
+if (Object.keys(webUpsert).length > 2) {
+  setDoc(doc(db,"users",webResult.user.uid), webUpsert, {merge:true}).catch(()=>{});
+}
 } catch (popupErr) {
 if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
 return;
@@ -2925,7 +2958,7 @@ return (
         const myWants2 = wants.filter(w=>w.userId===user.uid);
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
-        const initLetter = (user.displayName||user.email||"?")[0].toUpperCase();
+        const initLetter = (userDisplayName||"?")[0].toUpperCase();
         return(
           <>
             <div className="prof-page">
@@ -2933,8 +2966,8 @@ return (
               <div className="prof-hero">
                 <div className="prof-hero-av">{initLetter}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div className="prof-hero-name">{user.displayName||user.email}</div>
-                  {user.displayName&&<div className="prof-hero-email">{user.email}</div>}
+                  <div className="prof-hero-name">{userDisplayName}</div>
+                  {userDisplayName && !isAppleRelayEmail(user.email) && user.email !== userDisplayName && <div className="prof-hero-email">{user.email}</div>}
                   {myAvgRating!==null&&(
                     <div className="prof-rating" style={{marginTop:4}}>
                       {renderStars(myAvgRating)}
