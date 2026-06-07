@@ -126,12 +126,30 @@ workflows:
           cd ios/App && pod install
       - name: Verify Google Sign-In compile flag and pods
         script: |
-          echo "=== Confirm GoogleSignIn pod installed (proves /Google subspec is active) ==="
+          echo "=== Confirm GoogleSignIn pod installed (explicit pod + /Google subspec) ==="
           if grep -qE "GoogleSignIn" ios/App/Podfile.lock; then
             echo "OK: GoogleSignIn present in Podfile.lock"
             grep -E "GoogleSignIn" ios/App/Podfile.lock
           else
-            echo "ERROR: GoogleSignIn not in Podfile.lock — the /Google subspec did not activate, Google Sign-In will not work!"
+            echo "ERROR: GoogleSignIn not in Podfile.lock — Google Sign-In will not work!"
+            exit 1
+          fi
+          echo ""
+          echo "=== Confirm GoogleSignIn pod sources were actually downloaded/linked ==="
+          if [ -d "ios/App/Pods/GoogleSignIn" ]; then
+            echo "OK: ios/App/Pods/GoogleSignIn exists"
+            ls -la ios/App/Pods/GoogleSignIn | head
+          else
+            echo "ERROR: ios/App/Pods/GoogleSignIn directory missing — the GoogleSignIn pod did not install!"
+            exit 1
+          fi
+          echo ""
+          echo "=== Confirm FirebaseAuth iOS provider dependency is installed ==="
+          if grep -qE "FirebaseAuth" ios/App/Podfile.lock; then
+            echo "OK: FirebaseAuth present in Podfile.lock"
+            grep -E "FirebaseAuth \(" ios/App/Podfile.lock | head -1
+          else
+            echo "ERROR: FirebaseAuth not in Podfile.lock — FirebaseAuthentication native deps are incomplete!"
             exit 1
           fi
           echo ""

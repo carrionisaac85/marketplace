@@ -18,6 +18,15 @@ end
 
 target 'App' do
   capacitor_pods
+  # Declare GoogleSignIn explicitly so it is ALWAYS installed and linked,
+  # independent of the CapacitorFirebaseAuthentication/Google subspec.
+  # `npx cap sync ios` rewrites only the `def capacitor_pods ... end` block
+  # (see @capacitor/cli update.js: replace /(def capacitor_pods)[\s\S]+?(\nend)/),
+  # so pods declared here inside `target 'App'` survive the sync and guarantee
+  # GoogleSignIn.framework ends up in the Pods project and the app. Pinned to
+  # 9.0.0 to exactly match the version the plugin's /Google subspec requires,
+  # avoiding a CocoaPods version-resolution conflict.
+  pod 'GoogleSignIn', '9.0.0'
 end
 
 post_install do |installer|
