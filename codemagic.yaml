@@ -123,7 +123,13 @@ workflows:
           fi
       - name: Install CocoaPods dependencies
         script: |
-          cd ios/App && pod install
+          cd ios/App
+          # Clean any stale Pods/lockfile so CocoaPods resolves GoogleSignIn
+          # fresh against the pinned `= 9.0.0` constraint. A cached Podfile.lock
+          # from a previous build can pin 9.1.0 and cause a version conflict
+          # with CapacitorFirebaseAuthentication/Google (requires = 9.0.0).
+          rm -rf Pods Podfile.lock
+          pod install --repo-update
       - name: Verify Google Sign-In compile flag and pods
         script: |
           echo "=== Confirm GoogleSignIn pod installed (explicit pod + /Google subspec) ==="

@@ -23,8 +23,11 @@ end
 target 'App' do
   capacitor_pods
 
-  # Required for Google Sign-In (Firebase iOS provider)
-  pod 'GoogleSignIn', '~> 9.0'
+  # Required for Google Sign-In (Firebase iOS provider).
+  # Pinned to the EXACT version CapacitorFirebaseAuthentication/Google
+  # requires (= 9.0.0). A loose constraint (~> 9.0) lets CocoaPods resolve
+  # 9.1.0, which conflicts with the plugin's `= 9.0.0` and breaks the build.
+  pod 'GoogleSignIn', '9.0.0'
   pod 'FirebaseAuth'
   pod 'FirebaseCore'
 end
