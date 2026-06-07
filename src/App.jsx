@@ -8,7 +8,7 @@ setDoc, getDocs, getDoc, limit, increment,
 import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, browserPopupRedirectResolver,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect, getRedirectResult,
+signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect, getRedirectResult,
 sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 } from "firebase/auth";
 import {
@@ -200,6 +200,9 @@ main{-webkit-overflow-scrolling:touch;}
 .auth-google{width:100%;padding:13px;background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color .15s}
 .auth-google:hover{border-color:#4285F4;background:#f8faff}
 .auth-google:disabled{opacity:.5;cursor:not-allowed}
+.auth-apple{width:100%;padding:13px;background:#000;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;transition:opacity .15s}
+.auth-apple:hover{opacity:.85}
+.auth-apple:disabled{opacity:.5;cursor:not-allowed}
 
 /* HEADER */
 .header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:calc(12px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-right,0px)) 12px calc(20px + env(safe-area-inset-left,0px));box-shadow:0 1px 8px rgba(0,0,0,.06)}
@@ -1499,6 +1502,50 @@ try {
 setForgotBusy(false);
 };
 
+const signInWithApple = async () => {
+setAuthErr(""); setAuthBusy(true);
+try {
+if (Capacitor.isNativePlatform()) {
+  const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
+  const result = await SignInWithApple.authorize({
+    clientId: "com.wantboard.app",
+    redirectURI: "https://marketplace305.firebaseapp.com/__/auth/handler",
+    scopes: "email name",
+  });
+  const provider = new OAuthProvider("apple.com");
+  const credential = provider.credential({ idToken: result.response.identityToken });
+  await signInWithCredential(auth, credential);
+} else {
+  const provider = new OAuthProvider("apple.com");
+  provider.addScope("email");
+  provider.addScope("name");
+  try {
+    await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+  } catch (popupErr) {
+    if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
+      setAuthBusy(false); return;
+    }
+    if (popupErr?.code === "auth/popup-blocked") {
+      await signInWithRedirect(auth, provider, browserPopupRedirectResolver); return;
+    }
+    throw popupErr;
+  }
+}
+} catch(e) {
+console.error("[Auth] Apple sign-in error:", e?.code, e?.message, e);
+const code = e?.code || "";
+const msg = code === "auth/unauthorized-domain"
+  ? `Apple sign-in isn't enabled for this domain (${window.location.hostname}). Contact support.`
+  : code === "auth/network-request-failed"
+  ? "Network error — check your connection and try again."
+  : code === "auth/user-disabled"
+  ? "This account has been disabled."
+  : "Apple sign-in failed. Please try again.";
+setAuthErr(msg);
+setAuthBusy(false);
+}
+};
+
 const signInWithGoogle = async () => {
 setAuthErr(""); setAuthBusy(true);
 try {
@@ -2565,6 +2612,10 @@ if (!user) return (
 <button className="auth-google" onClick={signInWithGoogle} disabled={authBusy}>
 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.58-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
 Continue with Google
+</button>
+<button className="auth-apple" onClick={signInWithApple} disabled={authBusy}>
+<svg width="17" height="17" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.4 0 663.7 0 541.8c0-194.3 127.4-297.5 252.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+Continue with Apple
 </button>
 </div>
 <div className="auth-footer">
