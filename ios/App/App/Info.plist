@@ -35,7 +35,7 @@
                         <string>Google Sign-In</string>
                         <key>CFBundleURLSchemes</key>
                         <array>
-                                <string>com.googleusercontent.apps.445461567451-l624o1lvgm32o2ev74circibb1c8i8rj</string>
+                                <string>$(REVERSED_CLIENT_ID)</string>
                         </array>
                 </dict>
         </array>

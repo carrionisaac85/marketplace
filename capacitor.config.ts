@@ -19,9 +19,11 @@ const config: CapacitorConfig = {
     backgroundColor: "#F7F5F2",
   },
   plugins: {
-    FirebaseAuthentication: {
-      skipNativeAuth: true,
-      providers: ["google.com", "apple.com"],
+    GoogleAuth: {
+      scopes: ["profile", "email"],
+      iosClientId: process.env.VITE_GOOGLE_IOS_CLIENT_ID || "",
+      webClientId: process.env.VITE_GOOGLE_WEB_CLIENT_ID || "",
+      forceCodeForRefreshToken: true,
     },
     SplashScreen: {
       launchShowDuration: 1500,

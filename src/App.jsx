@@ -8,7 +8,7 @@ setDoc, getDocs, getDoc, limit, increment,
 import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, browserPopupRedirectResolver,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect, getRedirectResult,
+signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect, getRedirectResult,
 sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 } from "firebase/auth";
 import {
@@ -200,9 +200,6 @@ main{-webkit-overflow-scrolling:touch;}
 .auth-google{width:100%;padding:13px;background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color .15s}
 .auth-google:hover{border-color:#4285F4;background:#f8faff}
 .auth-google:disabled{opacity:.5;cursor:not-allowed}
-.auth-apple{width:100%;padding:13px;background:#000;color:#fff;border:1.5px solid #000;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s;margin-top:10px}
-.auth-apple:hover{opacity:.85}
-.auth-apple:disabled{opacity:.5;cursor:not-allowed}
 
 /* HEADER */
 .header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:calc(12px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-right,0px)) 12px calc(20px + env(safe-area-inset-left,0px));box-shadow:0 1px 8px rgba(0,0,0,.06)}
@@ -904,7 +901,6 @@ return (
 
 export default function App() {
 const [user, setUser] = useState(null);
-const [userDocName, setUserDocName] = useState("");
 const [authLoading, setAuthLoading] = useState(true);
 const [authTab, setAuthTab] = useState("login");
 const [agreeTerms, setAgreeTerms] = useState(false);
@@ -919,8 +915,6 @@ const [forgotSent, setForgotSent] = useState(false);
 const [forgotBusy, setForgotBusy] = useState(false);
 const [forgotErr, setForgotErr] = useState("");
 
-const isAppleRelayEmail = email => Boolean(email?.includes("privaterelay.appleid.com"));
-const userDisplayName = user?.displayName || userDocName || (isAppleRelayEmail(user?.email) ? "" : (user?.email || ""));
 const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 const [banned, setBanned] = useState([]);
 const [adminTab, setAdminTab] = useState("dashboard");
@@ -1050,11 +1044,7 @@ useEffect(() => {
     setAuthLoading(false);
     if (u) {
       const sd = setDoc, st = serverTimestamp;
-      const isRelay = u.email?.includes("privaterelay.appleid.com");
-      const upsert = { uid: u.uid, joinedAt: st() };
-      if (u.displayName) upsert.name = u.displayName;
-      if (!isRelay && u.email) upsert.email = u.email;
-      sd(doc(db,"users",u.uid), upsert, {merge:true}).catch(err=>console.error("User upsert failed:",err));
+      sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
     }
   });
   // Safety timeout: if onAuthStateChanged never fires in a native webview, unfreeze the UI
@@ -1084,7 +1074,6 @@ if (!user) return;
 return onSnapshot(doc(db,"users",user.uid), snap => {
   if (snap.exists()) {
     const data = snap.data();
-    setUserDocName(data.name || "");
     setMyReviewedKeys(data.reviewedKeys||[]);
     setSavedWants(data.savedWants||[]);
     setMyReportedWants(data.reportedWants||[]);
@@ -1510,119 +1499,14 @@ try {
 setForgotBusy(false);
 };
 
-const nativeSignInWithTimeout = (pluginCall, label) => {
-const timeout = new Promise((_, reject) =>
-  setTimeout(() => reject(new Error(`${label} timed out — plugin returned no response (check native setup)`)), 20000)
-);
-return Promise.race([pluginCall, timeout]);
-};
-
-const signInWithApple = async () => {
-console.log("[Auth] Apple sign-in tapped");
-setAuthErr(""); setAuthBusy(true);
-try {
-const { Capacitor } = await import("@capacitor/core");
-console.log("[Auth] isNativePlatform:", Capacitor.isNativePlatform());
-if (Capacitor.isNativePlatform()) {
-const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-console.log("[Auth] Calling FirebaseAuthentication.signInWithApple...");
-const result = await nativeSignInWithTimeout(
-  FirebaseAuthentication.signInWithApple(),
-  "Apple sign-in"
-);
-console.log("[Auth] Apple result:", JSON.stringify(result));
-const idToken = result.credential?.idToken;
-if (!idToken) throw new Error("No Apple ID token received from plugin");
-const nonce = result.credential?.nonce;
-const provider = new OAuthProvider("apple.com");
-const credential = provider.credential({ idToken, rawNonce: nonce });
-const fbResult = await signInWithCredential(auth, credential);
-// Apple only sends name/email on first sign-in — capture and persist immediately
-const appleProfile = result.additionalUserInfo?.profile;
-const firstName = appleProfile?.name?.firstName || "";
-const lastName = appleProfile?.name?.lastName || "";
-const appleFullName = [firstName, lastName].filter(Boolean).join(" ").trim() || result.user?.displayName || "";
-const appleEmail = appleProfile?.email || "";
-if (appleFullName && !fbResult.user.displayName) {
-  await updateProfile(fbResult.user, { displayName: appleFullName }).catch(()=>{});
-}
-const isRelay = fbResult.user.email?.includes("privaterelay.appleid.com");
-const appleUpsert = { uid: fbResult.user.uid, joinedAt: serverTimestamp() };
-if (appleFullName) appleUpsert.name = appleFullName;
-if (appleEmail) appleUpsert.email = appleEmail;
-else if (!isRelay && fbResult.user.email) appleUpsert.email = fbResult.user.email;
-if (Object.keys(appleUpsert).length > 2) {
-  setDoc(doc(db,"users",fbResult.user.uid), appleUpsert, {merge:true}).catch(()=>{});
-}
-} else {
-const provider = new OAuthProvider("apple.com");
-try {
-const webResult = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-const webFullName = webResult.user.displayName || "";
-const webIsRelay = webResult.user.email?.includes("privaterelay.appleid.com");
-const webUpsert = { uid: webResult.user.uid, joinedAt: serverTimestamp() };
-if (webFullName) webUpsert.name = webFullName;
-if (!webIsRelay && webResult.user.email) webUpsert.email = webResult.user.email;
-if (Object.keys(webUpsert).length > 2) {
-  setDoc(doc(db,"users",webResult.user.uid), webUpsert, {merge:true}).catch(()=>{});
-}
-} catch (popupErr) {
-if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
-return;
-}
-if (popupErr?.code === "auth/popup-blocked") {
-await signInWithRedirect(auth, provider, browserPopupRedirectResolver); return;
-}
-throw popupErr;
-}
-}
-} catch(e) {
-console.error("[Auth] Apple sign-in error:", e?.code, e?.message);
-const code = String(e?.code || "");
-const lower = (e?.message || "").toLowerCase();
-// Genuine user cancellation only. Apple's ASAuthorizationError.canceled == 1001.
-// Do NOT swallow 1000 (ASAuthorizationError.unknown) — that is a REAL failure
-// (usually "Sign in with Apple" not authorized by the provisioning profile/App ID,
-// or the Apple provider not enabled in Firebase Auth). Hiding it made the sheet
-// appear to "open and close instantly" with no feedback.
-const userCancelled = code === "1001" || code.endsWith(".1001") || lower.includes("cancel");
-if (userCancelled) return;
-const msg = code === "auth/network-request-failed"
-? "Network error — check your connection and try again."
-: code === "auth/user-disabled"
-? "This account has been disabled."
-: (e?.message || "Apple sign-in failed. Please try again.");
-const { Capacitor: Cap } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
-if (Cap?.isNativePlatform()) {
-const isUnknown = code === "1000" || code.endsWith(".1000");
-const hint = isUnknown
-? "\n\nThis usually means “Sign in with Apple” is not enabled for this app in the Apple Developer account (App ID capability + provisioning profile), or the Apple provider is not configured in Firebase Authentication."
-: "";
-alert(`Apple sign-in error\n${code || ""}\n${e?.message || msg}${hint}`);
-}
-setAuthErr(code ? `Apple sign-in failed (${code}). Please try again.` : "Apple sign-in failed. Please try again.");
-} finally {
-setAuthBusy(false);
-}
-};
-
 const signInWithGoogle = async () => {
-console.log("[Auth] Google sign-in tapped");
 setAuthErr(""); setAuthBusy(true);
 try {
 const { Capacitor } = await import("@capacitor/core");
-console.log("[Auth] isNativePlatform:", Capacitor.isNativePlatform());
 if (Capacitor.isNativePlatform()) {
-const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-console.log("[Auth] Calling FirebaseAuthentication.signInWithGoogle...");
-const result = await nativeSignInWithTimeout(
-  FirebaseAuthentication.signInWithGoogle(),
-  "Google sign-in"
-);
-console.log("[Auth] Google result credential keys:", Object.keys(result.credential || {}));
-const idToken = result.credential?.idToken;
-if (!idToken) throw new Error("No Google ID token received from plugin");
-const credential = GoogleAuthProvider.credential(idToken);
+const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+const googleUser = await GoogleAuth.signIn();
+const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
 await signInWithCredential(auth, credential);
 } else {
 const provider = new GoogleAuthProvider();
@@ -1631,9 +1515,12 @@ provider.addScope("profile");
 try {
 await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 } catch (popupErr) {
+// popup-closed-by-user = user dismissed it intentionally, not an error
 if (popupErr?.code === "auth/popup-closed-by-user" || popupErr?.code === "auth/cancelled-popup-request") {
+setAuthBusy(false);
 return;
 }
+// popup blocked → fall back to redirect flow
 if (popupErr?.code === "auth/popup-blocked") {
 await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
 return;
@@ -1642,19 +1529,15 @@ throw popupErr;
 }
 }
 } catch(e) {
-console.error("[Auth] Google sign-in error:", e?.code, e?.message);
 const code = e?.code || "";
 const msg = code === "auth/unauthorized-domain"
-  ? `Google sign-in isn't enabled for this domain (${window.location.hostname}).`
+  ? `Google sign-in isn't enabled for this domain (${window.location.hostname}). Contact support.`
   : code === "auth/network-request-failed"
   ? "Network error — check your connection and try again."
   : code === "auth/user-disabled"
   ? "This account has been disabled."
-  : (e?.message || "Google sign-in failed. Please try again.");
-const { Capacitor: Cap } = await import("@capacitor/core").catch(() => ({ Capacitor: null }));
-if (Cap?.isNativePlatform()) alert(`Google sign-in error\n${code || ""}\n${e?.message || msg}`);
-setAuthErr("Google sign-in failed. Please try again.");
-} finally {
+  : "Google sign-in failed. Please try again.";
+setAuthErr(msg);
 setAuthBusy(false);
 }
 };
@@ -2683,10 +2566,6 @@ if (!user) return (
 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.58-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
 Continue with Google
 </button>
-<button className="auth-apple" onClick={signInWithApple} disabled={authBusy}>
-<svg width="18" height="18" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.4-57.4-155.5-127.4C46 790.4 0 663 0 541.8c0-207.4 135.4-317 269-317 71.2 0 130.5 46.8 174.9 46.8 42.2 0 108.4-49.4 188.4-49.4 30.5 0 110.5 2.6 168.4 80.6zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
-Sign in with Apple
-</button>
 </div>
 <div className="auth-footer">
   <button className="terms-link" onClick={()=>setLegalPage("terms")}>Terms of Service</button>
@@ -2969,7 +2848,7 @@ return (
         const myWants2 = wants.filter(w=>w.userId===user.uid);
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
-        const initLetter = (userDisplayName||"?")[0].toUpperCase();
+        const initLetter = (user.displayName||user.email||"?")[0].toUpperCase();
         return(
           <>
             <div className="prof-page">
@@ -2977,8 +2856,8 @@ return (
               <div className="prof-hero">
                 <div className="prof-hero-av">{initLetter}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div className="prof-hero-name">{userDisplayName}</div>
-                  {userDisplayName && !isAppleRelayEmail(user.email) && user.email !== userDisplayName && <div className="prof-hero-email">{user.email}</div>}
+                  <div className="prof-hero-name">{user.displayName||user.email}</div>
+                  {user.displayName&&<div className="prof-hero-email">{user.email}</div>}
                   {myAvgRating!==null&&(
                     <div className="prof-rating" style={{marginTop:4}}>
                       {renderStars(myAvgRating)}
