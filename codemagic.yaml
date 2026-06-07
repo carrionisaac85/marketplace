@@ -62,6 +62,23 @@ workflows:
       - name: Sync web build into iOS project
         script: |
           npx cap sync ios
+      - name: Restore Google subspec in Podfile (cap sync strips it)
+        script: |
+          PODFILE="ios/App/Podfile"
+          echo "=== Podfile CapacitorFirebaseAuthentication line BEFORE restore ==="
+          grep -n "CapacitorFirebaseAuthentication" "$PODFILE" || true
+          # npx cap sync rewrites the whole `def capacitor_pods ... end` block and
+          # emits `pod 'CapacitorFirebaseAuthentication'` WITHOUT the /Google subspec
+          # (Capacitor has no concept of subspecs). That reverts the plugin to the
+          # default Lite subspec — no GoogleSignIn, no RGCFA_INCLUDE_GOOGLE flag.
+          # Re-add the /Google subspec so the final `pod install` links GoogleSignIn.
+          sed -i "" "s|pod 'CapacitorFirebaseAuthentication', :path|pod 'CapacitorFirebaseAuthentication/Google', :path|" "$PODFILE"
+          echo "=== Podfile CapacitorFirebaseAuthentication line AFTER restore ==="
+          grep -n "CapacitorFirebaseAuthentication" "$PODFILE"
+          if ! grep -q "CapacitorFirebaseAuthentication/Google" "$PODFILE"; then
+            echo "ERROR: failed to restore the /Google subspec in the Podfile"
+            exit 1
+          fi
       - name: Guarantee FirebaseAuthentication config in capacitor.config.json
         script: |
           CONFIG="ios/App/App/capacitor.config.json"
@@ -92,15 +109,24 @@ workflows:
           cd ios/App && pod install
       - name: Verify Google Sign-In compile flag and pods
         script: |
-          echo "=== Confirm GoogleSignIn pod installed ==="
-          grep -E "GoogleSignIn" ios/App/Podfile.lock || echo "WARNING: GoogleSignIn not found in Podfile.lock"
-          echo ""
-          echo "=== Confirm RGCFA_INCLUDE_GOOGLE flag in generated Pods xcconfig ==="
-          if grep -rl "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/Target\ Support\ Files/ 2>/dev/null | grep -i "CapacitorFirebaseAuthentication"; then
-            echo "OK: RGCFA_INCLUDE_GOOGLE is present in the CapacitorFirebaseAuthentication xcconfig"
-            grep -rn "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/Target\ Support\ Files/ 2>/dev/null | grep -i "CapacitorFirebaseAuthentication"
+          echo "=== Confirm GoogleSignIn pod installed (proves /Google subspec is active) ==="
+          if grep -qE "GoogleSignIn" ios/App/Podfile.lock; then
+            echo "OK: GoogleSignIn present in Podfile.lock"
+            grep -E "GoogleSignIn" ios/App/Podfile.lock
           else
-            echo "ERROR: RGCFA_INCLUDE_GOOGLE not found in any CapacitorFirebaseAuthentication xcconfig — Google Sign-In native code will be compiled out!"
+            echo "ERROR: GoogleSignIn not in Podfile.lock — the /Google subspec did not activate, Google Sign-In will not work!"
+            exit 1
+          fi
+          echo ""
+          echo "=== Confirm RGCFA_INCLUDE_GOOGLE compile flag is set on the plugin target ==="
+          # The flag can come from the subspec xcconfig (Target Support Files) and/or
+          # the Podfile post_install (written into Pods.xcodeproj/project.pbxproj).
+          # Accept it being present anywhere under ios/App/Pods.
+          if grep -rq "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/ 2>/dev/null; then
+            echo "OK: RGCFA_INCLUDE_GOOGLE found in the generated Pods build config"
+            grep -rn "RGCFA_INCLUDE_GOOGLE" ios/App/Pods/ 2>/dev/null | head
+          else
+            echo "ERROR: RGCFA_INCLUDE_GOOGLE not found anywhere in ios/App/Pods — Google Sign-In native code will be compiled out!"
             exit 1
           fi
       - name: Set up code signing (uploaded certificate + profile)
