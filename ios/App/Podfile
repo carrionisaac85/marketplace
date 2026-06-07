@@ -46,5 +46,29 @@ post_install do |installer|
       end
     end
   end
+
+  # Force `-ObjC` onto the App target so the statically-linked Capacitor plugin
+  # classes are not dead-stripped. Capacitor registers plugins by NAME at runtime
+  # via NSClassFromString(packageClassList[i]); there is no compile-time reference
+  # to e.g. FirebaseAuthenticationPlugin, so the linker can strip it from the
+  # static framework — causing `"FirebaseAuthentication" plugin is not implemented
+  # on iOS`. `-ObjC` loads all Obj-C classes/categories from static archives.
+  # NOTE: the App target lives in App.xcodeproj (the user project), NOT in
+  # installer.pods_project.targets — so iterate the aggregate targets' user project.
+  installer.aggregate_targets.each do |agg|
+    next unless agg.user_project
+    agg.user_project.native_targets.each do |target|
+      next unless target.name == 'App'
+      target.build_configurations.each do |config|
+        ldflags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+        ldflags = [ldflags] if ldflags.is_a?(String)
+        ldflags << '-ObjC' unless ldflags.include?('-ObjC')
+        config.build_settings['OTHER_LDFLAGS'] = ldflags
+        puts "[Podfile] App (#{config.name}) OTHER_LDFLAGS => #{ldflags.join(' ')}"
+      end
+    end
+    agg.user_project.save
+  end
+
   assertDeploymentTarget(installer)
 end
