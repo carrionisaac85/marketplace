@@ -67,24 +67,17 @@ workflows:
           CONFIG="ios/App/App/capacitor.config.json"
           echo "=== capacitor.config.json BEFORE patch ==="
           cat "$CONFIG"
-          python3 - << 'PYEOF'
-import json, sys
-path = "ios/App/App/capacitor.config.json"
-with open(path) as f:
-    cfg = json.load(f)
-plugins = cfg.setdefault("plugins", {})
-# Remove legacy GoogleAuth plugin config if present
-plugins.pop("GoogleAuth", None)
-# Always write the correct FirebaseAuthentication config
-plugins["FirebaseAuthentication"] = {
-    "skipNativeAuth": True,
-    "providers": ["google.com", "apple.com"]
-}
-with open(path, "w") as f:
-    json.dump(cfg, f, indent="\t")
-print("=== capacitor.config.json AFTER patch ===")
-print(json.dumps(cfg, indent=2))
-PYEOF
+          node -e "
+            const fs = require('fs');
+            const p = '$CONFIG';
+            const cfg = JSON.parse(fs.readFileSync(p, 'utf8'));
+            cfg.plugins = cfg.plugins || {};
+            delete cfg.plugins.GoogleAuth;
+            cfg.plugins.FirebaseAuthentication = { skipNativeAuth: true, providers: ['google.com', 'apple.com'] };
+            fs.writeFileSync(p, JSON.stringify(cfg, null, '\t'));
+            console.log('=== capacitor.config.json AFTER patch ===');
+            console.log(JSON.stringify(cfg, null, 2));
+          "
       - name: Patch Google Sign-In URL scheme in Info.plist
         script: |
           if [ -n "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
