@@ -20,6 +20,9 @@ import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Badge } from "@capawesome/capacitor-badge";
 
+const isAppleRelay = email => !!email?.includes('privaterelay.appleid.com');
+const safeDisplayName = u => u?.displayName || (!isAppleRelay(u?.email) ? u?.email : null) || 'Apple User';
+
 async function setAppBadge(count) {
   const n = Math.max(0, Number(count) || 0);
   if (Capacitor.isNativePlatform()) {
@@ -1047,7 +1050,8 @@ useEffect(() => {
     setAuthLoading(false);
     if (u) {
       const sd = setDoc, st = serverTimestamp;
-      sd(doc(db,"users",u.uid),{name:u.displayName||u.email,email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
+      const uname = u.displayName || (!isAppleRelay(u.email) ? u.email : null);
+      sd(doc(db,"users",u.uid),{...(uname?{name:uname}:{}),email:u.email,uid:u.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("User upsert failed:",err));
     }
   });
   // Safety timeout: if onAuthStateChanged never fires in a native webview, unfreeze the UI
@@ -1063,7 +1067,8 @@ useEffect(() => {
       setUser(result.user);
       if (getAdditionalUserInfo(result)?.isNewUser) justSignedUp.current = true;
       const sd = setDoc, st = serverTimestamp;
-      sd(doc(db,"users",result.user.uid),{name:result.user.displayName||result.user.email,email:result.user.email,uid:result.user.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("Redirect user upsert failed:",err));
+      const rname = result.user.displayName || (!isAppleRelay(result.user.email) ? result.user.email : null);
+      sd(doc(db,"users",result.user.uid),{...(rname?{name:rname}:{}),email:result.user.email,uid:result.user.uid,joinedAt:st()},{merge:true}).catch(err=>console.error("Redirect user upsert failed:",err));
     }
   }).catch(e => {
     // Silently swallow expected "no redirect" / cancelled cases
@@ -1558,8 +1563,9 @@ try {
     const provider = new OAuthProvider("apple.com");
     const credential = provider.credential({ idToken: res.response.identityToken });
     const result = await signInWithCredential(auth, credential);
-    if (getAdditionalUserInfo(result)?.isNewUser && res.response.givenName) {
-      await updateProfile(result.user, { displayName: `${res.response.givenName} ${res.response.familyName || ""}`.trim() });
+    if (res.response.givenName && !result.user.displayName) {
+      const fullName = `${res.response.givenName} ${res.response.familyName || ""}`.trim();
+      await updateProfile(result.user, { displayName: fullName });
     }
   } else {
     const provider = new OAuthProvider("apple.com");
@@ -1763,7 +1769,7 @@ try {
   docRef = await addDoc(collection(db,"wants"),{
     title:form.title, description:form.description,
     budget:parseInt(form.budget)||0, category:form.category||"Other",
-    location:userLocation||"", user:user.displayName||user.email,
+    location:userLocation||"", user:safeDisplayName(user),
     userId:user.uid, offers:[], createdAt:serverTimestamp(),
     ...(lat && lng ? {lat, lng} : {}),
   });
@@ -1805,7 +1811,7 @@ setSending(true);
 setOfferError("");
 const offerMsg = oc.message;
 const offerPrice = parseInt(oc.price)||0;
-const senderName = user.displayName||user.email;
+const senderName = safeDisplayName(user);
 try {
   let photoUrl = null;
   if (photoFile) {
@@ -1883,7 +1889,7 @@ try {
   if (!snap.exists()) {
     await setDoc(convoRef,{
       participants:[user.uid,otherId],
-      participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
+      participantNames:{[user.uid]:safeDisplayName(user),[otherId]:otherName},
       wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
     });
   } else {
@@ -1895,7 +1901,7 @@ try {
   try {
     await setDoc(convoRef,{
       participants:[user.uid,otherId],
-      participantNames:{[user.uid]:user.displayName||user.email,[otherId]:otherName},
+      participantNames:{[user.uid]:safeDisplayName(user),[otherId]:otherName},
       wantId:want.id, wantTitle:want.title, wantUserId:want.userId, updatedAt:serverTimestamp(),
     });
   } catch(e2) {
@@ -1918,11 +1924,11 @@ if (!ci.trim()||!chat) return;
 const m=ci.trim(); setCi(""); setMsgSendErr("");
 try {
   await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
-    text:m, participants:chat.participants||[], senderId:user.uid, senderName:user.displayName||user.email, createdAt:serverTimestamp(),
+    text:m, participants:chat.participants||[], senderId:user.uid, senderName:safeDisplayName(user), createdAt:serverTimestamp(),
   });
   console.log("[sendMsg] message written to", chat.convoId, "participants:", chat.participants);
   await updateDoc(doc(db,"conversations",chat.convoId),{
-    updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:user.displayName||user.email,
+    updatedAt:serverTimestamp(), lastMessage:m, lastSenderId:user.uid, lastSenderName:safeDisplayName(user),
     readBy:[user.uid],
   });
   console.log("[sendMsg] conversation updated", chat.convoId);
@@ -1965,12 +1971,12 @@ try {
   await updateDoc(doc(db,"conversations",chat.convoId),{
     offerPrice:parsed, offerStatus:"pending",
     updatedAt:serverTimestamp(), lastMessage:text,
-    lastSenderId:user.uid, lastSenderName:user.displayName||user.email, readBy:[user.uid],
+    lastSenderId:user.uid, lastSenderName:safeDisplayName(user), readBy:[user.uid],
   });
   await addDoc(collection(db,"conversations",chat.convoId,"messages"),{
     text, type:"offer", offerPrice:parsed,
     participants:chat.participants||[], senderId:user.uid,
-    senderName:user.displayName||user.email, createdAt:serverTimestamp(),
+    senderName:safeDisplayName(user), createdAt:serverTimestamp(),
   });
   setChat(prev=>prev?({...prev,offerPrice:parsed,offerStatus:"pending"}):prev);
   setCounterAmt("");
@@ -2223,7 +2229,7 @@ try {
   const ad = addDoc, col = collection, st = serverTimestamp, ud = updateDoc, au = arrayUnion;
   await ad(col(db,"reports"),{
     wantId:reportSheet.id, wantTitle:reportSheet.title, wantUserId:reportSheet.userId, wantUser:reportSheet.user,
-    reporterId:user.uid, reporterName:user.displayName||user.email,
+    reporterId:user.uid, reporterName:safeDisplayName(user),
     reason:reportReason, note:reportNote.trim(), createdAt:st(), resolved:false
   });
   await ud(doc(db,"users",user.uid),{reportedWants:au(reportSheet.id)});
@@ -2301,7 +2307,7 @@ try {
   const ad = addDoc, ud = updateDoc, col = collection, st = serverTimestamp, au = arrayUnion, inc = increment;
   const {targetUid, targetName, wantId, wantTitle, offerKey} = reviewSheet;
   await ad(col(db,"users",targetUid,"reviews"),{
-    stars:reviewStars, comment:reviewComment.trim(), fromId:user.uid, fromName:user.displayName||user.email,
+    stars:reviewStars, comment:reviewComment.trim(), fromId:user.uid, fromName:safeDisplayName(user),
     wantId, wantTitle, createdAt:st()
   });
   await ud(doc(db,"users",targetUid),{reviewCount:inc(1), ratingSum:inc(reviewStars)});
@@ -2904,7 +2910,7 @@ return (
         const myWants2 = wants.filter(w=>w.userId===user.uid);
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
-        const initLetter = (user.displayName||user.email||"?")[0].toUpperCase();
+        const initLetter = safeDisplayName(user)[0].toUpperCase();
         return(
           <>
             <div className="prof-page">
@@ -2912,8 +2918,8 @@ return (
               <div className="prof-hero">
                 <div className="prof-hero-av">{initLetter}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div className="prof-hero-name">{user.displayName||user.email}</div>
-                  {user.displayName&&<div className="prof-hero-email">{user.email}</div>}
+                  <div className="prof-hero-name">{safeDisplayName(user)}</div>
+                  {!isAppleRelay(user.email)&&<div className="prof-hero-email">{user.email}</div>}
                   {myAvgRating!==null&&(
                     <div className="prof-rating" style={{marginTop:4}}>
                       {renderStars(myAvgRating)}
