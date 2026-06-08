@@ -16,7 +16,6 @@ def capacitor_pods
   pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
   pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
   pod 'CapawesomeCapacitorBadge', :path => '../../node_modules/@capawesome/capacitor-badge'
-  pod 'CapacitorFirebaseAuthentication', :subspecs => ['Google'], :path => '../../node_modules/@capacitor-firebase/authentication'
 end
 
 target 'App' do
