@@ -11,8 +11,6 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.wantboard.app"
-        VITE_GOOGLE_IOS_CLIENT_ID: 445461567451-l624o1lvgm32o2ev74circibb1c8i8rj.apps.googleusercontent.com
-        VITE_GOOGLE_WEB_CLIENT_ID: 445461567451-fma547vrdmhhb6101udmv0th6no8elng.apps.googleusercontent.com
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.wantboard.app
@@ -70,13 +68,6 @@ workflows:
       - name: Sync web build into iOS project
         script: |
           npx cap sync ios
-      - name: Patch Google Sign-In URL scheme in Info.plist
-        script: |
-          # Read REVERSED_CLIENT_ID directly from the committed GoogleService-Info.plist
-          # so this step is self-contained and never depends on a Codemagic env var.
-          REVERSED=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" ios/App/App/GoogleService-Info.plist)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:1:CFBundleURLSchemes:0 $REVERSED" ios/App/App/Info.plist
-          echo "Google Sign-In URL scheme set to: $REVERSED"
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
