@@ -1513,7 +1513,7 @@ try {
 const { Capacitor } = await import("@capacitor/core");
 if (Capacitor.isNativePlatform()) {
 const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
-const result = await FirebaseAuthentication.signInWithGoogle();
+const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
 const idToken = result.credential?.idToken;
 if (!idToken) throw new Error("Google sign-in did not return an ID token.");
 const credential = GoogleAuthProvider.credential(idToken);
