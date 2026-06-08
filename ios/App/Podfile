@@ -17,14 +17,12 @@ def capacitor_pods
   pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
   pod 'CapawesomeCapacitorBadge', :path => '../../node_modules/@capawesome/capacitor-badge'
   pod 'CodetrixStudioCapacitorGoogleAuth', :path => '../../node_modules/@codetrix-studio/capacitor-google-auth'
+  pod 'CapacitorCommunityAppleSignIn', :path => '../../node_modules/@capacitor-community/apple-sign-in'
 end
 
 target 'App' do
   capacitor_pods
-  # Pin Google Sign-In transitive deps to versions that include privacy manifests
-  pod 'GoogleSignIn', '>= 7.1.0'
-  pod 'GTMAppAuth', '>= 4.1.1'
-  pod 'GTMSessionFetcher/Core', '>= 3.3.1'
+  # Add your Pods here
 end
 
 post_install do |installer|
