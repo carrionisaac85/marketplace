@@ -1566,6 +1566,7 @@ try {
     if (res.response.givenName && !result.user.displayName) {
       const fullName = `${res.response.givenName} ${res.response.familyName || ""}`.trim();
       await updateProfile(result.user, { displayName: fullName });
+      await setDoc(doc(db, "users", result.user.uid), { name: fullName }, { merge: true });
     }
   } else {
     const provider = new OAuthProvider("apple.com");
