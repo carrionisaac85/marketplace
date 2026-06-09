@@ -927,6 +927,9 @@ const [authErr, setAuthErr] = useState("");
 const [authBusy, setAuthBusy] = useState(false);
 const [forgotMode, setForgotMode] = useState(false);
 const [showPass, setShowPass] = useState(false);
+const [showModalPass, setShowModalPass] = useState(false);
+const [modalFailedAttempts, setModalFailedAttempts] = useState(0);
+const [modalResetSent, setModalResetSent] = useState(false);
 const [forgotEmail, setForgotEmail] = useState("");
 const [forgotSent, setForgotSent] = useState(false);
 const [forgotBusy, setForgotBusy] = useState(false);
@@ -1080,6 +1083,20 @@ if (user && showAuthModal) {
   setAuthModalReason("");
 }
 }, [user]);
+
+// Track failed login attempts inside the auth modal
+useEffect(() => {
+if (showAuthModal && authErr) setModalFailedAttempts(n => n + 1);
+}, [authErr]);
+
+// Reset modal-local state when modal closes
+useEffect(() => {
+if (!showAuthModal) {
+  setModalFailedAttempts(0);
+  setModalResetSent(false);
+  setShowModalPass(false);
+}
+}, [showAuthModal]);
 
 // Live listener for user doc (savedWants, reviewedKeys, reportedWants)
 useEffect(() => {
@@ -1478,6 +1495,17 @@ if (pullY > 60) {
 setRefreshing(true);
 setTimeout(() => { setRefreshing(false); setPullY(0); }, 1200);
 } else { setPullY(0); }
+};
+
+const sendModalReset = async () => {
+if (!af.email.trim()) { setAuthErr("Enter your email above, then tap this link."); return; }
+try {
+  await sendPasswordResetEmail(auth, af.email.trim());
+  setModalResetSent(true);
+  setAuthErr("");
+} catch(e) {
+  setAuthErr("Couldn't send reset email. Check the address and try again.");
+}
 };
 
 const doAuth = async () => {
@@ -4000,16 +4028,39 @@ return (
           </div>
           {authTab==="signin"?(
             <>
-              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
-              <input className="auth-input" placeholder="Password" type="password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} />
+              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} autoComplete="email" />
+              <div className="auth-pass-wrap">
+                <input className="auth-input" placeholder="Password" type={showModalPass?"text":"password"} value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} autoComplete="current-password" />
+                <button type="button" className="auth-pass-toggle" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowModalPass(v=>!v)} aria-label={showModalPass?"Hide password":"Show password"} tabIndex={-1}>
+                  {showModalPass?(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ):(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
               {authErr&&<div className="auth-err">{authErr}</div>}
+              {modalResetSent?(
+                <div style={{fontSize:13,color:"#16a34a",textAlign:"center",padding:"6px 0"}}>✅ Reset link sent — check your email</div>
+              ):modalFailedAttempts>=3?(
+                <button className="forgot-link" style={{width:"100%",textAlign:"center",marginTop:2}} onClick={sendModalReset}>Forgot your password? Send reset link →</button>
+              ):null}
               <button className="auth-btn" disabled={authBusy} onClick={()=>doAuth("signin")}>{authBusy?"Signing in…":"Sign In"}</button>
             </>
           ):(
             <>
               <input className="auth-input" placeholder="Name" value={af.name} onChange={e=>setAf(p=>({...p,name:e.target.value}))} />
-              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
-              <input className="auth-input" placeholder="Password" type="password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} />
+              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} autoComplete="email" />
+              <div className="auth-pass-wrap">
+                <input className="auth-input" placeholder="Password" type={showModalPass?"text":"password"} value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&doAuth()} autoComplete="new-password" />
+                <button type="button" className="auth-pass-toggle" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowModalPass(v=>!v)} aria-label={showModalPass?"Hide password":"Show password"} tabIndex={-1}>
+                  {showModalPass?(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ):(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
               {authErr&&<div className="auth-err">{authErr}</div>}
               <button className="auth-btn" disabled={authBusy} onClick={()=>doAuth("signup")}>{authBusy?"Creating account…":"Create Account"}</button>
             </>
