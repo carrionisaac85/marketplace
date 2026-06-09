@@ -2220,7 +2220,7 @@ setAdminReports(r=>r.map(x=>x.id===reportId?{...x,resolved:true}:x));
 
 const toggleSave = async (wantId, e) => {
 if (e) e.stopPropagation();
-if (!user) return;
+if (!user) { requireAuth("Sign in to save wants"); return; }
 const isSaved = savedWants.includes(wantId);
 setSavedWants(s => isSaved ? s.filter(id=>id!==wantId) : [...s, wantId]);
 try {
@@ -2834,7 +2834,7 @@ return (
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                       <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
-                      {w.userId!==user?.uid&&user&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
+                      {w.userId!==user?.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
                     </div>
                   </div>
                   <div className="feed-body">
