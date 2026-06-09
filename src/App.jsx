@@ -203,6 +203,20 @@ main{-webkit-overflow-scrolling:touch;}
 .auth-apple{width:100%;padding:13px;background:#000;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;transition:opacity .15s}
 .auth-apple:hover{opacity:.85}
 .auth-apple:disabled{opacity:.5;cursor:not-allowed}
+.signin-hdr-btn{padding:7px 16px;background:transparent;color:#E84B2A;border:1.5px solid #E84B2A;border-radius:20px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--fb);transition:background .15s,color .15s;white-space:nowrap}
+.signin-hdr-btn:hover{background:#E84B2A;color:#fff}
+.auth-gate-view{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:16px}
+.auth-gate-icon{font-size:44px}
+.auth-gate-title{font-family:var(--fd);font-weight:700;font-size:20px;color:var(--text)}
+.auth-gate-sub{font-size:14px;color:var(--text2);max-width:260px;line-height:1.5}
+.auth-gate-btn{padding:13px 32px;background:#E84B2A;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--fb)}
+.auth-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.auth-modal-sheet{width:100%;max-width:480px;background:var(--surface);border-radius:20px 20px 0 0;padding:24px 24px max(24px,calc(24px + env(safe-area-inset-bottom,0px))) 24px;position:relative;max-height:90vh;overflow-y:auto}
+.auth-modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.auth-modal-title{font-family:var(--fd);font-weight:700;font-size:20px;color:var(--text);text-align:center;margin-bottom:4px}
+.auth-modal-reason{font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px}
+.auth-modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);line-height:1}
+.auth-modal-guest{width:100%;padding:12px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;text-decoration:underline;margin-top:8px;font-family:var(--fb)}
 
 /* HEADER */
 .header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:calc(12px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-right,0px)) 12px calc(20px + env(safe-area-inset-left,0px));box-shadow:0 1px 8px rgba(0,0,0,.06)}
@@ -948,6 +962,8 @@ const [onboardingOpen, setOnboardingOpen] = useState(false);
 const [onboardingStep, setOnboardingStep] = useState(0);
 const [onboardingChecked, setOnboardingChecked] = useState(false);
 const [showPostSheet, setShowPostSheet] = useState(false);
+const [showAuthModal, setShowAuthModal] = useState(false);
+const [authModalReason, setAuthModalReason] = useState("");
 const [privacyEnabled, setPrivacyEnabled] = useState(false);
 const [userLocation, setUserLocation] = useState("");
 const [onbLocation, setOnbLocation] = useState("");
@@ -1056,6 +1072,14 @@ useEffect(() => {
   return () => { unsub(); clearTimeout(safety); };
 }, []);
 
+
+// Close auth modal when user signs in
+useEffect(() => {
+if (user && showAuthModal) {
+  setShowAuthModal(false);
+  setAuthModalReason("");
+}
+}, [user]);
 
 // Live listener for user doc (savedWants, reviewedKeys, reportedWants)
 useEffect(() => {
@@ -1699,8 +1723,16 @@ for (const p of posts) {
 alert(`✅ ${count} test posts added!`);
 };
 
+const requireAuth = (reason = "") => {
+if (user) return true;
+setAuthModalReason(reason);
+setShowAuthModal(true);
+return false;
+};
+
 const postWant = async () => {
-if (!form.title||!form.budget||!user) return;
+if (!form.title||!form.budget) return;
+if (!requireAuth("Sign in to post a want")) return;
 setPosting(true); setPostPhotoErr("");
 const lat = userLatLng?.lat ?? null;
 const lng = userLatLng?.lng ?? null;
@@ -1744,7 +1776,8 @@ if (!photoUploadFailed) { setPostPhotos([]); setPostPhotoPreviews([]); }
 };
 
 const sendOffer = async wid => {
-if (!oc.message||!oc.price||!user||sending) return;
+if (!oc.message||!oc.price||sending) return;
+if (!requireAuth("Sign in to make an offer")) return;
 const targetWant = wants.find(w=>w.id===wid);
 if (targetWant?.status==="sold") { setOfferError("This want has been sold. New offers can no longer be sent."); return; }
 setSending(true);
@@ -1816,6 +1849,7 @@ try {
 };
 
 const openChat = async (want, offer) => {
+if (!requireAuth("Sign in to message sellers")) return;
 // Both want poster AND offer maker can open chat
 const otherId = user.uid === want.userId ? offer.fromId : want.userId;
 const otherName = user.uid === want.userId ? offer.from : want.user;
@@ -2491,7 +2525,7 @@ if (user && !isAdmin && banned.includes(user.uid)) return (
 </div></>
 );
 
-if (!user) return (
+if (false) return (
 <>
 <style>{css}</style>
 <div className="auth-wrap">
@@ -2636,6 +2670,8 @@ return (
         <div className="logo" onClick={()=>setView("browse")}>Want<span style={{color:"var(--text)"}}> - Board</span></div>
         <div className="huser" style={{position:"relative"}}>
           <button className="how-link" onClick={()=>{setOnboardingStep(0);setOnboardingOpen(true);}} title="How it works">?</button>
+          {user ? (
+          <>
           <button className="bell-btn" onClick={()=>setNotifOpen(o=>!o)} title="Notifications">
             🔔{unreadCount>0&&<span className="bell-badge">{unreadCount>9?"9+":unreadCount}</span>}
           </button>
@@ -2685,6 +2721,10 @@ return (
                 );
               })()}
             </div>
+          )}
+          </>
+          ) : (
+          <button className="signin-hdr-btn" onClick={()=>{setAuthModalReason("");setShowAuthModal(true);}}>Sign In</button>
           )}
         </div>
       </div>
@@ -2794,7 +2834,7 @@ return (
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                       <span className="wbudget-pill">${(w.budget||0).toLocaleString()}</span>
-                      {w.userId!==user.uid&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
+                      {w.userId!==user?.uid&&user&&<button className="save-btn" onClick={e=>toggleSave(w.id,e)}><span style={{color:savedWants.includes(w.id)?"var(--accent)":"var(--text2)",fontSize:17}}>{savedWants.includes(w.id)?"★":"☆"}</span></button>}
                     </div>
                   </div>
                   <div className="feed-body">
@@ -2818,9 +2858,9 @@ return (
                         <span className="feed-activity-label"><strong>{w.offers.length}</strong> seller{w.offers.length!==1?"s":""} offered</span>
                       </div>
                     ):(
-                      w.userId!==user.uid&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>💬 No offers yet — be the first!</div>
+                      w.userId!==user?.uid&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>💬 No offers yet — be the first!</div>
                     )}
-                    {w.userId!==user.uid&&(
+                    {w.userId!==user?.uid&&(
                       <button className="feed-cta" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact →</button>
                     )}
                   </div>
@@ -2834,6 +2874,14 @@ return (
 
       {/* MY PROFILE PAGE */}
       {view==="myprofile"&&(()=>{
+        if (!user) return (
+          <div className="auth-gate-view">
+            <div className="auth-gate-icon">👤</div>
+            <div className="auth-gate-title">Profile</div>
+            <div className="auth-gate-sub">Sign in to view and manage your profile.</div>
+            <button className="auth-gate-btn" onClick={()=>{setAuthModalReason("Sign in to view your profile");setShowAuthModal(true);}}>Sign In</button>
+          </div>
+        );
         const myWants2 = wants.filter(w=>w.userId===user.uid);
         const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
         const myAvgRating = myReviewsLoaded&&myReviews.length>0 ? (myReviews.reduce((s,r)=>s+r.stars,0)/myReviews.length) : null;
@@ -3040,6 +3088,14 @@ return (
       {/* MY WANTS */}
       {view==="mine"&&(
         <>
+          {!user ? (
+            <div className="auth-gate-view">
+              <div className="auth-gate-icon">📋</div>
+              <div className="auth-gate-title">Your Wants</div>
+              <div className="auth-gate-sub">Sign in to post wants and track your offers from sellers.</div>
+              <button className="auth-gate-btn" onClick={()=>{setAuthModalReason("Sign in to post and manage your wants");setShowAuthModal(true);}}>Sign In</button>
+            </div>
+          ) : (<>
           <div style={{marginBottom:14}}>
             <div className="stitle">My Wants</div>
             <div className="ssub">Tap any want to see offers and messages.</div>
@@ -3079,12 +3135,21 @@ return (
               ))}
             </div>
           )}
+          </>)}
         </>
       )}
 
       {/* MESSAGES TAB */}
       {view==="messages"&&(
         <>
+          {!user ? (
+            <div className="auth-gate-view">
+              <div className="auth-gate-icon">💬</div>
+              <div className="auth-gate-title">Messages</div>
+              <div className="auth-gate-sub">Sign in to chat with buyers and sellers.</div>
+              <button className="auth-gate-btn" onClick={()=>{setAuthModalReason("Sign in to view your messages");setShowAuthModal(true);}}>Sign In</button>
+            </div>
+          ) : (<>
           <div style={{marginBottom:14}}>
             <div className="stitle">Messages</div>
             <div className="ssub">Your conversations with buyers and sellers.</div>
@@ -3129,12 +3194,13 @@ return (
               })}
             </div>
           )}
+          </>)}
         </>
       )}
 
       {/* OFFERS SENT (legacy — hidden, use Messages tab instead) */}
       {view==="offers"&&(()=>{
-        const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user.uid);
+        const myOffersGiven = wants.flatMap(w=>(w.offers||[]).map((o,i)=>({...o,wantId:w.id,wantTitle:w.title,wantUserId:w.userId,wantUser:w.user,idx:i}))).filter(o=>o.fromId===user?.uid);
         // Group by want
         const grouped = myOffersGiven.reduce((acc,o)=>{
           const key = o.wantId;
@@ -3328,6 +3394,12 @@ return (
         const isActive=view===n.id;
         return(
         <div key={n.id} className={`bitem ${isActive?"active":""}`} onClick={()=>{
+          if (!user && n.id!=="browse") {
+            setView(n.id);
+            setAuthModalReason("Sign in to access this section");
+            setShowAuthModal(true);
+            return;
+          }
           if (n.id==="myprofile") { setProfileTab("overview"); loadMyReviews(); }
           setView(n.id);
         }}>
@@ -3565,7 +3637,7 @@ return (
               </div>
             )}
             <div className="sh-desc">{sheet.description}</div>
-            {sheet.userId!==user.uid&&(
+            {sheet.userId!==user?.uid&&(
               <div style={{textAlign:"right",marginBottom:8}}>
                 {myReportedWants.includes(sheet.id)
                   ? <span style={{fontSize:11,color:"var(--text2)"}}>✓ Reported</span>
@@ -3573,7 +3645,7 @@ return (
                 }
               </div>
             )}
-            {sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(()=>{
+            {user&&sheet.userId===user.uid&&(sheet.offers||[]).length>0&&(()=>{
               const all = sheet.offers || [];
               const counts = {
                 all: all.length,
@@ -3630,8 +3702,8 @@ return (
                 </>
               );
             })()}
-            {sheet.userId!==user.uid&&(()=>{
-              const myAccepted = (sheet.offers||[]).map((o,i)=>({o,i})).find(({o})=>o.fromId===user.uid&&o.status==="accepted");
+            {sheet.userId!==user?.uid&&(()=>{
+              const myAccepted = (sheet.offers||[]).map((o,i)=>({o,i})).find(({o})=>o.fromId===user?.uid&&o.status==="accepted");
               const rateKey = myAccepted ? sheet.id+"_"+myAccepted.i+"_"+sheet.userId : null;
               return myAccepted&&rateKey&&!myReviewedKeys.includes(rateKey)?(
                 <div style={{padding:"12px 0"}}>
@@ -3639,10 +3711,10 @@ return (
                 </div>
               ):null;
             })()}
-            {sheet.userId!==user.uid&&sheet.status==="sold"&&(
+            {sheet.userId!==user?.uid&&sheet.status==="sold"&&(
               <div style={{padding:"14px",textAlign:"center",background:"#f0fdf4",border:"1px solid #6ee7b7",borderRadius:12,marginTop:10,fontSize:13,fontWeight:600,color:"#065f46"}}>✅ This want has been sold. New offers can no longer be sent.</div>
             )}
-            {sheet.userId!==user.uid&&sheet.status!=="sold"&&(
+            {sheet.userId!==user?.uid&&sheet.status!=="sold"&&(
               <div className="compose">
                 <div className="clabel">Send Your Offer</div>
                 {sent[sheet.id]?(
@@ -3734,7 +3806,7 @@ return (
     )}
 
     {/* CHAT SCREEN */}
-    {chat&&(()=>{
+    {chat&&user&&(()=>{
       const dealStage = chat.offerStatus==="accepted" ? 2 : 1;
       const stageLabels = ["Offer sent","In review","Agreed"];
       const fillW = dealStage===0?"0":dealStage===1?"calc(50% - 28px)":"calc(100% - 56px)";
@@ -3796,7 +3868,7 @@ return (
           )}
           <div className="chat-convo-label">Conversation</div>
           {msgs.map(m=>{
-            const isMine=m.senderId===user.uid;
+            const isMine=m.senderId===user?.uid;
             const initials=(isMine?"Y":(m.senderName||chat.otherName||"?")[0]).toUpperCase();
             return(
               <div key={m.id} className={`chat-msg-row ${isMine?"mine":"theirs"}`}>
@@ -3910,6 +3982,40 @@ return (
               {editSaving&&editPhotos.length>0?"Uploading photos…":editSaving?"Saving…":"Save Changes"}
             </button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* AUTH MODAL */}
+    {showAuthModal&&(
+      <div className="auth-modal-overlay" onClick={()=>setShowAuthModal(false)}>
+        <div className="auth-modal-sheet" onClick={e=>e.stopPropagation()}>
+          <div className="auth-modal-handle"/>
+          <div className="auth-modal-title">Sign in to continue</div>
+          {authModalReason&&<div className="auth-modal-reason">{authModalReason}</div>}
+          <div className="auth-tabs" style={{marginBottom:16}}>
+            <button className={`auth-tab${authTab==="signin"?" active":""}`} onClick={()=>setAuthTab("signin")}>Sign In</button>
+            <button className={`auth-tab${authTab==="signup"?" active":""}`} onClick={()=>setAuthTab("signup")}>Sign Up</button>
+          </div>
+          {authTab==="signin"?(
+            <>
+              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
+              <input className="auth-input" placeholder="Password" type="password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} />
+              {authErr&&<div className="auth-err">{authErr}</div>}
+              <button className="auth-btn" disabled={authBusy} onClick={()=>doAuth("signin")}>{authBusy?"Signing in…":"Sign In"}</button>
+            </>
+          ):(
+            <>
+              <input className="auth-input" placeholder="Name" value={af.name} onChange={e=>setAf(p=>({...p,name:e.target.value}))} />
+              <input className="auth-input" placeholder="Email" type="email" value={af.email} onChange={e=>setAf(p=>({...p,email:e.target.value}))} />
+              <input className="auth-input" placeholder="Password" type="password" value={af.password} onChange={e=>setAf(p=>({...p,password:e.target.value}))} />
+              {authErr&&<div className="auth-err">{authErr}</div>}
+              <button className="auth-btn" disabled={authBusy} onClick={()=>doAuth("signup")}>{authBusy?"Creating account…":"Create Account"}</button>
+            </>
+          )}
+          <button className="auth-btn" style={{background:"transparent",border:"1.5px solid #1c1c1e",color:"var(--text)",marginTop:4}} disabled={authBusy} onClick={signInWithApple}>{authBusy?"Signing in…":"🍎  Continue with Apple"}</button>
+          <button className="auth-modal-guest" onClick={()=>setShowAuthModal(false)}>Continue browsing as guest →</button>
+          <button className="auth-modal-close" onClick={()=>setShowAuthModal(false)}>✕</button>
         </div>
       </div>
     )}
