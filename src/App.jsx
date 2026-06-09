@@ -2253,6 +2253,7 @@ return [1,2,3,4,5].map(n=>(
 
 const openProfile = async (uid, name) => {
 if (!uid) return;
+if (!user) { requireAuth("Sign in to view profiles"); return; }
 setProfileUid(uid);
 setProfileData(null);
 setProfileReviews([]);
