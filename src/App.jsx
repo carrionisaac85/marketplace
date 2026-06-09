@@ -2819,7 +2819,7 @@ return (
                   ? haversine(userLatLng.lat, userLatLng.lng, w.lat, w.lng)
                   : null;
                 return (
-                <div key={w.id} className="feed-card" onClick={()=>setSheet(w)}>
+                <div key={w.id} className="feed-card" onClick={()=>{if(!user){requireAuth("Sign in to view and respond to wants");return;}setSheet(w);}}>
                   {(w.offers||[]).length>=3&&(
                     <div className="feed-trending">
                       🔥 Trending
