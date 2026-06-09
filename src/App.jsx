@@ -2861,7 +2861,7 @@ return (
                       w.userId!==user?.uid&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:10}}>💬 No offers yet — be the first!</div>
                     )}
                     {w.userId!==user?.uid&&(
-                      <button className="feed-cta" onClick={e=>{e.stopPropagation();setSheet(w);}}>Contact →</button>
+                      <button className="feed-cta" onClick={e=>{e.stopPropagation();if(!user){requireAuth("Sign in to contact sellers");return;}setSheet(w);}}>Contact →</button>
                     )}
                   </div>
                 </div>
