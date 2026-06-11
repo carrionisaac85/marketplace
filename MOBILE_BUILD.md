@@ -246,49 +246,151 @@ Click **Add for Review → Submit for Review**. Apple review takes **1–7 days*
 
 ## Part 3 — Native Android app (Google Play)
 
-### One-time requirements
+You do **not** need a Mac for Android. The build runs on Linux via Codemagic (same account you already have) or locally on any computer with Android Studio installed. The `android/` folder is already committed to this repo.
 
-| Need | How to get it |
+### One-time cost
+
+| Item | Cost |
 |---|---|
-| **Android Studio** (free) | [developer.android.com/studio](https://developer.android.com/studio) — works on Mac, Windows, and Linux |
-| **JDK 17** (free) | Bundled with recent Android Studio |
 | **Google Play Developer account** | **$25 one-time** at [play.google.com/console](https://play.google.com/console) |
+| **Codemagic** | Free (500 Linux build-minutes/mo — enough for ~25 Android builds) |
 
-You do **not** need a Mac for Android.
+---
 
-### First-time setup
+## Part 3a — Cloud build with Codemagic ⭐ recommended
 
-1. **On any computer**, clone the repo and build:
+### What you'll need (one-time, ~1 hour)
+
+**A. Generate a signing keystore** (do this once on any computer that has Java installed — Android Studio bundles Java)
+
+```bash
+keytool -genkey -v \
+  -keystore wantboard.jks \
+  -alias wantboard \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000
+```
+
+You will be asked for a keystore password, your name/organisation, and a key password. Write **all three down** — if you lose the keystore or its passwords, you can never update your Play Store app.
+
+**B. Base64-encode the keystore** (so it can be stored as a Codemagic env var)
+
+```bash
+base64 -i wantboard.jks | tr -d '\n'   # macOS / Linux
+```
+
+Copy the output — you'll paste it into Codemagic in the next step.
+
+**C. Get the SHA-1 fingerprint** (needed for Firebase on Android)
+
+```bash
+keytool -list -v -keystore wantboard.jks -alias wantboard
+```
+
+Copy the **SHA1** line (looks like `AB:CD:EF:...`).
+
+**D. Add the Android app to Firebase and download google-services.json**
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com/) → your WantBoard project → **⚙ Project settings**
+2. Scroll to **Your apps** → click **Add app** → **Android** icon
+3. Android package name: `com.wantboard.app`, App nickname: `WantBoard Android`
+4. Paste the **SHA-1** from step C into the "Debug signing certificate SHA-1" field → **Register app**
+5. Click **Download google-services.json** — save this file (it contains your Firebase config)
+6. In your repo, place it at **`android/app/google-services.json`** and commit it (`git add android/app/google-services.json && git commit -m "add google-services.json"`)
+
+> `google-services.json` contains no private keys — it is safe to commit.
+
+**E. Create a Google Play service-account JSON** (lets Codemagic auto-publish to the Play Console)
+
+1. Go to [play.google.com/console](https://play.google.com/console) → **Setup → API access**
+2. Click **Link to a Google Cloud project** → create or choose a project
+3. Under **Service accounts**, click **Create new service account** → follow the Google Cloud Console link
+4. In Google Cloud Console: create a service account, grant it the **Editor** role, go to **Keys → Add Key → Create new key → JSON** — download the file
+5. Back in Play Console: grant the service account **Release manager** permissions
+6. Copy the entire contents of the downloaded JSON file — you'll paste it as the `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` env var in Codemagic
+
+**F. Set up Codemagic environment variables**
+
+In Codemagic → your WantBoard app → **Environment variables**, create a group called **`android_credentials`** with these variables:
+
+| Variable | Value | Secret? |
+|---|---|---|
+| `KEYSTORE_FILE` | The base64 output from step B | ✅ Yes |
+| `KEYSTORE_PASSWORD` | Your keystore password | ✅ Yes |
+| `KEY_ALIAS` | `wantboard` (or whatever alias you chose) | No |
+| `KEY_PASSWORD` | Your key password | ✅ Yes |
+| `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` | Full JSON contents from step E | ✅ Yes |
+| `CM_BUILD_NOTIFY_EMAIL` | Your email (for build status notifications) | No |
+
+The `firebase_credentials` group (already used by the iOS workflow) must also be accessible — it contains `FIREBASE_TOKEN`.
+
+**G. Run the first build**
+
+1. In Codemagic → your WantBoard app → **Start new build**
+2. Workflow: `android-release`, Branch: `main`
+3. Wait ~10–15 minutes
+4. On success, Codemagic builds a signed `.aab`, uploads it to your Play Console **Internal Testing** track, and emails you
+
+The pipeline runs these steps:
+
+| Step | What it does |
+|---|---|
+| Install npm dependencies | `npm install` (with Replit lockfile self-heal) |
+| Build the web bundle | `npm run build` → `dist/` |
+| Generate Android icons | `npm run icons:android` |
+| Sync into Android project | `npx cap sync android` |
+| Decode keystore | Decodes `$KEYSTORE_FILE` (base64) → `android/app/keystore.jks` |
+| Build signed AAB | `./gradlew bundleRelease` → signed `.aab` ready for Play Store |
+
+---
+
+## Part 3b — Manual build with Android Studio
+
+If you prefer building locally:
+
+1. Clone the repo and install deps:
    ```bash
-   npm install
-   npm run build
+   npm install && npm run build && npx cap sync android
    ```
-
-2. **Sync the web build into the existing `android/` project** (this folder is already scaffolded in the repo):
-   ```bash
-   npx cap sync android
-   ```
-
-3. **Open in Android Studio**:
+2. Open in Android Studio:
    ```bash
    npx cap open android
    ```
+3. Place your `google-services.json` in `android/app/` (see step D above)
+4. In Android Studio: **Build → Generate Signed Bundle / APK → Android App Bundle**
+5. Point it at your `wantboard.jks` keystore
 
-> The `android/` folder is committed to this repo, so you don't need to run `npx cap add android`. If for any reason it's missing, regenerate it with `npx cap add android`.
+---
 
-### Every time you change the app
+## Part 3c — Play Store listing & submission
 
-```bash
-npm run build && npx cap sync android
-```
+Once you have a signed `.aab` (from Codemagic or Android Studio), go to [play.google.com/console](https://play.google.com/console):
 
-### To publish to Google Play
+1. **Create your app** → New app → App name: `WantBoard`, Default language: English, App type: App, Free
+2. **Upload to Internal Testing first** → Internal testing → Create new release → upload the `.aab` → Save → Review release → Start rollout
+3. Install on your own device via the Internal Testing link and verify it works
+4. **Fill in the store listing** (required before production):
 
-1. In Android Studio: **Build → Generate Signed Bundle / APK → Android App Bundle**
-2. Create a new signing key (save the keystore file and password somewhere safe — losing it means you can never update your app)
-3. Upload the `.aab` file at [play.google.com/console](https://play.google.com/console) → create app → upload to Internal Testing first, then promote to Production
-4. Fill in the store listing (name, screenshots, description, content rating)
-5. Google Play review takes **a few hours to 7 days**
+| Field | Notes |
+|---|---|
+| **App name** | `WantBoard` (50 chars max) |
+| **Short description** | One-line pitch (80 chars max) |
+| **Full description** | Long-form (4000 chars max) |
+| **Screenshots** | At least 2 phone screenshots (320–3840px, ratio 1:2 to 2:1) |
+| **Feature graphic** | 1024×500px banner image |
+| **App icon** | 512×512px PNG (already generated by `npm run icons:android`) |
+| **Category** | Shopping or Marketplace |
+| **Content rating** | Complete the questionnaire (takes ~5 min) |
+| **Privacy policy URL** | Required — use your Replit deploy `/privacy` page |
+| **Data safety** | Declare what data is collected (Firebase email/auth = yes) |
+
+5. **Promote to Production** → Production → Managed publishing → Start rollout to Production → Submit
+6. Google Play review takes **a few hours to 7 days**
+
+### Every time you push a new version
+
+Codemagic auto-builds on every push to `main` (toggle in Codemagic **Build triggers**) and uploads to Internal Testing. To ship to users, promote the build from Internal Testing → Production in the Play Console — no resubmit needed if the binary is the same.
 
 ---
 
@@ -324,17 +426,20 @@ WantBoard currently does not use the camera, microphone, photo library, location
 - ✅ Apple meta tags for iOS home-screen installs (`index.html`)
 - ✅ Safe-area CSS so content doesn't go under the iPhone notch or home indicator (`src/App.jsx`)
 - ✅ Friendly offline banner that appears when the device loses connectivity (`src/App.jsx`)
-- ✅ Capacitor config with iOS scheme, status bar, splash, and background color (`capacitor.config.ts`)
+- ✅ Capacitor config with iOS/Android scheme, status bar, splash, and background color (`capacitor.config.ts`)
 - ✅ Capacitor iOS + Android packages installed
-- ✅ **`android/`** native project folder scaffolded and committed — ready to open in Android Studio
-- ✅ **`codemagic.yaml`** — cloud build pipeline that produces a signed `.ipa` and uploads to TestFlight without a Mac
-- ✅ **`@capacitor/assets`** wired into `npm run icons` to regenerate every native icon size from one PNG
+- ✅ **`android/`** native project folder scaffolded and committed — ready to open in Android Studio or build via Codemagic
+- ✅ **`AndroidManifest.xml`** — all required permissions declared (camera, location, media, notifications, vibrate, boot receiver, package-visibility queries)
+- ✅ **`android/app/build.gradle`** — release signing config driven by Codemagic env vars (no keystore committed to repo)
+- ✅ **`codemagic.yaml`** — two workflows: `ios-app-store` (signed `.ipa` → TestFlight) and `android-release` (signed `.aab` → Play Store internal track)
+- ✅ **`@capacitor/assets`** wired into `npm run icons` / `npm run icons:android` to regenerate every native icon size from one PNG
 
 ## What's intentionally NOT done
 
 - ❌ The `ios/` folder is **not in this repo** — it's generated on Codemagic's Mac runners on the first build (`npx cap add ios`). You can also generate it locally if you ever get access to a Mac.
-- ❌ No native push notifications, native camera, or deep links yet — these can be added later via Capacitor plugins
-- ❌ No App Store screenshots or marketing copy
+- ❌ `android/app/google-services.json` is **not committed** — you must download it from Firebase Console and add it (see Part 3a, step D above). It's safe to commit once obtained.
+- ❌ `android/app/keystore.jks` is **not committed** — it is decoded at build time from the `KEYSTORE_FILE` env var in Codemagic (never commit a keystore to git)
+- ❌ No App Store / Play Store screenshots or marketing copy yet
 
 ---
 
