@@ -140,7 +140,7 @@ workflows:
           failure: true
       email:
         recipients:
-          - $CM_BUILD_NOTIFY_EMAIL
+          - carrion.isaac85@gmail.com
         notify:
           success: true
           failure: true
@@ -213,7 +213,7 @@ workflows:
         submit_as_draft: true
       email:
         recipients:
-          - $CM_BUILD_NOTIFY_EMAIL
+          - carrion.isaac85@gmail.com
         notify:
           success: true
           failure: true
