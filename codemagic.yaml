@@ -149,6 +149,12 @@ workflows:
     name: WantBoard Android — Google Play
     instance_type: linux_x2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
     environment:
       groups:
         - android_credentials
@@ -181,6 +187,15 @@ workflows:
       - name: Sync web build into Android project
         script: |
           npx cap sync android
+      - name: Verify signing env vars are present
+        script: |
+          for VAR in KEYSTORE_FILE KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!VAR}" ]; then
+              echo "ERROR: $VAR is not set. Add it to the android_credentials group in Codemagic."
+              exit 1
+            fi
+          done
+          echo "All signing variables present."
       - name: Decode keystore from base64 env var
         script: |
           echo "$KEYSTORE_FILE" | base64 --decode > android/app/keystore.jks
