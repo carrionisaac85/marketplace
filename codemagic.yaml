@@ -144,3 +144,61 @@ workflows:
         notify:
           success: true
           failure: true
+
+  android-release:
+    name: WantBoard Android — Google Play
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      groups:
+        - android_credentials
+        - firebase_credentials
+      vars:
+        PACKAGE_NAME: "com.wantboard.app"
+      node: 20.9.0
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - node_modules
+        - $HOME/.gradle/caches
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          # Self-heal: strip Replit's internal package proxy host from the
+          # lockfile so npm install works on CI.
+          if grep -q "package-firewall.replit.local" package-lock.json; then
+            echo "Rewriting Replit firewall URLs in package-lock.json -> registry.npmjs.org"
+            sed -i 's|http://package-firewall.replit.local/npm/|https://registry.npmjs.org/|g' package-lock.json
+          fi
+          npm install
+      - name: Build the web bundle (Vite -> dist/)
+        script: |
+          npm run build
+      - name: Generate Android icons and splash screens
+        script: |
+          npm run icons:android
+      - name: Sync web build into Android project
+        script: |
+          npx cap sync android
+      - name: Decode keystore from base64 env var
+        script: |
+          echo "$KEYSTORE_FILE" | base64 --decode > android/app/keystore.jks
+      - name: Build signed Android App Bundle (.aab)
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+      email:
+        recipients:
+          - $CM_BUILD_NOTIFY_EMAIL
+        notify:
+          success: true
+          failure: true
