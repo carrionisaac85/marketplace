@@ -388,9 +388,17 @@ Once you have a signed `.aab` (from Codemagic or Android Studio), go to [play.go
 5. **Promote to Production** → Production → Managed publishing → Start rollout to Production → Submit
 6. Google Play review takes **a few hours to 7 days**
 
-### Every time you push a new version
+### Releasing a new version
 
-Codemagic auto-builds on every push to `main` (toggle in Codemagic **Build triggers**) and uploads to Internal Testing. To ship to users, promote the build from Internal Testing → Production in the Play Console — no resubmit needed if the binary is the same.
+The `android-release` Codemagic workflow triggers automatically on any **git tag** matching `v*` (e.g. `v1.1.0`, `v1.2.0`). It does **not** run on every push to `main` — this keeps your Play Store internal track clean and lets you control exactly when a release goes out.
+
+**To ship a new build:**
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Codemagic picks up the tag within seconds, builds a signed `.aab`, and uploads it to Play Console **Internal Testing** automatically. To reach real users, promote the build from Internal Testing → Production in the Play Console — no rebuild needed.
 
 ---
 
