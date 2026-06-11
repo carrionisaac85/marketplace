@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "445461567451",
+    "project_id": "marketplace305",
+    "storage_bucket": "marketplace305.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445461567451:android:9444642ec1dd501d05b9fe",
+        "android_client_info": {
+          "package_name": "com.wantboard.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "445461567451-fma547vrdmhhb6101udmv0th6no8elng.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNUcioE-2jzzIPM6JRP8nU5qxEgUktR8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "445461567451-fma547vrdmhhb6101udmv0th6no8elng.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "445461567451-l624o1lvgm32o2ev74circibb1c8i8rj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.wantboard.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
