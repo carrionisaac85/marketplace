@@ -162,7 +162,7 @@ workflows:
       vars:
         PACKAGE_NAME: "com.wantboard.app"
       node: 20.9.0
-      java: 17
+      java: 21
     cache:
       cache_paths:
         - $HOME/.npm
