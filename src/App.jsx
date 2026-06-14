@@ -19,6 +19,8 @@ import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Badge } from "@capawesome/capacitor-badge";
+import Privacy from "./pages/Privacy.jsx";
+import Support from "./pages/Support.jsx";
 
 const isAppleRelay = email => !!email?.includes('privaterelay.appleid.com');
 const safeDisplayName = u => u?.displayName || (!isAppleRelay(u?.email) ? u?.email : null) || 'Apple User';
@@ -2686,6 +2688,10 @@ Continue with Apple
 )}
 </>
 );
+
+const _pathname = window.location.pathname;
+if (_pathname === "/privacy") return <Privacy />;
+if (_pathname === "/support") return <Support />;
 
 return (
 <>
