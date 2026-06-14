@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-spa-routes.js",
     "preview": "vite preview",
     "icons": "capacitor-assets generate --iconBackgroundColor '#F7F5F2' --iconBackgroundColorDark '#1A1A1A' --splashBackgroundColor '#F7F5F2' --splashBackgroundColorDark '#1A1A1A'",
     "icons:ios": "capacitor-assets generate --ios --iconBackgroundColor '#F7F5F2' --iconBackgroundColorDark '#1A1A1A' --splashBackgroundColor '#F7F5F2' --splashBackgroundColorDark '#1A1A1A'",
