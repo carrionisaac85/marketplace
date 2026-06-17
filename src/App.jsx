@@ -836,6 +836,9 @@ a.support-row-val{color:#E84B2A}
 .support-faq-a{font-family:var(--fb);font-size:14px;color:var(--text2);line-height:1.5}
 .prof-danger-btn{width:100%;padding:14px;border-radius:14px;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;text-align:center;border:1px solid #fca5a5;background:var(--surface);color:var(--red);margin-bottom:10px;display:block;transition:background .15s}
 .prof-danger-btn:active{background:#fff5f5}
+.terms-check-row{display:flex;align-items:flex-start;gap:10px;margin:10px 0 4px;font-family:var(--fb);font-size:13px;color:var(--text2);line-height:1.4;cursor:pointer}
+.terms-check-row input[type=checkbox]{margin-top:2px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.terms-link{color:var(--accent);text-decoration:underline;background:none;border:none;padding:0;font:inherit;cursor:pointer}
 `;
 
 
@@ -4029,8 +4032,8 @@ return (
           <div className="auth-modal-title">Sign in to continue</div>
           {authModalReason&&<div className="auth-modal-reason">{authModalReason}</div>}
           <div className="auth-tabs" style={{marginBottom:16}}>
-            <button className={`auth-tab${authTab==="signin"?" active":""}`} onClick={()=>setAuthTab("signin")}>Sign In</button>
-            <button className={`auth-tab${authTab==="signup"?" active":""}`} onClick={()=>setAuthTab("signup")}>Sign Up</button>
+            <button className={`auth-tab${authTab==="signin"?" active":""}`} onClick={()=>{setAuthTab("signin");setAgreeTerms(false);setAuthErr("");}}>Sign In</button>
+            <button className={`auth-tab${authTab==="signup"?" active":""}`} onClick={()=>{setAuthTab("signup");setAuthErr("");}}>Sign Up</button>
           </div>
           {authTab==="signin"?(
             <>
@@ -4067,6 +4070,10 @@ return (
                   )}
                 </button>
               </div>
+              <label className="terms-check-row">
+                <input type="checkbox" checked={agreeTerms} onChange={e=>setAgreeTerms(e.target.checked)} />
+                <span>I agree to the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="terms-link">Privacy Policy</a> and <a href="https://www.want-board.com/terms" target="_blank" rel="noopener noreferrer" className="terms-link">Terms of Service</a></span>
+              </label>
               {authErr&&<div className="auth-err">{authErr}</div>}
               <button className="auth-btn" disabled={authBusy} onClick={()=>doAuth("signup")}>{authBusy?"Creating account…":"Create Account"}</button>
             </>
