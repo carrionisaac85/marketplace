@@ -30,6 +30,14 @@
                                 <string>com.wantboard.app</string>
                         </array>
                 </dict>
+                <dict>
+                        <key>CFBundleURLName</key>
+                        <string>GoogleSignIn</string>
+                        <key>CFBundleURLSchemes</key>
+                        <array>
+                                <string>com.googleusercontent.apps.445461567451-l624o1lvgm32o2ev74circibb1c8i8rj</string>
+                        </array>
+                </dict>
         </array>
         <key>LSRequiresIPhoneOS</key>
         <true/>
