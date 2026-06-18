@@ -75,30 +75,27 @@ workflows:
           # We read REVERSED_CLIENT_ID directly from the committed GoogleService-Info.plist
           # — no Codemagic env var needed.
           python3 - <<'PYEOF'
-import plistlib, sys
-
-gsi_path   = "ios/App/App/GoogleService-Info.plist"
-info_path  = "ios/App/App/Info.plist"
-
-with open(gsi_path, "rb") as f:
-    gsi = plistlib.load(f)
-reversed_id = gsi.get("REVERSED_CLIENT_ID", "")
-if not reversed_id:
-    print("ERROR: REVERSED_CLIENT_ID missing from GoogleService-Info.plist")
-    sys.exit(1)
-
-with open(info_path, "rb") as f:
-    plist = plistlib.load(f)
-url_types = plist.setdefault("CFBundleURLTypes", [])
-for entry in url_types:
-    if reversed_id in entry.get("CFBundleURLSchemes", []):
-        print(f"Already present: {reversed_id}")
-        sys.exit(0)
-url_types.append({"CFBundleURLName": "GoogleSignIn", "CFBundleURLSchemes": [reversed_id]})
-with open(info_path, "wb") as f:
-    plistlib.dump(plist, f, fmt=plistlib.FMT_XML)
-print(f"✔ Added REVERSED_CLIENT_ID URL scheme: {reversed_id}")
-PYEOF
+          import plistlib, sys
+          gsi_path  = "ios/App/App/GoogleService-Info.plist"
+          info_path = "ios/App/App/Info.plist"
+          with open(gsi_path, "rb") as f:
+              gsi = plistlib.load(f)
+          reversed_id = gsi.get("REVERSED_CLIENT_ID", "")
+          if not reversed_id:
+              print("ERROR: REVERSED_CLIENT_ID missing from GoogleService-Info.plist")
+              sys.exit(1)
+          with open(info_path, "rb") as f:
+              plist = plistlib.load(f)
+          url_types = plist.setdefault("CFBundleURLTypes", [])
+          for entry in url_types:
+              if reversed_id in entry.get("CFBundleURLSchemes", []):
+                  print("Already present: " + reversed_id)
+                  sys.exit(0)
+          url_types.append({"CFBundleURLName": "GoogleSignIn", "CFBundleURLSchemes": [reversed_id]})
+          with open(info_path, "wb") as f:
+              plistlib.dump(plist, f, fmt=plistlib.FMT_XML)
+          print("Added REVERSED_CLIENT_ID URL scheme: " + reversed_id)
+          PYEOF
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
