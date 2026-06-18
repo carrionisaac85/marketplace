@@ -68,6 +68,34 @@ workflows:
       - name: Sync web build into iOS project
         script: |
           npx cap sync ios
+      - name: Inject Google REVERSED_CLIENT_ID URL scheme into Info.plist
+        script: |
+          # GoogleSignIn 7.x requires the reversed OAuth client ID as a URL scheme
+          # in Info.plist so it can complete the sign-in redirect.
+          # Add VITE_GOOGLE_IOS_CLIENT_ID to the firebase_credentials group in Codemagic.
+          INFO_PLIST="ios/App/App/Info.plist"
+          if [ -z "${VITE_GOOGLE_IOS_CLIENT_ID:-}" ]; then
+            echo "WARNING: VITE_GOOGLE_IOS_CLIENT_ID not set — Google Sign-In redirect will not work on iOS."
+            exit 0
+          fi
+          python3 - <<'PYEOF'
+import plistlib, os, sys
+plist_path = "ios/App/App/Info.plist"
+client_id = os.environ.get("VITE_GOOGLE_IOS_CLIENT_ID", "")
+stripped = client_id.replace(".apps.googleusercontent.com", "")
+reversed_id = f"com.googleusercontent.apps.{stripped}"
+with open(plist_path, "rb") as f:
+    plist = plistlib.load(f)
+url_types = plist.setdefault("CFBundleURLTypes", [])
+for entry in url_types:
+    if reversed_id in entry.get("CFBundleURLSchemes", []):
+        print(f"Already present: {reversed_id}")
+        sys.exit(0)
+url_types.append({"CFBundleURLName": "GoogleSignIn", "CFBundleURLSchemes": [reversed_id]})
+with open(plist_path, "wb") as f:
+    plistlib.dump(plist, f, fmt=plistlib.FMT_XML)
+print(f"✔ Added REVERSED_CLIENT_ID URL scheme: {reversed_id}")
+PYEOF
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install
