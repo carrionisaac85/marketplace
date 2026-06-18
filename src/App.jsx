@@ -8,7 +8,7 @@ setDoc, getDocs, getDoc, limit, increment,
 import {
 initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, browserPopupRedirectResolver,
 createUserWithEmailAndPassword, signInWithEmailAndPassword,
-signOut, onAuthStateChanged, updateProfile, OAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect,
+signOut, onAuthStateChanged, updateProfile, OAuthProvider, GoogleAuthProvider, signInWithPopup, signInWithCredential, signInWithRedirect,
 sendPasswordResetEmail, deleteUser, getAdditionalUserInfo, getAuth,
 } from "firebase/auth";
 import {
@@ -17,6 +17,7 @@ getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject,
 import { getMessaging, getToken } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Badge } from "@capawesome/capacitor-badge";
 import Privacy from "./pages/Privacy.jsx";
@@ -1593,6 +1594,29 @@ try {
     ? null
     : "Apple sign-in failed. Please try again.";
   if (msg) setAuthErr(msg);
+  setAuthBusy(false);
+}
+};
+
+const signInWithGoogle = async () => {
+if (!Capacitor.isNativePlatform()) return;
+setAuthErr(""); setAuthBusy(true);
+try {
+  const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+  if (!result.credential?.idToken) { setAuthBusy(false); return; }
+  const credential = GoogleAuthProvider.credential(result.credential.idToken);
+  await signInWithCredential(auth, credential);
+} catch(e) {
+  console.log("[Auth] Google sign-in error:", e?.code, e?.message);
+  const cancelled =
+    e?.code === "auth/cancelled-popup-request" ||
+    e?.code === "auth/popup-closed-by-user" ||
+    e?.message?.includes("cancel") ||
+    e?.message?.includes("Cancel") ||
+    e?.message?.includes("12501") ||
+    e?.message?.includes("sign_in_cancelled");
+  if (!cancelled) setAuthErr("Google sign-in failed. Please try again.");
+} finally {
   setAuthBusy(false);
 }
 };
@@ -4079,6 +4103,12 @@ return (
             </>
           )}
           <button className="auth-btn" style={{background:"transparent",border:"1.5px solid #1c1c1e",color:"var(--text)",marginTop:4}} disabled={authBusy} onClick={signInWithApple}>{authBusy?"Signing in…":"🍎  Continue with Apple"}</button>
+          {Capacitor.isNativePlatform()&&(
+            <button className="auth-btn" style={{background:"#fff",border:"1.5px solid #dadce0",color:"#3c4043",marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:8}} disabled={authBusy} onClick={signInWithGoogle}>
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+              {authBusy?"Signing in…":"Continue with Google"}
+            </button>
+          )}
           <button className="auth-modal-guest" onClick={()=>setShowAuthModal(false)}>Continue browsing as guest →</button>
           <button className="auth-modal-close" onClick={()=>setShowAuthModal(false)}>✕</button>
         </div>
