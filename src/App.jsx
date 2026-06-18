@@ -1603,7 +1603,11 @@ setAuthErr(""); setAuthBusy(true);
 try {
   if (Capacitor.isNativePlatform()) {
     const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
-    if (!result.credential?.idToken) { setAuthBusy(false); return; }
+    if (!result.credential?.idToken) {
+      console.error("[Auth] Google sign-in returned no idToken. result:", JSON.stringify(result));
+      setAuthErr("Google sign-in failed — no token returned. Please try again.");
+      setAuthBusy(false); return;
+    }
     const credential = GoogleAuthProvider.credential(result.credential.idToken);
     await signInWithCredential(auth, credential);
   } else {
