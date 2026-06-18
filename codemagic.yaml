@@ -71,20 +71,23 @@ workflows:
       - name: Inject Google REVERSED_CLIENT_ID URL scheme into Info.plist
         script: |
           # GoogleSignIn 7.x requires the reversed OAuth client ID as a URL scheme
-          # in Info.plist so it can complete the sign-in redirect.
-          # Add VITE_GOOGLE_IOS_CLIENT_ID to the firebase_credentials group in Codemagic.
-          INFO_PLIST="ios/App/App/Info.plist"
-          if [ -z "${VITE_GOOGLE_IOS_CLIENT_ID:-}" ]; then
-            echo "WARNING: VITE_GOOGLE_IOS_CLIENT_ID not set — Google Sign-In redirect will not work on iOS."
-            exit 0
-          fi
+          # so it can complete the sign-in redirect after authentication.
+          # We read REVERSED_CLIENT_ID directly from the committed GoogleService-Info.plist
+          # — no Codemagic env var needed.
           python3 - <<'PYEOF'
-import plistlib, os, sys
-plist_path = "ios/App/App/Info.plist"
-client_id = os.environ.get("VITE_GOOGLE_IOS_CLIENT_ID", "")
-stripped = client_id.replace(".apps.googleusercontent.com", "")
-reversed_id = f"com.googleusercontent.apps.{stripped}"
-with open(plist_path, "rb") as f:
+import plistlib, sys
+
+gsi_path   = "ios/App/App/GoogleService-Info.plist"
+info_path  = "ios/App/App/Info.plist"
+
+with open(gsi_path, "rb") as f:
+    gsi = plistlib.load(f)
+reversed_id = gsi.get("REVERSED_CLIENT_ID", "")
+if not reversed_id:
+    print("ERROR: REVERSED_CLIENT_ID missing from GoogleService-Info.plist")
+    sys.exit(1)
+
+with open(info_path, "rb") as f:
     plist = plistlib.load(f)
 url_types = plist.setdefault("CFBundleURLTypes", [])
 for entry in url_types:
@@ -92,7 +95,7 @@ for entry in url_types:
         print(f"Already present: {reversed_id}")
         sys.exit(0)
 url_types.append({"CFBundleURLName": "GoogleSignIn", "CFBundleURLSchemes": [reversed_id]})
-with open(plist_path, "wb") as f:
+with open(info_path, "wb") as f:
     plistlib.dump(plist, f, fmt=plistlib.FMT_XML)
 print(f"✔ Added REVERSED_CLIENT_ID URL scheme: {reversed_id}")
 PYEOF
