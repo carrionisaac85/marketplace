@@ -1553,7 +1553,7 @@ try {
   if (Capacitor.isNativePlatform()) {
     const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
     const res = await SignInWithApple.authorize({
-      clientId: "com.wantboard.app",
+      clientId: Capacitor.getPlatform() === "ios" ? "com.wantboard.app" : "com.wantboard.web",
       redirectURI: "https://marketplace305.firebaseapp.com/__/auth/handler",
       scopes: "name email",
     });
