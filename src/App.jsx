@@ -1550,10 +1550,10 @@ setForgotBusy(false);
 const signInWithApple = async () => {
 setAuthErr(""); setAuthBusy(true);
 try {
-  if (Capacitor.isNativePlatform()) {
+  if (Capacitor.getPlatform() === "ios") {
     const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
     const res = await SignInWithApple.authorize({
-      clientId: Capacitor.getPlatform() === "ios" ? "com.wantboard.app" : "com.wantboard.web",
+      clientId: "com.wantboard.app",
       redirectURI: "https://marketplace305.firebaseapp.com/__/auth/handler",
       scopes: "name email",
     });
